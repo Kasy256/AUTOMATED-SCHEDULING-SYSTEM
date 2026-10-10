@@ -14,7 +14,7 @@ members = ["packages/engine"]
 cartlyf-engine = { workspace = true }
 
 [dependency-groups]
-dev = ["ruff", "pyright", "pytest", "hypothesis"]
+dev = ["ruff", "pyright", "pytest", "hypothesis", "import-linter"]
 
 [tool.ruff]
 target-version = "py312"
@@ -36,3 +36,13 @@ venv = ".venv"
 testpaths = ["packages/engine/tests"]
 addopts = "--import-mode=importlib"
 markers = ["integration: needs Docker (Testcontainers)"]
+
+[tool.importlinter]
+root_packages = ["cartlyf_engine"]
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "Engine is pure: no API, DB, web or queue imports"
+type = "forbidden"
+source_modules = ["cartlyf_engine"]
+forbidden_modules = ["cartlyf_api", "sqlalchemy", "fastapi", "redis", "dramatiq"]
