@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     database_url: PostgresDsn
     redis_url: RedisDsn
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
+    db_timeout_seconds: float = 5
 
 
 def load_settings(env_file: str | None = ".env") -> Settings:
