@@ -5,10 +5,27 @@ import structlog
 from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
+from pydantic import BaseModel
 from starlette.exceptions import HTTPException
 
 PROBLEM_JSON = "application/problem+json"
 log = structlog.get_logger()
+
+
+class Problem(BaseModel):
+    """RFC 9457 problem details, for documenting error responses in OpenAPI."""
+
+    type: str = "about:blank"
+    title: str
+    status: int
+    detail: str | None = None
+
+
+def problem_response(description: str) -> dict[str, object]:
+    return {
+        "description": description,
+        "content": {PROBLEM_JSON: {"schema": Problem.model_json_schema()}},
+    }
 
 
 def problem(

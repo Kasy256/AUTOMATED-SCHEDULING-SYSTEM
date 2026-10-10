@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine
 
-from cartlyf_api.errors import problem
+from cartlyf_api.errors import problem, problem_response
 from cartlyf_api.health.repository import fetch_db_role
 from cartlyf_api.health.schemas import HealthResponse
 
@@ -15,7 +15,7 @@ log = structlog.get_logger()
 @router.get(
     "/health",
     response_model=HealthResponse,
-    responses={503: {"description": "Database unavailable or unsafe database role"}},
+    responses={503: problem_response("Database unavailable or unsafe database role")},
 )
 async def health(request: Request) -> HealthResponse | JSONResponse:
     engine: AsyncEngine = request.app.state.db_engine
