@@ -119,6 +119,13 @@ async def replace_activity(
     if errors := start_errors(body.candidate_starts, schedule.horizon()):
         raise Unprocessable(errors)
     draft = draft_of(body)
+    pin = await repo.get_pin(session, org, activity_id)
+    roles = {r.role for r in body.requirements}
+    if pin is not None and (
+        (pin.start_at is not None and pin.start_at.astimezone(UTC) not in draft.candidate_starts)
+        or not set(pin.resources) <= roles
+    ):
+        raise Conflict("The activity is pinned; change or remove the pin first")
     await repo.update_activity(
         session,
         org,

@@ -3,12 +3,14 @@ from uuid import UUID
 
 from fastapi import APIRouter, Response
 
-from cartlyf_api.activities import activities, demands
+from cartlyf_api.activities import activities, demands, pins
 from cartlyf_api.activities.schemas import (
     ActivityResponse,
     ActivityWrite,
     DemandResponse,
     DemandWrite,
+    PinResponse,
+    PinWrite,
 )
 from cartlyf_api.auth.dependencies import CurrentPrincipal
 from cartlyf_api.errors import problem_response
@@ -105,4 +107,34 @@ async def delete_activity(
     schedule_id: UUID, activity_id: UUID, session: DbSession, principal: CurrentPrincipal
 ) -> Response:
     await activities.delete_activity(session, principal, schedule_id, activity_id)
+    return Response(status_code=204)
+
+
+_PINS = "/schedules/{schedule_id}/pins"
+_PIN = _PINS + "/{activity_id}"
+
+
+@router.get(_PINS, response_model=list[PinResponse], responses=_ONE)
+async def list_pins(
+    schedule_id: UUID, session: DbSession, principal: CurrentPrincipal
+) -> list[PinResponse]:
+    return await pins.list_pins(session, principal, schedule_id)
+
+
+@router.put(_PIN, response_model=PinResponse, responses=_WRITE)
+async def put_pin(
+    schedule_id: UUID,
+    activity_id: UUID,
+    body: PinWrite,
+    session: DbSession,
+    principal: CurrentPrincipal,
+) -> PinResponse:
+    return await pins.put_pin(session, principal, schedule_id, activity_id, body)
+
+
+@router.delete(_PIN, status_code=204, responses=_WRITE)
+async def delete_pin(
+    schedule_id: UUID, activity_id: UUID, session: DbSession, principal: CurrentPrincipal
+) -> Response:
+    await pins.delete_pin(session, principal, schedule_id, activity_id)
     return Response(status_code=204)

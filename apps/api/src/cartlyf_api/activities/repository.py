@@ -3,6 +3,7 @@ from datetime import datetime
 from uuid import UUID, uuid4
 
 from sqlalchemy import delete, func, insert, select, update
+from sqlalchemy.dialects.postgresql import insert as pg_insert
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from cartlyf_api.activities.expansion import ActivityDraft
@@ -277,3 +278,51 @@ async def delete_activity(session: AsyncSession, org: UUID, activity_id: UUID) -
     await session.execute(
         delete(Activity).where(Activity.organisation_id == org, Activity.id == activity_id)
     )
+
+
+async def upsert_pin(
+    session: AsyncSession,
+    org: UUID,
+    schedule_id: UUID,
+    activity_id: UUID,
+    start_at: datetime | None,
+    resources: Mapping[str, list[str]],
+) -> None:
+    statement = pg_insert(Pin).values(
+        id=uuid4(),
+        organisation_id=org,
+        schedule_id=schedule_id,
+        activity_id=activity_id,
+        start_at=start_at,
+        resources=dict(resources),
+    )
+    await session.execute(
+        statement.on_conflict_do_update(
+            constraint="pin_org_activity_key",
+            set_={"start_at": start_at, "resources": dict(resources), "updated_at": func.now()},
+        )
+    )
+
+
+async def pins_for(session: AsyncSession, org: UUID, schedule_id: UUID) -> dict[UUID, Pin]:
+    rows = await session.scalars(
+        select(Pin)
+        .where(Pin.organisation_id == org, Pin.schedule_id == schedule_id)
+        .order_by(Pin.activity_id)
+    )
+    return {row.activity_id: row for row in rows}
+
+
+async def get_pin(session: AsyncSession, org: UUID, activity_id: UUID) -> Pin | None:
+    return await session.scalar(
+        select(Pin).where(Pin.organisation_id == org, Pin.activity_id == activity_id)
+    )
+
+
+async def delete_pin(session: AsyncSession, org: UUID, activity_id: UUID) -> bool:
+    deleted = await session.scalars(
+        delete(Pin)
+        .where(Pin.organisation_id == org, Pin.activity_id == activity_id)
+        .returning(Pin.id)
+    )
+    return deleted.first() is not None

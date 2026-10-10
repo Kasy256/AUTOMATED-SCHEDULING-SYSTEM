@@ -175,3 +175,28 @@ class ActivityResponse(BaseModel):
     candidate_starts: list[datetime]
     requirements: list[RequirementSpec]
     attrs: ActivityAttrs
+
+
+class PinWrite(BaseModel):
+    """Lock an activity's start and/or some of its resources for future solves."""
+
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "examples": [
+                {
+                    "start_at": "2027-01-11T09:00:00+03:00",
+                    "resources": {"lecturer": [example_id("resource_id")]},
+                }
+            ]
+        },
+    )
+
+    start_at: AwareDatetime | None = None
+    resources: dict[Key, list[UUID]] = Field(default_factory=dict[str, list[UUID]])
+
+
+class PinResponse(BaseModel):
+    activity_id: UUID
+    start_at: datetime | None
+    resources: dict[str, list[UUID]]
