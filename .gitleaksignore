@@ -1,5 +1,5 @@
-# Legacy ISBAT history only. These keys/tokens are rotated or dead (confirmed by the repo owner);
-# history is not rewritten. Any new finding still fails CI.
+# Legacy ISBAT history only; history is not rewritten. The repo owner rotates/revokes these
+# credentials before merge (see the Phase 00 note). Any new finding still fails CI.
 6176cb109662e0740ed2d77fa3e20709efacc055:ISBAT-TIMETABLE-FRONTEND/firebaseConfig.js:gcp-api-key:10
 0b78c56f9f1020b35f3882331bbe96cc96aa9d79:timetable-scheduler/README.md:generic-api-key:126
 0b78c56f9f1020b35f3882331bbe96cc96aa9d79:timetable-scheduler/README.md:generic-api-key:127
