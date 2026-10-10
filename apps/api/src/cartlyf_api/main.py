@@ -11,6 +11,7 @@ from cartlyf_api.db import create_db_engine
 from cartlyf_api.email.provider import ConsoleEmailProvider
 from cartlyf_api.errors import install_error_handlers
 from cartlyf_api.health.router import router as health_router
+from cartlyf_api.imports.router import router as imports_router
 from cartlyf_api.log_config import configure_logging
 from cartlyf_api.orgs.router import router as orgs_router
 from cartlyf_api.platform.router import router as platform_router
@@ -57,4 +58,5 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(activities_router, prefix="/api/v1")
     app.include_router(constraints_router, prefix="/api/v1")
     app.include_router(problems_router, prefix="/api/v1")
+    app.include_router(imports_router, prefix="/api/v1")
     return app

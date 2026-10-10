@@ -445,6 +445,16 @@ def seed_config(client: TestClient, admin: Account) -> dict[str, str]:
             "hard": True,
         },
     )
+    ids["import_id"] = post(
+        "/api/v1/imports",
+        {"kind": "resources", "resource_type_id": ids["resource_type_id"], "filename": "seed.csv"},
+    )
+    uploaded = client.put(
+        f"/api/v1/imports/{ids['import_id']}/file",
+        headers=admin.auth | {"Content-Type": "text/csv"},
+        content=b"Code,Name\nIMP-SEED,Imported seed\n",
+    )
+    assert uploaded.status_code == 200, uploaded.text
     return ids
 
 
