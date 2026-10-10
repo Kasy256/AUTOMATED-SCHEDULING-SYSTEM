@@ -2,19 +2,28 @@
 name = "cartlyf"
 version = "0.0.0"
 requires-python = ">=3.12,<3.13"
-dependencies = ["cartlyf-engine"]
+dependencies = ["cartlyf-engine", "cartlyf-api"]
 
 [tool.uv]
 package = false
 
 [tool.uv.workspace]
-members = ["packages/engine"]
+members = ["packages/engine", "apps/api"]
 
 [tool.uv.sources]
 cartlyf-engine = { workspace = true }
+cartlyf-api = { workspace = true }
 
 [dependency-groups]
-dev = ["ruff", "pyright", "pytest", "hypothesis", "import-linter"]
+dev = [
+  "ruff",
+  "pyright",
+  "pytest",
+  "hypothesis",
+  "import-linter",
+  "httpx2",
+  "testcontainers[postgres,redis]",
+]
 
 [tool.ruff]
 target-version = "py312"
@@ -24,8 +33,12 @@ extend-exclude = ["ISBAT-TIMETABLE-BACKEND", "ISBAT-TIMETABLE-FRONTEND", "apps/w
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "ASYNC"]
 
+[tool.ruff.lint.isort]
+known-first-party = ["cartlyf_engine", "cartlyf_api", "support"]
+
 [tool.pyright]
-include = ["packages/engine"]
+include = ["packages/engine", "apps/api"]
+extraPaths = ["apps/api/tests"]
 exclude = ["**/.venv", "**/__pycache__"]
 typeCheckingMode = "strict"
 pythonVersion = "3.12"
@@ -33,12 +46,13 @@ venvPath = "."
 venv = ".venv"
 
 [tool.pytest.ini_options]
-testpaths = ["packages/engine/tests"]
+testpaths = ["packages/engine/tests", "apps/api/tests"]
+pythonpath = ["apps/api/tests"]
 addopts = "--import-mode=importlib"
 markers = ["integration: needs Docker (Testcontainers)"]
 
 [tool.importlinter]
-root_packages = ["cartlyf_engine"]
+root_packages = ["cartlyf_engine", "cartlyf_api"]
 include_external_packages = true
 
 [[tool.importlinter.contracts]]
