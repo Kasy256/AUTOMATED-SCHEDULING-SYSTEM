@@ -56,3 +56,12 @@ full_gen.log
 full_gen2.log
 new_timetable_test.log
 
+
+# Local-only planning docs and AI tooling (never pushed)
+AGENTS.md
+CLAUDE.md
+CODING_STANDARDS.md
+docs/
+build_prompts/
+.claude/
+skills-lock.json
