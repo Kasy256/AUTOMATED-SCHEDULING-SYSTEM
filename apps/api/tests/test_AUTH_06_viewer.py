@@ -10,9 +10,12 @@ MUTATING = {"POST", "PUT", "PATCH", "DELETE"}
 SELF_SERVICE_PREFIX = "/api/v1/auth/"
 # Configuration routes: members (scheduled people) may not read them.
 CONFIG_PREFIXES = (
-    "/api/v1/resource-types", "/api/v1/resources", "/api/v1/schedules",
-    "/api/v1/constraint-templates", "/api/v1/imports",
-)  # fmt: skip
+    "/api/v1/resource-types",
+    "/api/v1/resources",
+    "/api/v1/schedules",
+    "/api/v1/constraint-templates",
+    "/api/v1/imports",
+)
 
 
 def test_AUTH_06_viewer_cannot_mutate_anything(client: TestClient, app: FastAPI) -> None:
@@ -38,8 +41,11 @@ def test_AUTH_06_member_cannot_read_member_directory(client: TestClient, app: Fa
 
 def test_AUTH_06_member_cannot_read_configuration(client: TestClient, app: FastAPI) -> None:
     world = build_world(client, app)
-    reads = [op for op in openapi_operations(app)
-             if op.method == "GET" and op.path.startswith(CONFIG_PREFIXES)]  # fmt: skip
+    reads = [
+        op
+        for op in openapi_operations(app)
+        if op.method == "GET" and op.path.startswith(CONFIG_PREFIXES)
+    ]
     assert reads
     for op in reads:
         response = client.get(url_for(op, world.a_ids), headers=world.a_member.auth)

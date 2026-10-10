@@ -1,10 +1,21 @@
-from typing import Annotated
+from typing import Annotated, Self
 from uuid import UUID
 
-from pydantic import AfterValidator, BaseModel, ConfigDict, Field, JsonValue, PositiveInt
+from pydantic import (
+    AfterValidator,
+    AwareDatetime,
+    BaseModel,
+    ConfigDict,
+    Field,
+    JsonValue,
+    PositiveInt,
+    StringConstraints,
+    model_validator,
+)
 
 from cartlyf_api.examples import example_id
 from cartlyf_api.resources.attribute_schema import AttributeSchema
+from cartlyf_api.resources.calendar import AvailabilityKind
 from cartlyf_api.types import Code, Name
 from cartlyf_engine.domain import Key, ResourceKind, Tag
 
@@ -29,14 +40,17 @@ class ResourceTypeCreate(BaseModel):
                     "attribute_schema": {
                         "version": 1,
                         "attributes": [
-                            {"key": "employment", "type": "enum",
-                             "enum_values": ["full_time", "part_time"]},
+                            {
+                                "key": "employment",
+                                "type": "enum",
+                                "enum_values": ["full_time", "part_time"],
+                            },
                         ],
                     },
                 }
             ]
         },
-    )  # fmt: skip
+    )
 
     key: Key
     name: Name
@@ -113,3 +127,67 @@ class ResourceResponse(BaseModel):
     capacity: int | None
     size: int | None
     concurrency: int
+
+
+WeekdayNumber = Annotated[int, Field(ge=0, le=6, description="0 = Monday")]
+DayMinute = Annotated[int, Field(ge=0, le=1439)]
+EndMinute = Annotated[int, Field(ge=1, le=1440)]
+
+
+class AvailabilityRuleCreate(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "examples": [
+                {"kind": "unavailable", "weekday": 0, "start_minute": 480, "end_minute": 600}
+            ]
+        },
+    )
+
+    kind: AvailabilityKind
+    weekday: WeekdayNumber
+    start_minute: DayMinute
+    end_minute: EndMinute
+
+    @model_validator(mode="after")
+    def _ordered(self) -> Self:
+        if self.end_minute <= self.start_minute:
+            raise ValueError("end_minute must be after start_minute")
+        return self
+
+
+class AvailabilityRuleResponse(AvailabilityRuleCreate):
+    id: UUID
+    resource_id: UUID
+
+
+class AvailabilityExceptionCreate(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "examples": [
+                {
+                    "kind": "unavailable",
+                    "starts_at": "2027-12-25T00:00:00+03:00",
+                    "ends_at": "2027-12-26T00:00:00+03:00",
+                    "reason": "Public holiday",
+                }
+            ]
+        },
+    )
+
+    kind: AvailabilityKind
+    starts_at: AwareDatetime
+    ends_at: AwareDatetime
+    reason: Annotated[str, StringConstraints(max_length=500)] | None = None
+
+    @model_validator(mode="after")
+    def _ordered(self) -> Self:
+        if self.ends_at <= self.starts_at:
+            raise ValueError("ends_at must be after starts_at")
+        return self
+
+
+class AvailabilityExceptionResponse(AvailabilityExceptionCreate):
+    id: UUID
+    resource_id: UUID

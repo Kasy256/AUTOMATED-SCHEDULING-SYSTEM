@@ -23,9 +23,21 @@ from cartlyf_engine.templates import (
 from cartlyf_engine.templates.spec import TemplateSpec
 
 _MODULES = (
-    capacity_fit, max_load, min_load, min_rest, max_consecutive, spread, same_time,
-    precedence, preference, minimize_gaps, balance, fairness, day_distribution, stability,
-)  # fmt: skip
+    capacity_fit,
+    max_load,
+    min_load,
+    min_rest,
+    max_consecutive,
+    spread,
+    same_time,
+    precedence,
+    preference,
+    minimize_gaps,
+    balance,
+    fairness,
+    day_distribution,
+    stability,
+)
 REGISTRY: Mapping[tuple[str, int], TemplateSpec] = MappingProxyType(
     {(m.SPEC.key, m.SPEC.version): m.SPEC for m in _MODULES}
 )

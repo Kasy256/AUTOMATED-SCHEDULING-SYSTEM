@@ -5,8 +5,12 @@ from fastapi import APIRouter, Response
 
 from cartlyf_api.auth.dependencies import CurrentPrincipal
 from cartlyf_api.errors import problem_response
-from cartlyf_api.resources import service
+from cartlyf_api.resources import availability, service
 from cartlyf_api.resources.schemas import (
+    AvailabilityExceptionCreate,
+    AvailabilityExceptionResponse,
+    AvailabilityRuleCreate,
+    AvailabilityRuleResponse,
     ResourceCreate,
     ResourceResponse,
     ResourceTypeCreate,
@@ -102,4 +106,63 @@ async def delete_resource(
     resource_id: UUID, session: DbSession, principal: CurrentPrincipal
 ) -> Response:
     await service.delete_resource(session, principal, resource_id)
+    return Response(status_code=204)
+
+
+_RULES = "/resources/{resource_id}/availability-rules"
+_EXCEPTIONS = "/resources/{resource_id}/availability-exceptions"
+
+
+@router.get(_RULES, response_model=list[AvailabilityRuleResponse], responses=_ONE)
+async def list_availability_rules(
+    resource_id: UUID, session: DbSession, principal: CurrentPrincipal
+) -> list[AvailabilityRuleResponse]:
+    return await availability.list_rules(session, principal, resource_id)
+
+
+@router.post(_RULES, status_code=201, response_model=AvailabilityRuleResponse, responses=_WRITE)
+async def create_availability_rule(
+    resource_id: UUID,
+    body: AvailabilityRuleCreate,
+    session: DbSession,
+    principal: CurrentPrincipal,
+) -> AvailabilityRuleResponse:
+    return await availability.add_rule(session, principal, resource_id, body)
+
+
+@router.delete(_RULES + "/{availability_rule_id}", status_code=204, responses=_WRITE)
+async def delete_availability_rule(
+    resource_id: UUID, availability_rule_id: UUID, session: DbSession, principal: CurrentPrincipal
+) -> Response:
+    await availability.delete_rule(session, principal, resource_id, availability_rule_id)
+    return Response(status_code=204)
+
+
+@router.get(_EXCEPTIONS, response_model=list[AvailabilityExceptionResponse], responses=_ONE)
+async def list_availability_exceptions(
+    resource_id: UUID, session: DbSession, principal: CurrentPrincipal
+) -> list[AvailabilityExceptionResponse]:
+    return await availability.list_exceptions(session, principal, resource_id)
+
+
+@router.post(
+    _EXCEPTIONS, status_code=201, response_model=AvailabilityExceptionResponse, responses=_WRITE
+)
+async def create_availability_exception(
+    resource_id: UUID,
+    body: AvailabilityExceptionCreate,
+    session: DbSession,
+    principal: CurrentPrincipal,
+) -> AvailabilityExceptionResponse:
+    return await availability.add_exception(session, principal, resource_id, body)
+
+
+@router.delete(_EXCEPTIONS + "/{availability_exception_id}", status_code=204, responses=_WRITE)
+async def delete_availability_exception(
+    resource_id: UUID,
+    availability_exception_id: UUID,
+    session: DbSession,
+    principal: CurrentPrincipal,
+) -> Response:
+    await availability.delete_exception(session, principal, resource_id, availability_exception_id)
     return Response(status_code=204)

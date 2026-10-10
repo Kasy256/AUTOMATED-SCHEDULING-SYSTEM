@@ -119,9 +119,13 @@ async def update_type(
     if values:
         await repo.update_type(session, org, type_id, values)
         await record_change(
-            session, principal, "resource_type.updated", "resource_type", type_id,
+            session,
+            principal,
+            "resource_type.updated",
+            "resource_type",
+            type_id,
             {"fields": sorted(values)},
-        )  # fmt: skip
+        )
     return type_response(await _live_type(session, principal, type_id))
 
 
@@ -181,9 +185,10 @@ async def update_resource(
     current = await _live_resource(session, principal, resource_id)
     changes = body.model_dump(exclude_unset=True)
     errors = [
-        field_error(("body", name), "may not be null") for name in _NOT_NULLABLE
+        field_error(("body", name), "may not be null")
+        for name in _NOT_NULLABLE
         if name in changes and changes[name] is None
-    ]  # fmt: skip
+    ]
     if errors:
         raise Unprocessable(errors)
     merged = resource_response(current).model_copy(update=changes)
@@ -198,9 +203,13 @@ async def update_resource(
     if changes:
         await repo.update_resource(session, org, resource_id, changes)
         await record_change(
-            session, principal, "resource.updated", "resource", resource_id,
+            session,
+            principal,
+            "resource.updated",
+            "resource",
+            resource_id,
             {"fields": sorted(changes)},
-        )  # fmt: skip
+        )
     return merged
 
 

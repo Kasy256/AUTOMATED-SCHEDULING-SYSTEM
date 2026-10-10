@@ -30,8 +30,14 @@ def errors(values: Mapping[str, object]) -> dict[str | int, str]:
 
 
 def test_DOM_01_valid_values_pass() -> None:
-    values = {"room_type": "lab", "floor": 2, "area": 40.5, "accessible": False,
-              "label": "Chem", "features": ["fume_hood", "sink"]}  # fmt: skip
+    values = {
+        "room_type": "lab",
+        "floor": 2,
+        "area": 40.5,
+        "accessible": False,
+        "label": "Chem",
+        "features": ["fume_hood", "sink"],
+    }
     assert errors(values) == {}
 
 

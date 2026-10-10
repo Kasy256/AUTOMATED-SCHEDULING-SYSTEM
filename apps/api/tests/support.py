@@ -343,15 +343,41 @@ def seed_config(client: TestClient, admin: Account) -> dict[str, str]:
     ids: dict[str, str] = {}
     ids["resource_type_id"] = post(
         "/api/v1/resource-types",
-        {"key": "lecturer", "name": "Lecturer", "kind": "person",
-         "attribute_schema": {"version": 1, "attributes": [
-             {"key": "employment", "type": "enum", "enum_values": ["full_time", "part_time"]}]}},
-    )  # fmt: skip
+        {
+            "key": "lecturer",
+            "name": "Lecturer",
+            "kind": "person",
+            "attribute_schema": {
+                "version": 1,
+                "attributes": [
+                    {"key": "employment", "type": "enum", "enum_values": ["full_time", "part_time"]}
+                ],
+            },
+        },
+    )
     ids["resource_id"] = post(
         "/api/v1/resources",
-        {"resource_type_id": ids["resource_type_id"], "code": "LEC-001", "name": "Seed lecturer",
-         "tags": ["math101"], "attributes": {"employment": "full_time"}},
-    )  # fmt: skip
+        {
+            "resource_type_id": ids["resource_type_id"],
+            "code": "LEC-001",
+            "name": "Seed lecturer",
+            "tags": ["math101"],
+            "attributes": {"employment": "full_time"},
+        },
+    )
+    resource_base = f"/api/v1/resources/{ids['resource_id']}"
+    ids["availability_rule_id"] = post(
+        f"{resource_base}/availability-rules",
+        {"kind": "available", "weekday": 0, "start_minute": 480, "end_minute": 1020},
+    )
+    ids["availability_exception_id"] = post(
+        f"{resource_base}/availability-exceptions",
+        {
+            "kind": "unavailable",
+            "starts_at": "2027-01-12T08:00:00+03:00",
+            "ends_at": "2027-01-12T10:00:00+03:00",
+        },
+    )
     return ids
 
 

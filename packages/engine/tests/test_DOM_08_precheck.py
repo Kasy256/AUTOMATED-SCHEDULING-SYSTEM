@@ -66,8 +66,13 @@ def test_DOM_08_concurrency_multiplies_supply() -> None:
 
 
 def test_DOM_08_fixed_resource_overloaded_and_mismatched() -> None:
-    group: dict[str, object] = {"id": "g1", "type_key": "group", "kind": "group", "size": 40,
-             "unavailable": [{"start": 60, "end": DAY}]}  # fmt: skip
+    group: dict[str, object] = {
+        "id": "g1",
+        "type_key": "group",
+        "kind": "group",
+        "size": 40,
+        "unavailable": [{"start": 60, "end": DAY}],
+    }
     activities = [
         needs("a1", "group", duration=60, fixed_resource_ids=["g1"]),
         needs("a2", "group", duration=60, fixed_resource_ids=["g1"]),

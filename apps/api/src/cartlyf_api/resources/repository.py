@@ -1,10 +1,15 @@
 from collections.abc import Collection, Mapping, Sequence
 from uuid import UUID
 
-from sqlalchemy import exists, func, insert, select, text, update
+from sqlalchemy import delete, exists, func, insert, select, text, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from cartlyf_api.resources.models import Resource, ResourceType
+from cartlyf_api.resources.models import (
+    AvailabilityException,
+    AvailabilityRule,
+    Resource,
+    ResourceType,
+)
 
 
 async def insert_type(session: AsyncSession, values: Mapping[str, object]) -> None:
@@ -155,3 +160,72 @@ async def missing_resource_ids(
         )
     )
     return set(ids) - set(found)
+
+
+async def insert_rule(session: AsyncSession, values: Mapping[str, object]) -> None:
+    await session.execute(insert(AvailabilityRule).values(**values))
+
+
+async def insert_exception(session: AsyncSession, values: Mapping[str, object]) -> None:
+    await session.execute(insert(AvailabilityException).values(**values))
+
+
+async def rules_for(
+    session: AsyncSession, org: UUID, resource_ids: Collection[UUID]
+) -> dict[UUID, list[AvailabilityRule]]:
+    rows = await session.scalars(
+        select(AvailabilityRule)
+        .where(
+            AvailabilityRule.organisation_id == org, AvailabilityRule.resource_id.in_(resource_ids)
+        )
+        .order_by(AvailabilityRule.weekday, AvailabilityRule.start_minute, AvailabilityRule.id)
+    )
+    grouped: dict[UUID, list[AvailabilityRule]] = {}
+    for row in rows:
+        grouped.setdefault(row.resource_id, []).append(row)
+    return grouped
+
+
+async def exceptions_for(
+    session: AsyncSession, org: UUID, resource_ids: Collection[UUID]
+) -> dict[UUID, list[AvailabilityException]]:
+    rows = await session.scalars(
+        select(AvailabilityException)
+        .where(
+            AvailabilityException.organisation_id == org,
+            AvailabilityException.resource_id.in_(resource_ids),
+        )
+        .order_by(AvailabilityException.starts_at, AvailabilityException.id)
+    )
+    grouped: dict[UUID, list[AvailabilityException]] = {}
+    for row in rows:
+        grouped.setdefault(row.resource_id, []).append(row)
+    return grouped
+
+
+async def delete_rule(session: AsyncSession, org: UUID, resource_id: UUID, rule_id: UUID) -> bool:
+    deleted = await session.scalars(
+        delete(AvailabilityRule)
+        .where(
+            AvailabilityRule.organisation_id == org,
+            AvailabilityRule.resource_id == resource_id,
+            AvailabilityRule.id == rule_id,
+        )
+        .returning(AvailabilityRule.id)
+    )
+    return deleted.first() is not None
+
+
+async def delete_exception(
+    session: AsyncSession, org: UUID, resource_id: UUID, exception_id: UUID
+) -> bool:
+    deleted = await session.scalars(
+        delete(AvailabilityException)
+        .where(
+            AvailabilityException.organisation_id == org,
+            AvailabilityException.resource_id == resource_id,
+            AvailabilityException.id == exception_id,
+        )
+        .returning(AvailabilityException.id)
+    )
+    return deleted.first() is not None

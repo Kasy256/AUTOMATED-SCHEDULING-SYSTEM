@@ -29,8 +29,13 @@ def make_type(client: TestClient, admin: Account, **overrides: object) -> dict[s
 def make_resource(
     client: TestClient, admin: Account, type_id: str, **overrides: object
 ) -> dict[str, Any]:
-    body = {"resource_type_id": type_id, "code": "LT1", "name": "Lecture Theatre 1",
-            "capacity": 120, "attributes": {"room_type": "lecture"}}  # fmt: skip
+    body = {
+        "resource_type_id": type_id,
+        "code": "LT1",
+        "name": "Lecture Theatre 1",
+        "capacity": 120,
+        "attributes": {"room_type": "lecture"},
+    }
     response = client.post("/api/v1/resources", headers=admin.auth, json=body | overrides)
     assert response.status_code == 201, response.text
     return response.json()
@@ -96,8 +101,13 @@ def test_DOM_01_schema_change_must_fit_existing_resources(client: TestClient, ap
     admin = signup_and_confirm(client, app)
     rtype = make_type(client, admin)
     make_resource(client, admin, rtype["id"])
-    stricter = {"version": 1, "attributes": [*ROOM_SCHEMA["attributes"],
-                {"key": "wing", "type": "string", "required": True}]}  # fmt: skip
+    stricter = {
+        "version": 1,
+        "attributes": [
+            *ROOM_SCHEMA["attributes"],
+            {"key": "wing", "type": "string", "required": True},
+        ],
+    }
     url = f"/api/v1/resource-types/{rtype['id']}"
     response = client.patch(url, headers=admin.auth, json={"attribute_schema": stricter})
     assert response.status_code == 409
@@ -144,5 +154,8 @@ def test_type_in_use_cannot_be_deleted(
         f"'{admin.organisation_id}' AND target_type IN ('resource', 'resource_type') ORDER BY id",
     )
     assert [a[0] for a in actions] == [
-        "resource_type.created", "resource.created", "resource.deleted", "resource_type.deleted",
-    ]  # fmt: skip
+        "resource_type.created",
+        "resource.created",
+        "resource.deleted",
+        "resource_type.deleted",
+    ]

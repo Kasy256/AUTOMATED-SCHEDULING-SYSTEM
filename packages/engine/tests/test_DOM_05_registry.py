@@ -11,10 +11,21 @@ from cartlyf_engine.templates.registry import (
 )
 
 V1_KEYS = {
-    "capacity_fit", "max_load", "min_load", "min_rest", "max_consecutive", "spread",
-    "same_time", "precedence", "preference", "minimize_gaps", "balance", "fairness",
-    "day_distribution", "stability",
-}  # fmt: skip
+    "capacity_fit",
+    "max_load",
+    "min_load",
+    "min_rest",
+    "max_consecutive",
+    "spread",
+    "same_time",
+    "precedence",
+    "preference",
+    "minimize_gaps",
+    "balance",
+    "fairness",
+    "day_distribution",
+    "stability",
+}
 SOFT_ONLY = {"preference", "minimize_gaps", "balance", "fairness", "day_distribution", "stability"}
 
 
