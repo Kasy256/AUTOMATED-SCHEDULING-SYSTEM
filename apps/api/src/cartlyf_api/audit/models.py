@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import BigInteger, ForeignKey, Identity, func, text
+from sqlalchemy import BigInteger, Identity, func, text
 from sqlalchemy.dialects.postgresql import JSONB
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -12,8 +12,8 @@ class AuditLog(Base):
     __tablename__ = "audit_log"
 
     id: Mapped[int] = mapped_column(BigInteger, Identity(), primary_key=True)
-    organisation_id: Mapped[UUID] = mapped_column(ForeignKey("organisation.id"))
-    actor_user_id: Mapped[UUID | None] = mapped_column(ForeignKey("app_user.id"))
+    organisation_id: Mapped[UUID]
+    actor_user_id: Mapped[UUID | None]
     action: Mapped[str]
     target_type: Mapped[str | None]
     target_id: Mapped[UUID | None]

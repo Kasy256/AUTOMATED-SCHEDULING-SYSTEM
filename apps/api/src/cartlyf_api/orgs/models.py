@@ -1,7 +1,7 @@
 from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import ForeignKey, func
+from sqlalchemy import func
 from sqlalchemy.orm import Mapped, mapped_column
 
 from cartlyf_api.db import Base
@@ -21,8 +21,8 @@ class Membership(Base):
     __tablename__ = "membership"
 
     id: Mapped[UUID] = mapped_column(primary_key=True)
-    organisation_id: Mapped[UUID] = mapped_column(ForeignKey("organisation.id"))
-    user_id: Mapped[UUID] = mapped_column(ForeignKey("app_user.id"))
+    organisation_id: Mapped[UUID]
+    user_id: Mapped[UUID]
     status: Mapped[str]
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     deleted_at: Mapped[datetime | None]
