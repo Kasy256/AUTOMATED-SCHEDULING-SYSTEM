@@ -14,6 +14,7 @@ from cartlyf_api.health.router import router as health_router
 from cartlyf_api.log_config import configure_logging
 from cartlyf_api.orgs.router import router as orgs_router
 from cartlyf_api.platform.router import router as platform_router
+from cartlyf_api.problems.router import router as problems_router
 from cartlyf_api.redis_client import connect_redis
 from cartlyf_api.resources.router import router as resources_router
 from cartlyf_api.schedules.router import router as schedules_router
@@ -55,4 +56,5 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(schedules_router, prefix="/api/v1")
     app.include_router(activities_router, prefix="/api/v1")
     app.include_router(constraints_router, prefix="/api/v1")
+    app.include_router(problems_router, prefix="/api/v1")
     return app
