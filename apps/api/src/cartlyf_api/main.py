@@ -6,6 +6,7 @@ from fastapi.routing import APIRoute
 
 from cartlyf_api.db import create_db_engine
 from cartlyf_api.errors import install_error_handlers
+from cartlyf_api.health.router import router as health_router
 from cartlyf_api.log_config import configure_logging
 from cartlyf_api.settings import Settings, load_settings
 
@@ -31,4 +32,5 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         generate_unique_id_function=_operation_id,
     )
     install_error_handlers(app)
+    app.include_router(health_router, prefix="/api/v1")
     return app
