@@ -7,7 +7,7 @@ from cartlyf_api.app_state import object_store_of, settings_of
 from cartlyf_api.auth.dependencies import CurrentPrincipal
 from cartlyf_api.errors import problem_response
 from cartlyf_api.imports import service
-from cartlyf_api.imports.schemas import ImportCreate, ImportResponse
+from cartlyf_api.imports.schemas import DryRunRequest, ImportCreate, ImportResponse
 from cartlyf_api.tenancy import DbSession
 
 router = APIRouter(tags=["imports"])
@@ -81,4 +81,26 @@ async def download_import_file(
         data,
         media_type="text/csv",
         headers={"Content-Disposition": f'attachment; filename="{safe}"'},
+    )
+
+
+@router.post("/imports/{import_id}/dry-run", response_model=ImportResponse, responses=_WRITE)
+async def dry_run_import(
+    import_id: UUID,
+    body: DryRunRequest,
+    request: Request,
+    session: DbSession,
+    principal: CurrentPrincipal,
+) -> ImportResponse:
+    return await service.dry_run(
+        session, object_store_of(request), settings_of(request), principal, import_id, body
+    )
+
+
+@router.post("/imports/{import_id}/commit", response_model=ImportResponse, responses=_WRITE)
+async def commit_import(
+    import_id: UUID, request: Request, session: DbSession, principal: CurrentPrincipal
+) -> ImportResponse:
+    return await service.commit(
+        session, object_store_of(request), settings_of(request), principal, import_id
     )

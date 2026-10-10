@@ -3,6 +3,7 @@ from collections.abc import AsyncIterator
 from typing import cast
 from uuid import UUID, uuid4
 
+from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from cartlyf_api.audit.service import record_change
@@ -11,12 +12,15 @@ from cartlyf_api.errors import Conflict, NotFound, PayloadTooLarge, Unprocessabl
 from cartlyf_api.imports import repository as repo
 from cartlyf_api.imports.csv_table import CsvError, CsvTable, parse_csv
 from cartlyf_api.imports.models import ImportJob
+from cartlyf_api.imports.resources_import import run_resource_import
 from cartlyf_api.imports.schemas import (
+    DryRunRequest,
     ImportCreate,
     ImportKind,
     ImportReport,
     ImportResponse,
     ImportStatus,
+    ResourceMapping,
 )
 from cartlyf_api.resources import repository as resources_repo
 from cartlyf_api.schedules import repository as schedules_repo
@@ -163,3 +167,86 @@ async def download_file(
     if job.object_key is None or not owned_by(job.object_key, principal.organisation_id):
         raise NotFound("The import has no file")
     return job.filename, await store.get(job.object_key)
+
+
+async def _run(
+    session: AsyncSession,
+    principal: Principal,
+    job: ImportJob,
+    table: CsvTable,
+    mapping: ResourceMapping,
+    *,
+    commit: bool,
+) -> ImportReport:
+    if mapping.kind != job.kind:
+        message = f"this is a {job.kind} import"
+        raise Unprocessable([field_error(("body", "mapping", "kind"), message)])
+    return await run_resource_import(session, principal, job, table, mapping, commit=commit)
+
+
+async def dry_run(
+    session: AsyncSession,
+    store: ObjectStore,
+    settings: Settings,
+    principal: Principal,
+    import_id: UUID,
+    body: DryRunRequest,
+) -> ImportResponse:
+    principal.require(Permission.CONFIG_MANAGE)
+    job = await job_of(session, principal, import_id)
+    if job.status == "committed":
+        raise Conflict("This import is already committed")
+    table = await load_table(store, settings, job, principal.organisation_id)
+    report = await _run(session, principal, job, table, body.mapping, commit=False)
+    await repo.update_job(
+        session,
+        principal.organisation_id,
+        import_id,
+        {
+            "mapping": body.mapping.model_dump(mode="json"),
+            "report": report.model_dump(mode="json"),
+            "status": "validated" if report.valid else "invalid",
+        },
+    )
+    return await get_import(session, principal, import_id)
+
+
+async def commit(
+    session: AsyncSession,
+    store: ObjectStore,
+    settings: Settings,
+    principal: Principal,
+    import_id: UUID,
+) -> ImportResponse:
+    principal.require(Permission.CONFIG_MANAGE)
+    job = await job_of(session, principal, import_id)
+    if job.status != "validated" or job.mapping is None:
+        raise Conflict("Run a dry run without errors before committing")
+    table = await load_table(store, settings, job, principal.organisation_id)
+    mapping = DryRunRequest.model_validate({"mapping": job.mapping}).mapping
+    report = await _run(session, principal, job, table, mapping, commit=True)
+    if not report.valid:
+        # Raising rolls back the request transaction: nothing from this commit is written.
+        raise Conflict(
+            "The data changed since the dry run; nothing was imported",
+            report=report.model_dump(mode="json"),
+        )
+    await repo.update_job(
+        session,
+        principal.organisation_id,
+        import_id,
+        {
+            "status": "committed",
+            "committed_at": func.now(),
+            "report": report.model_dump(mode="json"),
+        },
+    )
+    await record_change(
+        session,
+        principal,
+        "import.committed",
+        "import_job",
+        import_id,
+        {"kind": job.kind, "created": report.created},
+    )
+    return await get_import(session, principal, import_id)

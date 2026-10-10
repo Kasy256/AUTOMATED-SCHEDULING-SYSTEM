@@ -5,6 +5,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
 
 from cartlyf_api.examples import example_id
+from cartlyf_engine.domain import Key
 from cartlyf_engine.precheck import Issue
 
 ImportKind = Literal["resources", "demands"]
@@ -67,3 +68,32 @@ class ImportResponse(BaseModel):
     report: ImportReport | None
     created_at: datetime
     committed_at: datetime | None
+
+
+Column = Annotated[str, StringConstraints(min_length=1, max_length=200)]
+
+
+class ResourceMapping(BaseModel):
+    """CSV column for each resource field; attributes map attribute key -> column."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    kind: Literal["resources"]
+    code: Column
+    name: Column
+    tags: Column | None = None
+    capacity: Column | None = None
+    size: Column | None = None
+    concurrency: Column | None = None
+    attributes: dict[Key, Column] = Field(default_factory=dict[str, str])
+
+
+class DryRunRequest(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "examples": [{"mapping": {"kind": "resources", "code": "Code", "name": "Name"}}]
+        },
+    )
+
+    mapping: ResourceMapping
