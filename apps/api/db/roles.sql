@@ -1,0 +1,17 @@
+-- Run once per cluster as a superuser with psql; see README.md in this folder.
+\set ON_ERROR_STOP on
+
+CREATE ROLE cartlyf_owner LOGIN PASSWORD :'owner_password'
+  NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE NOREPLICATION;
+CREATE ROLE cartlyf_app LOGIN PASSWORD :'app_password'
+  NOSUPERUSER NOBYPASSRLS NOCREATEDB NOCREATEROLE NOREPLICATION NOINHERIT;
+
+CREATE DATABASE cartlyf OWNER cartlyf_owner;
+\connect cartlyf
+
+REVOKE ALL ON DATABASE cartlyf FROM PUBLIC;
+GRANT CONNECT ON DATABASE cartlyf TO cartlyf_app;
+
+ALTER SCHEMA public OWNER TO cartlyf_owner;
+REVOKE ALL ON SCHEMA public FROM PUBLIC;
+GRANT USAGE ON SCHEMA public TO cartlyf_app;

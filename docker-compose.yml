@@ -1,0 +1,24 @@
+services:
+  postgres:
+    build: ./apps/api/db
+    environment:
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?set POSTGRES_PASSWORD in .env}
+      CARTLYF_OWNER_PASSWORD: ${CARTLYF_OWNER_PASSWORD:?set CARTLYF_OWNER_PASSWORD in .env}
+      CARTLYF_APP_PASSWORD: ${CARTLYF_APP_PASSWORD:?set CARTLYF_APP_PASSWORD in .env}
+    ports: ["${CARTLYF_POSTGRES_PORT:-5432}:5432"]
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d cartlyf"]
+      interval: 5s
+      retries: 10
+  redis:
+    image: redis:7-alpine
+    ports: ["${CARTLYF_REDIS_PORT:-6379}:6379"]
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      retries: 10
+
+volumes:
+  pgdata: {}
