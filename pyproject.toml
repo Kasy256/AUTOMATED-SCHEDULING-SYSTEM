@@ -21,6 +21,7 @@ dev = [
   "pytest",
   "hypothesis",
   "import-linter",
+  "pip-audit",
   "httpx2",
   "testcontainers[postgres,redis]",
 ]
