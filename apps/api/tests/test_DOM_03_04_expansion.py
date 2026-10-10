@@ -124,3 +124,13 @@ def test_requirement_specs_are_validated(requirements: list[object]) -> None:
         DEMAND_SPEC.validate_python(
             {"kind": "session", "sessions_per_week": 1, "requirements": requirements}
         )
+
+
+def test_generated_names_fit_the_200_character_limit() -> None:
+    long_name = "N" * 200
+    week = horizon_for(date(2027, 1, 11), date(2027, 1, 17), "Africa/Kampala")
+    long_label = [Slot(label="L" * 50, weekdays=[0], start_minute=420, duration_minutes=60)]
+    drafts = expand_demand(long_name, coverage(), long_label, week)
+    drafts += expand_demand(long_name, session(sessions_per_week=12), PERIODS, ONE_WEEK)
+    assert all(len(d.name) <= 200 for d in drafts)
+    assert drafts[0].name.endswith("2027-01-11 " + "L" * 50)

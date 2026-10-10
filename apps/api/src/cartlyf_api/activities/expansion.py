@@ -17,6 +17,14 @@ class ActivityDraft:
     attrs: Mapping[str, AttrScalar]
 
 
+# Matches the activity name column limit; the suffix (date, slot, week) is the part that matters.
+MAX_NAME = 200
+
+
+def _named(base: str, suffix: str) -> str:
+    return base[: MAX_NAME - len(suffix)] + suffix
+
+
 class ExpansionError(ValueError):
     def __init__(self, loc: tuple[str, ...], message: str) -> None:
         super().__init__(message)
@@ -54,7 +62,7 @@ def expand_demand(
     if isinstance(spec, CoverageDemandSpec):
         return [
             ActivityDraft(
-                f"{name} {day} {slot.label}",
+                _named(name, f" {day} {slot.label}"),
                 slot.duration_minutes,
                 (start,),
                 requirements,
@@ -75,7 +83,9 @@ def expand_demand(
         if not starts:
             continue
         drafts += [
-            ActivityDraft(f"{name} W{week} #{n}", duration, starts, requirements, spec.attrs)
+            ActivityDraft(
+                _named(name, f" W{week} #{n}"), duration, starts, requirements, spec.attrs
+            )
             for n in range(1, spec.sessions_per_week + 1)
         ]
     return drafts
