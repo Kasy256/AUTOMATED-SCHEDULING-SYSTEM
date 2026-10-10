@@ -378,6 +378,38 @@ def seed_config(client: TestClient, admin: Account) -> dict[str, str]:
             "ends_at": "2027-01-12T10:00:00+03:00",
         },
     )
+    ids["schedule_id"] = post(
+        "/api/v1/schedules",
+        {
+            "name": "Seed term",
+            "timezone": "Africa/Kampala",
+            "start_date": "2027-01-11",
+            "end_date": "2027-01-15",
+        },
+    )
+    ids["slot_template_id"] = post(
+        f"/api/v1/schedules/{ids['schedule_id']}/slot-templates",
+        {
+            "name": "Periods",
+            "definition": {
+                "version": 1,
+                "slots": [
+                    {
+                        "label": "P1",
+                        "weekdays": [0, 1, 2, 3, 4],
+                        "start_minute": 510,
+                        "duration_minutes": 115,
+                    },
+                    {
+                        "label": "P2",
+                        "weekdays": [0, 1, 2, 3, 4],
+                        "start_minute": 660,
+                        "duration_minutes": 115,
+                    },
+                ],
+            },
+        },
+    )
     return ids
 
 
