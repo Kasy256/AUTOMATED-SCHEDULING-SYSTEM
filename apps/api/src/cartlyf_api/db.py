@@ -1,6 +1,16 @@
+from datetime import datetime
+from typing import Any, ClassVar
+
+from sqlalchemy import DateTime
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
+from sqlalchemy.orm import DeclarativeBase
 
 from cartlyf_api.settings import Settings
+
+
+class Base(DeclarativeBase):
+    # Any: SQLAlchemy's own annotation for this mapping.
+    type_annotation_map: ClassVar[dict[Any, Any]] = {datetime: DateTime(timezone=True)}
 
 
 def create_db_engine(settings: Settings) -> AsyncEngine:
