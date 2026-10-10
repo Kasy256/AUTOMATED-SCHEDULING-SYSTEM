@@ -194,6 +194,36 @@ class Account:
         return {"Authorization": f"Bearer {self.access_token}"}
 
 
+def add_member(
+    client: TestClient,
+    app: FastAPI,
+    admin: Account,
+    roles: list[str],
+    email: str | None = None,
+) -> Account:
+    """Invite a new person into the admin's organisation and accept as them."""
+    email = email or f"{uuid4().hex}@example.com"
+    invited = client.post(
+        "/api/v1/invitations",
+        headers=admin.auth,
+        json={"email": email, "name": "Invited Person", "roles": roles},
+    )
+    assert invited.status_code == 201, invited.text
+    token = latest_link_token(app, email, "accept-invitation")
+    accepted = client.post(
+        "/api/v1/auth/accept-invitation", json={"token": token, "password": DEFAULT_PASSWORD}
+    )
+    assert accepted.status_code == 200, accepted.text
+    body = accepted.json()
+    return Account(
+        email,
+        DEFAULT_PASSWORD,
+        body["access_token"],
+        accepted.cookies[REFRESH_COOKIE],
+        UUID(body["organisation_id"]),
+    )
+
+
 def refresh_with(client: TestClient, raw: str) -> httpx.Response:
     client.cookies.clear()
     return client.post("/api/v1/auth/refresh", headers={"Cookie": f"{REFRESH_COOKIE}={raw}"})

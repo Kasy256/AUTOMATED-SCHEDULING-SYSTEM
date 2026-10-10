@@ -8,8 +8,10 @@ from cartlyf_api.app_state import email_provider_of, engine_of, redis_of, settin
 from cartlyf_api.auth import repository as auth_repo
 from cartlyf_api.auth.cookies import REFRESH_COOKIE, clear_refresh_cookie, set_refresh_cookie
 from cartlyf_api.auth.dependencies import Claims
+from cartlyf_api.auth.invitations import accept_invitation
 from cartlyf_api.auth.permissions import Role
 from cartlyf_api.auth.schemas import (
+    AcceptInvitationRequest,
     LoginRequest,
     MeResponse,
     OrganisationSummary,
@@ -183,3 +185,21 @@ async def switch_organisation(
     if isinstance(result, RefreshRejected):
         return _rejected(settings)
     return _token_response(response, settings, result)
+
+
+@router.post(
+    "/accept-invitation",
+    response_model=TokenResponse,
+    dependencies=[Depends(rate_limit("accept"))],
+    responses={
+        400: problem_response("Invalid or expired link"),
+        401: problem_response("Invalid email or password"),
+        **_RATE_LIMITED,
+    },
+)
+async def accept_invitation_route(
+    request: Request, body: AcceptInvitationRequest, session: DbSession, response: Response
+) -> TokenResponse:
+    settings = settings_of(request)
+    issued = await accept_invitation(session, settings, body)
+    return _token_response(response, settings, issued)

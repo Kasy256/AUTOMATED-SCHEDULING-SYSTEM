@@ -1,11 +1,13 @@
 from collections.abc import Iterable
 from uuid import UUID
 
-from sqlalchemy import Select, insert, select
+from sqlalchemy import Select, delete, func, insert, select
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from cartlyf_api.auth.models import AppUser
 from cartlyf_api.auth.permissions import Role
 from cartlyf_api.orgs.models import Membership, MembershipRole, Organisation
+from cartlyf_api.orgs.schemas import MemberResponse
 
 
 async def insert_organisation(
@@ -107,3 +109,92 @@ async def membership_summaries(session: AsyncSession, user_id: UUID) -> list[tup
         .order_by(Organisation.name, Organisation.id)
     )
     return [(row[0], row[1]) for row in rows]
+
+
+async def get_membership(
+    session: AsyncSession, organisation_id: UUID, membership_id: UUID
+) -> Membership | None:
+    return await session.scalar(
+        select(Membership).where(
+            Membership.organisation_id == organisation_id,
+            Membership.id == membership_id,
+            Membership.deleted_at.is_(None),
+        )
+    )
+
+
+async def membership_for_user(
+    session: AsyncSession, organisation_id: UUID, user_id: UUID
+) -> Membership | None:
+    return await session.scalar(
+        select(Membership).where(
+            Membership.organisation_id == organisation_id,
+            Membership.user_id == user_id,
+            Membership.deleted_at.is_(None),
+        )
+    )
+
+
+async def replace_roles(
+    session: AsyncSession, organisation_id: UUID, membership_id: UUID, roles: Iterable[Role]
+) -> None:
+    await session.execute(
+        delete(MembershipRole).where(
+            MembershipRole.organisation_id == organisation_id,
+            MembershipRole.membership_id == membership_id,
+        )
+    )
+    await insert_roles(session, organisation_id, membership_id, roles)
+
+
+async def count_active_org_admins(session: AsyncSession, organisation_id: UUID) -> int:
+    count = await session.scalar(
+        select(func.count())
+        .select_from(MembershipRole)
+        .join(
+            Membership,
+            (Membership.organisation_id == MembershipRole.organisation_id)
+            & (Membership.id == MembershipRole.membership_id),
+        )
+        .where(
+            MembershipRole.organisation_id == organisation_id,
+            MembershipRole.role == Role.ORG_ADMIN,
+            Membership.status == "active",
+            Membership.deleted_at.is_(None),
+        )
+    )
+    return count or 0
+
+
+async def list_members(
+    session: AsyncSession, organisation_id: UUID, membership_id: UUID | None = None
+) -> list[MemberResponse]:
+    query = (
+        select(Membership, AppUser)
+        .join(AppUser, AppUser.id == Membership.user_id)
+        .where(Membership.organisation_id == organisation_id, Membership.deleted_at.is_(None))
+        .order_by(AppUser.email)
+    )
+    if membership_id is not None:
+        query = query.where(Membership.id == membership_id)
+    rows = (await session.execute(query)).all()
+    role_rows = await session.execute(
+        select(MembershipRole.membership_id, MembershipRole.role).where(
+            MembershipRole.organisation_id == organisation_id,
+            MembershipRole.membership_id.in_([membership.id for membership, _ in rows]),
+        )
+    )
+    roles: dict[UUID, list[Role]] = {}
+    for member_id, role in role_rows:
+        roles.setdefault(member_id, []).append(Role(role))
+    return [
+        MemberResponse(
+            membership_id=membership.id,
+            user_id=user.id,
+            email=user.email,
+            name=user.name,
+            status=membership.status,
+            roles=sorted(roles.get(membership.id, [])),
+        )
+        for membership, user in rows
+    ]
