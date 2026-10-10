@@ -81,3 +81,66 @@ def test_template_catalogue(client: TestClient, app: FastAPI) -> None:
     max_load = next(t for t in templates if t["key"] == "max_load")
     assert max_load["version"] == 1 and max_load["soft_only"] is False
     assert "period" in max_load["params_schema"]["properties"]
+
+
+def second_demand(client: TestClient, admin: Account, ids: dict[str, str]) -> str:
+    body = {
+        "name": "Second",
+        "slot_template_id": ids["slot_template_id"],
+        "spec": {"kind": "session", "sessions_per_week": 1, "requirements": [{"role": "any"}]},
+    }
+    url = f"/api/v1/schedules/{ids['schedule_id']}/demands"
+    response = client.post(url, headers=admin.auth, json=body)
+    assert response.status_code == 201, response.text
+    return response.json()["id"]
+
+
+UNKNOWN = "00000000-0000-4000-8000-000000000999"
+
+
+def test_ids_inside_params_must_be_this_orgs(client: TestClient, app: FastAPI) -> None:
+    admin, ids, url = setup(client, app)
+    other = second_demand(client, admin, ids)
+    pairs = [{"before": ids["demand_id"], "after": other}]
+    precedence = rule(template_key="precedence", params={"pairs": pairs})
+    assert client.post(url, headers=admin.auth, json=precedence).status_code == 201
+    unknown_series = rule(
+        template_key="precedence",
+        params={"pairs": [{"before": ids["demand_id"], "after": UNKNOWN}]},
+    )
+    assert client.post(url, headers=admin.auth, json=unknown_series).status_code == 404
+    not_a_uuid = rule(
+        template_key="same_time", params={"link_groups": [[ids["demand_id"], "garbage"]]}
+    )
+    assert client.post(url, headers=admin.auth, json=not_a_uuid).status_code == 404
+    explicit = {
+        "source": "explicit",
+        "pairs": [{"resource_id": UNKNOWN, "series_id": ids["demand_id"], "mode": "avoid"}],
+    }
+    unknown_resource = rule(template_key="preference", params=explicit, hard=False, weight=1)
+    assert client.post(url, headers=admin.auth, json=unknown_resource).status_code == 404
+
+
+def test_rules_block_deleting_what_they_reference(client: TestClient, app: FastAPI) -> None:
+    admin, ids, url = setup(client, app)
+    other = second_demand(client, admin, ids)
+    resource = client.post(
+        "/api/v1/resources",
+        headers=admin.auth,
+        json={"resource_type_id": ids["resource_type_id"], "code": "LEC-FREE", "name": "Free"},
+    ).json()["id"]
+    lab = client.post(
+        "/api/v1/resource-types",
+        headers=admin.auth,
+        json={"key": "lab", "name": "Lab", "kind": "space"},
+    ).json()["id"]
+    scoped = rule(scope={"resource_ids": [resource], "resource_type_ids": [lab]})
+    assert client.post(url, headers=admin.auth, json=scoped).status_code == 201
+    linked = rule(template_key="same_time", params={"link_groups": [[ids["demand_id"], other]]})
+    assert client.post(url, headers=admin.auth, json=linked).status_code == 201
+    assert client.delete(f"/api/v1/resources/{resource}", headers=admin.auth).status_code == 409
+    assert client.delete(f"/api/v1/resource-types/{lab}", headers=admin.auth).status_code == 409
+    demand_url = f"/api/v1/schedules/{ids['schedule_id']}/demands/{other}"
+    response = client.delete(demand_url, headers=admin.auth)
+    assert response.status_code == 409
+    assert "Max 2 a day" in response.json()["detail"]

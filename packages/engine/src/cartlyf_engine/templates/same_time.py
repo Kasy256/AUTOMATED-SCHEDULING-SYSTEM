@@ -1,9 +1,9 @@
-from typing import Annotated
+from typing import Annotated, cast
 
-from pydantic import AfterValidator, Field
+from pydantic import AfterValidator, BaseModel, Field
 
 from cartlyf_engine.domain.base import Frozen, Id
-from cartlyf_engine.templates.spec import TemplateSpec
+from cartlyf_engine.templates.spec import References, TemplateSpec
 
 
 def _distinct_pairable(group: tuple[str, ...]) -> tuple[str, ...]:
@@ -20,4 +20,9 @@ class Params(Frozen):
     link_groups: tuple[LinkGroup, ...] = Field(min_length=1)
 
 
-SPEC = TemplateSpec("same_time", 1, Params)
+def _references(params: BaseModel) -> References:
+    groups = cast(Params, params).link_groups
+    return References(series_ids=frozenset(s for group in groups for s in group))
+
+
+SPEC = TemplateSpec("same_time", 1, Params, references=_references)

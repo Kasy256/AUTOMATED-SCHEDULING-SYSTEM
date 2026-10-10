@@ -1,3 +1,5 @@
+from collections.abc import Mapping
+
 import pytest
 from pydantic import ValidationError
 
@@ -7,6 +9,7 @@ from cartlyf_engine.templates.registry import (
     InvalidInstance,
     UnknownTemplate,
     get_template,
+    params_references,
     validate_instance,
 )
 
@@ -110,3 +113,26 @@ def test_DOM_05_constraint_instance_model_uses_the_registry() -> None:
     assert ok.scope.resource_ids == ()
     with pytest.raises(ValidationError, match="unknown template"):
         ConstraintInstance(id="c2", template_key="nope", version=1, hard=True)
+
+
+def test_DOM_05_templates_declare_the_ids_their_params_reference() -> None:
+    def refs(key: str, params: Mapping[str, object]) -> tuple[set[str], set[str]]:
+        found = params_references(key, 1, params)
+        return set(found.series_ids), set(found.resource_ids)
+
+    assert refs("same_time", {"link_groups": [["s1", "s2"], ["s3", "s4"]]}) == (
+        {"s1", "s2", "s3", "s4"},
+        set(),
+    )
+    assert refs("precedence", {"pairs": [{"before": "s1", "after": "s2"}]}) == ({"s1", "s2"}, set())
+    explicit = {
+        "source": "explicit",
+        "pairs": [{"resource_id": "r1", "series_id": "s1", "mode": "avoid"}],
+    }
+    assert refs("preference", explicit) == ({"s1"}, {"r1"})
+    nights = {"activity_filter": {"series_ids": ["s9"]}, "lookback_days": 30}
+    assert refs("fairness", nights) == ({"s9"}, set())
+    assert refs(
+        "max_consecutive", {"unit": "days", "max": 5, "activity_filter": {"series_ids": ["s8"]}}
+    ) == ({"s8"}, set())
+    assert refs("max_load", {"period": "day", "max_count": 2}) == (set(), set())

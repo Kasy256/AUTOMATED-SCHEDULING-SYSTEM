@@ -9,6 +9,7 @@ from cartlyf_api.audit.service import record_change
 from cartlyf_api.auth.permissions import Permission, Principal
 from cartlyf_api.constraints import repository as repo
 from cartlyf_api.constraints.models import ConstraintInstanceRow
+from cartlyf_api.constraints.references import as_uuids
 from cartlyf_api.constraints.schemas import (
     ConstraintResponse,
     ConstraintWrite,
@@ -18,7 +19,12 @@ from cartlyf_api.constraints.schemas import (
 from cartlyf_api.errors import NotFound, Unprocessable, field_error
 from cartlyf_api.resources import repository as resources_repo
 from cartlyf_api.schedules.service import live_schedule
-from cartlyf_engine.templates.registry import REGISTRY, InvalidInstance, validate_instance
+from cartlyf_engine.templates.registry import (
+    REGISTRY,
+    InvalidInstance,
+    params_references,
+    validate_instance,
+)
 
 
 def _response(row: ConstraintInstanceRow) -> ConstraintResponse:
@@ -47,7 +53,7 @@ async def _validated(
     if await activities_repo.missing_demand_ids(session, org, schedule_id, set(scope.series_ids)):
         raise NotFound("Unknown demand")
     try:
-        return validate_instance(
+        params = validate_instance(
             body.template_key,
             body.template_version,
             body.params,
@@ -58,6 +64,14 @@ async def _validated(
         raise Unprocessable(
             [field_error(("body", *p.loc), p.msg, p.type) for p in exc.problems]
         ) from exc
+    named = params_references(body.template_key, body.template_version, params)
+    if await activities_repo.missing_demand_ids(
+        session, org, schedule_id, as_uuids(named.series_ids)
+    ):
+        raise NotFound("Unknown demand")
+    if await resources_repo.missing_resource_ids(session, org, as_uuids(named.resource_ids)):
+        raise NotFound("Unknown resource")
+    return params
 
 
 def _row_values(body: ConstraintWrite, params: dict[str, JsonValue]) -> dict[str, object]:

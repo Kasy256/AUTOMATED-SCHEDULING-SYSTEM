@@ -1,9 +1,9 @@
-from typing import Self
+from typing import Self, cast
 
-from pydantic import Field, NonNegativeInt, model_validator
+from pydantic import BaseModel, Field, NonNegativeInt, model_validator
 
 from cartlyf_engine.domain.base import Frozen, Id
-from cartlyf_engine.templates.spec import TemplateSpec
+from cartlyf_engine.templates.spec import References, TemplateSpec
 
 
 class Pair(Frozen):
@@ -23,4 +23,9 @@ class Params(Frozen):
     min_gap: NonNegativeInt = 0
 
 
-SPEC = TemplateSpec("precedence", 1, Params)
+def _references(params: BaseModel) -> References:
+    pairs = cast(Params, params).pairs
+    return References(series_ids=frozenset(s for p in pairs for s in (p.before, p.after)))
+
+
+SPEC = TemplateSpec("precedence", 1, Params, references=_references)

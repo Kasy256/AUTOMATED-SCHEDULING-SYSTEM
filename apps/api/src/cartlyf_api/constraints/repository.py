@@ -66,3 +66,15 @@ async def update_constraint(
         )
         .values(**values, updated_at=func.now())
     )
+
+
+async def live_constraints(session: AsyncSession, org: UUID) -> Sequence[ConstraintInstanceRow]:
+    rows = await session.scalars(
+        select(ConstraintInstanceRow)
+        .where(
+            ConstraintInstanceRow.organisation_id == org,
+            ConstraintInstanceRow.deleted_at.is_(None),
+        )
+        .order_by(ConstraintInstanceRow.name, ConstraintInstanceRow.id)
+    )
+    return rows.all()

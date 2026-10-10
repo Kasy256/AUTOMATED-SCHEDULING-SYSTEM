@@ -11,7 +11,8 @@ from cartlyf_api.activities.regeneration import Regenerated, regenerate_demand, 
 from cartlyf_api.activities.schemas import DemandResponse, DemandWrite
 from cartlyf_api.audit.service import record_change
 from cartlyf_api.auth.permissions import Permission, Principal
-from cartlyf_api.errors import NotFound, Unprocessable, field_error
+from cartlyf_api.constraints.references import rules_referencing
+from cartlyf_api.errors import Conflict, NotFound, Unprocessable, field_error
 from cartlyf_api.schedules import repository as schedules_repo
 from cartlyf_api.schedules.models import Schedule, SlotTemplate
 from cartlyf_api.schedules.service import live_schedule
@@ -133,6 +134,8 @@ async def delete_demand(
     await live_schedule(session, principal, schedule_id)
     if await repo.get_demand(session, org, schedule_id, demand_id) is None:
         raise NotFound("Unknown demand")
+    if rules := await rules_referencing(session, org, series_id=demand_id):
+        raise Conflict(f"The demand is named by rules: {', '.join(rules)}")
     pins_removed = await repo.delete_demand_activities(session, org, demand_id)
     await repo.update_demand(session, org, demand_id, {"deleted_at": func.now()})
     await record_change(

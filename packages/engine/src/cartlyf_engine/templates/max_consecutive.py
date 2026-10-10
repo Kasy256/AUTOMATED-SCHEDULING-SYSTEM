@@ -1,10 +1,10 @@
-from typing import Literal
+from typing import Literal, cast
 
-from pydantic import PositiveInt
+from pydantic import BaseModel, PositiveInt
 
 from cartlyf_engine.domain.base import Frozen
 from cartlyf_engine.domain.filters import ActivityFilter
-from cartlyf_engine.templates.spec import TemplateSpec
+from cartlyf_engine.templates.spec import References, TemplateSpec
 
 
 class Params(Frozen):
@@ -13,4 +13,9 @@ class Params(Frozen):
     activity_filter: ActivityFilter | None = None
 
 
-SPEC = TemplateSpec("max_consecutive", 1, Params)
+def _references(params: BaseModel) -> References:
+    activity_filter = cast(Params, params).activity_filter
+    return References(series_ids=frozenset(activity_filter.series_ids if activity_filter else ()))
+
+
+SPEC = TemplateSpec("max_consecutive", 1, Params, references=_references)

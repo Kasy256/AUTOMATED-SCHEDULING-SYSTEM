@@ -20,7 +20,7 @@ from cartlyf_engine.templates import (
     spread,
     stability,
 )
-from cartlyf_engine.templates.spec import TemplateSpec
+from cartlyf_engine.templates.spec import References, TemplateSpec
 
 _MODULES = (
     capacity_fit,
@@ -98,3 +98,9 @@ def validate_instance(
     if problems:
         raise InvalidInstance(problems)
     return normalised
+
+
+def params_references(key: str, version: int, params: Mapping[str, object]) -> References:
+    """Series and resource ids named by already-validated params."""
+    spec = get_template(key, version)
+    return spec.references(spec.params_model.model_validate(params))

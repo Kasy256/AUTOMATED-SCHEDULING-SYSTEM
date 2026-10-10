@@ -1,9 +1,9 @@
-from typing import Literal, Self
+from typing import Literal, Self, cast
 
-from pydantic import model_validator
+from pydantic import BaseModel, model_validator
 
 from cartlyf_engine.domain.base import Frozen, Id
-from cartlyf_engine.templates.spec import TemplateSpec
+from cartlyf_engine.templates.spec import References, TemplateSpec
 
 
 class Pair(Frozen):
@@ -23,4 +23,12 @@ class Params(Frozen):
         return self
 
 
-SPEC = TemplateSpec("preference", 1, Params, soft_only=True)
+def _references(params: BaseModel) -> References:
+    pairs = cast(Params, params).pairs
+    return References(
+        series_ids=frozenset(p.series_id for p in pairs),
+        resource_ids=frozenset(p.resource_id for p in pairs),
+    )
+
+
+SPEC = TemplateSpec("preference", 1, Params, soft_only=True, references=_references)

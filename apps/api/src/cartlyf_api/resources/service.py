@@ -7,6 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 from cartlyf_api.audit.service import record_change
 from cartlyf_api.auth.permissions import Permission, Principal
+from cartlyf_api.constraints.references import rules_referencing
 from cartlyf_api.errors import Conflict, FieldError, NotFound, Unprocessable, field_error
 from cartlyf_api.resources import repository as repo
 from cartlyf_api.resources.attribute_schema import AttributeSchema, validate_attributes
@@ -135,6 +136,8 @@ async def delete_type(session: AsyncSession, principal: Principal, type_id: UUID
     await _live_type(session, principal, type_id)
     if await repo.type_in_use(session, org, type_id):
         raise Conflict("The resource type is still used by resources or requirements")
+    if rules := await rules_referencing(session, org, resource_type_id=type_id):
+        raise Conflict(f"The resource type is named by rules: {', '.join(rules)}")
     await repo.update_type(session, org, type_id, {"deleted_at": func.now()})
     await record_change(session, principal, "resource_type.deleted", "resource_type", type_id)
 
@@ -219,5 +222,7 @@ async def delete_resource(session: AsyncSession, principal: Principal, resource_
     await _live_resource(session, principal, resource_id)
     if await repo.resource_is_referenced(session, org, resource_id):
         raise Conflict("The resource is fixed on activities or pinned; remove those first")
+    if rules := await rules_referencing(session, org, resource_id=resource_id):
+        raise Conflict(f"The resource is named by rules: {', '.join(rules)}")
     await repo.update_resource(session, org, resource_id, {"deleted_at": func.now()})
     await record_change(session, principal, "resource.deleted", "resource", resource_id)
