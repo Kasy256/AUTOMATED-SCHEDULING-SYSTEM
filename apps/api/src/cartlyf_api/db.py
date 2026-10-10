@@ -7,6 +7,9 @@ from sqlalchemy.orm import DeclarativeBase
 
 from cartlyf_api.settings import Settings
 
+# Any: JSONB documents, validated by Pydantic models on the way in and out.
+JsonDict = dict[str, Any]
+
 
 class Base(DeclarativeBase):
     # Any: SQLAlchemy's own annotation for this mapping.

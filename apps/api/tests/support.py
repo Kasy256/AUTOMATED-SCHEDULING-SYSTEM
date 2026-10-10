@@ -334,7 +334,25 @@ def url_for(op: Operation, ids: Mapping[str, str]) -> str:
 
 def seed_config(client: TestClient, admin: Account) -> dict[str, str]:
     """Create one of each configuration object in the admin's org; returns ids by path name."""
-    return {}
+
+    def post(path: str, body: object) -> str:
+        response = client.post(path, headers=admin.auth, json=body)
+        assert response.status_code == 201, f"{path}: {response.text}"
+        return response.json()["id"]
+
+    ids: dict[str, str] = {}
+    ids["resource_type_id"] = post(
+        "/api/v1/resource-types",
+        {"key": "lecturer", "name": "Lecturer", "kind": "person",
+         "attribute_schema": {"version": 1, "attributes": [
+             {"key": "employment", "type": "enum", "enum_values": ["full_time", "part_time"]}]}},
+    )  # fmt: skip
+    ids["resource_id"] = post(
+        "/api/v1/resources",
+        {"resource_type_id": ids["resource_type_id"], "code": "LEC-001", "name": "Seed lecturer",
+         "tags": ["math101"], "attributes": {"employment": "full_time"}},
+    )  # fmt: skip
+    return ids
 
 
 def missing_seeds(operation: Operation, ids: dict[str, str]) -> set[str]:

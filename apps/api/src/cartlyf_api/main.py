@@ -13,6 +13,7 @@ from cartlyf_api.log_config import configure_logging
 from cartlyf_api.orgs.router import router as orgs_router
 from cartlyf_api.platform.router import router as platform_router
 from cartlyf_api.redis_client import connect_redis
+from cartlyf_api.resources.router import router as resources_router
 from cartlyf_api.settings import Settings, load_settings
 from cartlyf_api.storage import S3ObjectStore
 
@@ -47,4 +48,5 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(auth_router, prefix="/api/v1")
     app.include_router(orgs_router, prefix="/api/v1")
     app.include_router(platform_router, prefix="/api/v1")
+    app.include_router(resources_router, prefix="/api/v1")
     return app
