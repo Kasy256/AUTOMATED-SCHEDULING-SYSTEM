@@ -13,7 +13,12 @@ from support import APP, OWNER, alembic_config, apply_roles, db_url, make_settin
 
 @pytest.fixture(scope="session")
 def pg() -> Iterator[PostgresContainer]:
-    with PostgresContainer("postgres:16-alpine") as container:
+    # Durability off: WAL fsync on some Docker hosts stalls COMMIT for seconds, past the
+    # app's DB timeout. Crash safety is irrelevant to a throwaway test database.
+    container = PostgresContainer("postgres:16-alpine").with_command(
+        "postgres -c fsync=off -c synchronous_commit=off -c full_page_writes=off"
+    )
+    with container:
         apply_roles(container)
         yield container
 
