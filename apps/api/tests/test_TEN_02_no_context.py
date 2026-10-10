@@ -13,6 +13,18 @@ TABLES = [
     "audit_log",
     "refresh_token",
     "email_outbox",
+    "resource_type",
+    "resource",
+    "availability_rule",
+    "availability_exception",
+    "schedule",
+    "slot_template",
+    "demand",
+    "activity",
+    "requirement",
+    "constraint_instance",
+    "pin",
+    "import_job",
 ]
 
 

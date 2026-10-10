@@ -118,26 +118,58 @@ def seed_org(url: str, name: str) -> SeededOrg:
     """Insert (as superuser) an org with an org_admin member and a row in every auth table."""
     org, user, membership = uuid4(), uuid4(), uuid4()
     email = f"{user.hex}@example.com"
-    execute_many(
-        url,
-        [
-            "INSERT INTO organisation (id, name, timezone) "
-            f"VALUES ('{org}', '{name}', 'Africa/Kampala')",
-            "INSERT INTO app_user (id, email, name, email_verified) "
-            f"VALUES ('{user}', '{email}', 'Seed User', true)",
-            "INSERT INTO membership (id, organisation_id, user_id, status) "
-            f"VALUES ('{membership}', '{org}', '{user}', 'active')",
-            "INSERT INTO membership_role (organisation_id, membership_id, role) "
-            f"VALUES ('{org}', '{membership}', 'org_admin')",
-            "INSERT INTO audit_log (organisation_id, actor_user_id, action) "
-            f"VALUES ('{org}', '{user}', 'seed')",
-            "INSERT INTO refresh_token (id, user_id, family_id, token_hash, expires_at) "
-            f"VALUES ('{uuid4()}', '{user}', '{uuid4()}', '\\x{uuid4().hex}', "
-            "now() + interval '1 day')",
-            "INSERT INTO email_outbox (id, user_id, to_address, subject, body) "
-            f"VALUES ('{uuid4()}', '{user}', '{email}', 's', 'b')",
-        ],
-    )
+    statements = [
+        "INSERT INTO organisation (id, name, timezone) "
+        f"VALUES ('{org}', '{name}', 'Africa/Kampala')",
+        "INSERT INTO app_user (id, email, name, email_verified) "
+        f"VALUES ('{user}', '{email}', 'Seed User', true)",
+        "INSERT INTO membership (id, organisation_id, user_id, status) "
+        f"VALUES ('{membership}', '{org}', '{user}', 'active')",
+        "INSERT INTO membership_role (organisation_id, membership_id, role) "
+        f"VALUES ('{org}', '{membership}', 'org_admin')",
+        "INSERT INTO audit_log (organisation_id, actor_user_id, action) "
+        f"VALUES ('{org}', '{user}', 'seed')",
+        "INSERT INTO refresh_token (id, user_id, family_id, token_hash, expires_at) "
+        f"VALUES ('{uuid4()}', '{user}', '{uuid4()}', '\\x{uuid4().hex}', "
+        "now() + interval '1 day')",
+        "INSERT INTO email_outbox (id, user_id, to_address, subject, body) "
+        f"VALUES ('{uuid4()}', '{user}', '{email}', 's', 'b')",
+    ]
+    rt, res, sched, slot, dem, act = (uuid4() for _ in range(6))
+    empty_schema = '{"version": 1, "attributes": []}'
+    statements += [
+        "INSERT INTO resource_type (id, organisation_id, key, name, kind, attribute_schema) "
+        f"VALUES ('{rt}', '{org}', 'seed_type', 'Seed', 'space', '{empty_schema}')",
+        "INSERT INTO resource (id, organisation_id, resource_type_id, code, name) "
+        f"VALUES ('{res}', '{org}', '{rt}', 'SEED-1', 'Seed resource')",
+        "INSERT INTO availability_rule (id, organisation_id, resource_id, kind, weekday, "
+        f"start_minute, end_minute) VALUES ('{uuid4()}', '{org}', '{res}', 'available', 0, 480, "
+        "1020)",
+        "INSERT INTO availability_exception (id, organisation_id, resource_id, kind, starts_at, "
+        f"ends_at) VALUES ('{uuid4()}', '{org}', '{res}', 'unavailable', now(), "
+        "now() + interval '1 day')",
+        "INSERT INTO schedule (id, organisation_id, name, timezone, start_date, end_date, "
+        f"day_parts) VALUES ('{sched}', '{org}', 'Seed', 'Africa/Kampala', '2027-01-11', "
+        """'2027-01-15', '{"version": 1, "parts": []}')""",
+        "INSERT INTO slot_template (id, organisation_id, schedule_id, name, definition) "
+        f"""VALUES ('{slot}', '{org}', '{sched}', 'Seed', '{{"version": 1, "slots": []}}')""",
+        "INSERT INTO demand (id, organisation_id, schedule_id, slot_template_id, name, kind, spec) "
+        f"VALUES ('{dem}', '{org}', '{sched}', '{slot}', 'Seed', 'session', '{{}}')",
+        "INSERT INTO activity (id, organisation_id, schedule_id, demand_id, series_id, name, "
+        f"duration_minutes, candidate_starts) VALUES ('{act}', '{org}', '{sched}', '{dem}', "
+        f"'{dem}', 'Seed', 60, ARRAY[now()])",
+        "INSERT INTO requirement (id, organisation_id, activity_id, position, role, count_min, "
+        f"count_max) VALUES ('{uuid4()}', '{org}', '{act}', 0, 'room', 1, 1)",
+        "INSERT INTO constraint_instance (id, organisation_id, schedule_id, name, template_key, "
+        f"template_version, params, scope, hard) VALUES ('{uuid4()}', '{org}', '{sched}', "
+        """'Seed', 'min_rest', 1, '{"minutes": 60}', '{}', true)""",
+        "INSERT INTO pin (id, organisation_id, schedule_id, activity_id, start_at) "
+        f"VALUES ('{uuid4()}', '{org}', '{sched}', '{act}', now())",
+        "INSERT INTO import_job (id, organisation_id, kind, status, resource_type_id, filename, "
+        f"created_by) VALUES ('{uuid4()}', '{org}', 'resources', 'awaiting_file', '{rt}', "
+        f"'seed.csv', '{user}')",
+    ]
+    execute_many(url, statements)
     return SeededOrg(org, user, membership)
 
 
