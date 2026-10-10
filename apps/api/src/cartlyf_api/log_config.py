@@ -1,6 +1,7 @@
 import logging
 
 import structlog
+from structlog.tracebacks import ExceptionDictTransformer
 
 
 def configure_logging(level: str) -> None:
@@ -9,7 +10,8 @@ def configure_logging(level: str) -> None:
             structlog.contextvars.merge_contextvars,
             structlog.processors.add_log_level,
             structlog.processors.TimeStamper(fmt="iso", utc=True),
-            structlog.processors.dict_tracebacks,
+            # Locals can hold passwords and tokens; never log them.
+            structlog.processors.ExceptionRenderer(ExceptionDictTransformer(show_locals=False)),
             structlog.processors.JSONRenderer(),
         ],
         wrapper_class=structlog.make_filtering_bound_logger(logging.getLevelNamesMapping()[level]),
