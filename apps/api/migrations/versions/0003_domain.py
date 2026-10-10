@@ -122,7 +122,8 @@ _TABLES = [
       deleted_at timestamptz,
       CONSTRAINT demand_org_id_key UNIQUE (organisation_id, id),
       {_org_fk("schedule_id", "schedule")},
-      {_org_fk("slot_template_id", "slot_template")}
+      -- Only soft-deleted demands can point here when a template is deleted (live use: 409).
+      {_org_fk("slot_template_id", "slot_template", "CASCADE")}
     )""",
     "CREATE INDEX demand_org_schedule_idx ON demand (organisation_id, schedule_id)",
     "CREATE INDEX demand_org_slot_template_idx ON demand (organisation_id, slot_template_id)",

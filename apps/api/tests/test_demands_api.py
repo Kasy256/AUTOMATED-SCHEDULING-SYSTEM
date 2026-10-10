@@ -160,3 +160,27 @@ def test_requirement_referencing_unknown_type_is_not_found(
     body = session_demand(ids)
     body["spec"]["requirements"][0]["resource_type_id"] = "00000000-0000-4000-8000-000000000999"
     assert client.post(f"{base}/demands", headers=admin.auth, json=body).status_code == 404
+
+
+def test_slot_template_can_be_deleted_after_its_demands(client: TestClient, app: FastAPI) -> None:
+    admin, ids, base = setup(client, app)
+    demand = client.post(f"{base}/demands", headers=admin.auth, json=session_demand(ids)).json()
+    template = client.post(
+        f"{base}/slot-templates",
+        headers=admin.auth,
+        json={
+            "name": "Extra",
+            "definition": {
+                "version": 1,
+                "slots": [
+                    {"label": "X1", "weekdays": [0], "start_minute": 600, "duration_minutes": 60}
+                ],
+            },
+        },
+    ).json()
+    body = session_demand(ids) | {"slot_template_id": template["id"]}
+    put = client.put(f"{base}/demands/{demand['id']}", headers=admin.auth, json=body)
+    assert put.status_code == 200
+    assert client.delete(f"{base}/demands/{demand['id']}", headers=admin.auth).status_code == 204
+    url = f"{base}/slot-templates/{template['id']}"
+    assert client.delete(url, headers=admin.auth).status_code == 204
