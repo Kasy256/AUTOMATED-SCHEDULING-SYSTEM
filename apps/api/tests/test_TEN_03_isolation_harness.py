@@ -61,20 +61,55 @@ def test_TEN_03_other_org_ids_in_bodies_are_not_found(client: TestClient, app: F
     world = build_world(client, app)
     checked: list[str] = []
     for op in ordered(openapi_operations(app)):
-        if not body_id_names(op.body):
-            continue
-        route = f"{op.method} {op.path}"
-        response = client.request(
-            op.method,
-            url_for(op, world.a_ids),
+        # One id at a time, the rest own-org: the first id resolved must not mask the others.
+        for name in sorted(body_id_names(op.body)):
+            route = f"{op.method} {op.path} [{name}]"
+            mixed = {**world.a_ids, name: world.b_ids[name]}
+            response = client.request(
+                op.method,
+                url_for(op, world.a_ids),
+                headers=world.a_admin.auth,
+                json=substitute_ids(op.body, mixed),
+            )
+            assert response.status_code == 404, f"{route} with org-B id -> {response.status_code}"
+            checked.append(route)
+    # Guards against example bodies silently losing their ids.
+    assert len(checked) >= 15, checked
+
+
+@pytest.mark.integration
+def test_TEN_03_demand_imports_reject_other_org_ids(client: TestClient, app: FastAPI) -> None:
+    world = build_world(client, app)
+    a, b = world.a_ids, world.b_ids
+    create = {"kind": "demands", "schedule_id": b["schedule_id"], "filename": "d.csv"}
+    response = client.post("/api/v1/imports", headers=world.a_admin.auth, json=create)
+    assert response.status_code == 404
+    own = {"kind": "demands", "schedule_id": a["schedule_id"], "filename": "d.csv"}
+    job = client.post("/api/v1/imports", headers=world.a_admin.auth, json=own).json()
+    upload = client.put(
+        f"/api/v1/imports/{job['id']}/file",
+        headers=world.a_admin.auth | {"Content-Type": "text/csv"},
+        content=b"Course,Sessions\nX,1\n",
+    )
+    assert upload.status_code == 200
+    for slot_template, resource_type in [
+        (b["slot_template_id"], a["resource_type_id"]),
+        (a["slot_template_id"], b["resource_type_id"]),
+    ]:
+        mapping = {
+            "kind": "demands",
+            "demand_kind": "session",
+            "slot_template_id": slot_template,
+            "name": "Course",
+            "sessions_per_week": "Sessions",
+            "requirements": [{"role": "lecturer", "resource_type_id": resource_type}],
+        }
+        response = client.post(
+            f"/api/v1/imports/{job['id']}/dry-run",
             headers=world.a_admin.auth,
-            json=substitute_ids(op.body, world.b_ids),
+            json={"mapping": mapping},
         )
-        assert response.status_code == 404, f"{route} with org-B body ids -> {response.status_code}"
-        checked.append(route)
-    # POST /resources, demands POST/PUT, activities POST/PUT, pin PUT, constraints POST/PUT,
-    # POST /imports: guards against example bodies silently losing their ids.
-    assert len(checked) >= 9, checked
+        assert response.status_code == 404, response.text
 
 
 def test_TEN_03_substitutes_example_ids_in_bodies() -> None:
