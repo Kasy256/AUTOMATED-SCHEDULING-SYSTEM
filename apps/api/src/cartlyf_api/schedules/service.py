@@ -3,6 +3,7 @@ from uuid import UUID, uuid4
 from sqlalchemy import func
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from cartlyf_api.activities.regeneration import regenerate_for_slot_template, regenerate_schedule
 from cartlyf_api.audit.service import record_change
 from cartlyf_api.auth.permissions import Permission, Principal
 from cartlyf_api.errors import Conflict, NotFound, Unprocessable, field_error
@@ -110,13 +111,17 @@ async def update_schedule(
         if "day_parts" in values:
             values["day_parts"] = merged.day_parts.model_dump(mode="json")
         await repo.update_schedule(session, principal.organisation_id, schedule_id, values)
+        pins_removed = 0
+        if changes.keys() & {"timezone", "start_date", "end_date"}:
+            schedule = await live_schedule(session, principal, schedule_id)
+            pins_removed = await regenerate_schedule(session, principal, schedule)
         await record_change(
             session,
             principal,
             "schedule.updated",
             "schedule",
             schedule_id,
-            {"fields": sorted(changes)},
+            {"fields": sorted(changes), "pins_removed": pins_removed},
         )
     return merged
 
@@ -177,7 +182,7 @@ async def replace_slot_template(
     body: SlotTemplateWrite,
 ) -> SlotTemplateResponse:
     principal.require(Permission.CONFIG_MANAGE)
-    await live_schedule(session, principal, schedule_id)
+    schedule = await live_schedule(session, principal, schedule_id)
     await _slot_template(session, principal, schedule_id, slot_template_id)
     await repo.replace_slot_template(
         session,
@@ -185,8 +190,15 @@ async def replace_slot_template(
         slot_template_id,
         {"name": body.name, "definition": body.definition.model_dump(mode="json")},
     )
+    template = await _slot_template(session, principal, schedule_id, slot_template_id)
+    pins_removed = await regenerate_for_slot_template(session, principal, schedule, template)
     await record_change(
-        session, principal, "slot_template.updated", "slot_template", slot_template_id
+        session,
+        principal,
+        "slot_template.updated",
+        "slot_template",
+        slot_template_id,
+        {"pins_removed": pins_removed},
     )
     return SlotTemplateResponse(id=slot_template_id, schedule_id=schedule_id, **body.model_dump())
 

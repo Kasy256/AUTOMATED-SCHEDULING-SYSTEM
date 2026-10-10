@@ -1,8 +1,10 @@
+from datetime import datetime
 from typing import Annotated, Literal, Self
 from uuid import UUID
 
 from pydantic import (
     AfterValidator,
+    AwareDatetime,
     BaseModel,
     ConfigDict,
     Field,
@@ -12,6 +14,8 @@ from pydantic import (
     model_validator,
 )
 
+from cartlyf_api.examples import example_id
+from cartlyf_api.types import Name
 from cartlyf_engine.domain import AttributePredicate, AttrScalar, Key, Tag
 
 ActivityAttrs = dict[Key, AttrScalar]
@@ -86,3 +90,88 @@ class CoverageDemandSpec(BaseModel):
 
 DemandSpec = Annotated[SessionDemandSpec | CoverageDemandSpec, Field(discriminator="kind")]
 DEMAND_SPEC: TypeAdapter[SessionDemandSpec | CoverageDemandSpec] = TypeAdapter(DemandSpec)
+
+
+# Platform safety caps, not customer rules.
+MAX_ACTIVITY_MINUTES = 7 * 1440
+MAX_CANDIDATE_STARTS = 5000
+
+
+class DemandWrite(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "examples": [
+                {
+                    "name": "Calculus I",
+                    "slot_template_id": example_id("slot_template_id"),
+                    "spec": {
+                        "kind": "session",
+                        "sessions_per_week": 2,
+                        "requirements": [
+                            {
+                                "role": "lecturer",
+                                "resource_type_id": example_id("resource_type_id"),
+                                "tags": ["math101"],
+                            },
+                            {"role": "group", "fixed_resource_ids": [example_id("resource_id")]},
+                        ],
+                    },
+                }
+            ]
+        },
+    )
+
+    name: Name
+    slot_template_id: UUID
+    spec: DemandSpec
+
+
+class DemandResponse(DemandWrite):
+    id: UUID
+    schedule_id: UUID
+    activity_count: int
+
+
+class ActivityWrite(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "examples": [
+                {
+                    "name": "Staff meeting",
+                    "duration_minutes": 60,
+                    "candidate_starts": ["2027-01-11T09:00:00+03:00", "2027-01-12T09:00:00+03:00"],
+                    "requirements": [
+                        {
+                            "role": "lecturer",
+                            "resource_type_id": example_id("resource_type_id"),
+                            "fixed_resource_ids": [example_id("resource_id")],
+                        }
+                    ],
+                }
+            ]
+        },
+    )
+
+    name: Name
+    duration_minutes: Annotated[int, Field(ge=1, le=MAX_ACTIVITY_MINUTES)]
+    candidate_starts: Annotated[
+        list[AwareDatetime], Field(min_length=1, max_length=MAX_CANDIDATE_STARTS)
+    ]
+    requirements: Annotated[
+        list[RequirementSpec], Field(max_length=20), AfterValidator(_unique_roles)
+    ] = Field(default_factory=list[RequirementSpec])
+    attrs: ActivityAttrs = Field(default_factory=dict[str, AttrScalar])
+
+
+class ActivityResponse(BaseModel):
+    id: UUID
+    schedule_id: UUID
+    demand_id: UUID | None
+    series_id: UUID | None
+    name: str
+    duration_minutes: int
+    candidate_starts: list[datetime]
+    requirements: list[RequirementSpec]
+    attrs: ActivityAttrs

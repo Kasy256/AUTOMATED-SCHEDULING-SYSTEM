@@ -410,6 +410,31 @@ def seed_config(client: TestClient, admin: Account) -> dict[str, str]:
             },
         },
     )
+    schedule_base = f"/api/v1/schedules/{ids['schedule_id']}"
+    ids["demand_id"] = post(
+        f"{schedule_base}/demands",
+        {
+            "name": "Seed demand",
+            "slot_template_id": ids["slot_template_id"],
+            "spec": {
+                "kind": "session",
+                "sessions_per_week": 1,
+                "requirements": [
+                    {"role": "lecturer", "resource_type_id": ids["resource_type_id"]},
+                    {"role": "group", "fixed_resource_ids": [ids["resource_id"]]},
+                ],
+            },
+        },
+    )
+    ids["activity_id"] = post(
+        f"{schedule_base}/activities",
+        {
+            "name": "Seed meeting",
+            "duration_minutes": 60,
+            "candidate_starts": ["2027-01-11T09:00:00+03:00", "2027-01-12T09:00:00+03:00"],
+            "requirements": [{"role": "lecturer", "resource_type_id": ids["resource_type_id"]}],
+        },
+    )
     return ids
 
 

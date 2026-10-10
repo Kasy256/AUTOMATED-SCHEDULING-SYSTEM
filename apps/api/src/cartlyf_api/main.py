@@ -4,6 +4,7 @@ from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.routing import APIRoute
 
+from cartlyf_api.activities.router import router as activities_router
 from cartlyf_api.auth.router import router as auth_router
 from cartlyf_api.db import create_db_engine
 from cartlyf_api.email.provider import ConsoleEmailProvider
@@ -51,4 +52,5 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(platform_router, prefix="/api/v1")
     app.include_router(resources_router, prefix="/api/v1")
     app.include_router(schedules_router, prefix="/api/v1")
+    app.include_router(activities_router, prefix="/api/v1")
     return app
