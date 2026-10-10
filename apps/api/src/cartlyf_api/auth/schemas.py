@@ -9,7 +9,7 @@ from cartlyf_api.auth.permissions import Role
 # SecretStr keeps passwords out of reprs, logs and validation errors.
 NewPassword = Annotated[SecretStr, Field(min_length=12, max_length=256)]
 LinkToken = Annotated[str, Field(min_length=1, max_length=4096)]
-_EXAMPLE_TOKEN = "eyJhbGciOiJIUzI1NiJ9.e30.signature"
+_EXAMPLE_TOKEN = "token-from-the-email-link"
 
 
 class SignupRequest(BaseModel):
