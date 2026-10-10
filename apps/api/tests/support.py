@@ -1,14 +1,19 @@
 import asyncio
+import re
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid4
 
 from alembic.config import Config
+from fastapi import FastAPI
+from fastapi.testclient import TestClient
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 from testcontainers.community.postgres import PostgresContainer
 
+from cartlyf_api.auth.cookies import REFRESH_COOKIE
+from cartlyf_api.email.provider import ConsoleEmailProvider
 from cartlyf_api.settings import Settings
 
 API_DIR = Path(__file__).resolve().parents[1]
@@ -126,3 +131,83 @@ def seed_org(url: str, name: str) -> SeededOrg:
         ],
     )
     return SeededOrg(org, user, membership)
+
+
+DEFAULT_PASSWORD = "correct horse battery"
+
+
+def signup_body(
+    email: str,
+    password: str,
+    org_name: str = "Test Org",
+    timezone: str = "Africa/Kampala",
+) -> dict[str, str]:
+    return {
+        "email": email,
+        "name": "Test User",
+        "password": password,
+        "organisation_name": org_name,
+        "timezone": timezone,
+    }
+
+
+def signup(
+    client: TestClient,
+    email: str | None = None,
+    password: str = DEFAULT_PASSWORD,
+    org_name: str = "Test Org",
+    timezone: str = "Africa/Kampala",
+) -> str:
+    email = email or f"{uuid4().hex}@example.com"
+    response = client.post(
+        "/api/v1/auth/signup", json=signup_body(email, password, org_name, timezone)
+    )
+    assert response.status_code == 202, response.text
+    return email
+
+
+def sent_emails(app: FastAPI) -> ConsoleEmailProvider:
+    provider = app.state.email_provider
+    assert isinstance(provider, ConsoleEmailProvider)
+    return provider
+
+
+def latest_link_token(app: FastAPI, to: str, path: str) -> str:
+    for message in reversed(sent_emails(app).sent):
+        match = re.search(rf"/{path}\?token=([\w.-]+)", message.body)
+        if message.to == to and match:
+            return match.group(1)
+    raise AssertionError(f"no {path} email for {to}")
+
+
+@dataclass(frozen=True)
+class Account:
+    email: str
+    password: str
+    access_token: str
+    refresh_token: str
+    organisation_id: UUID
+
+    @property
+    def auth(self) -> dict[str, str]:
+        return {"Authorization": f"Bearer {self.access_token}"}
+
+
+def signup_and_confirm(
+    client: TestClient,
+    app: FastAPI,
+    org_name: str = "Test Org",
+    password: str = DEFAULT_PASSWORD,
+) -> Account:
+    email = signup(client, password=password, org_name=org_name)
+    token = latest_link_token(app, email, "confirm-email")
+    response = client.post("/api/v1/auth/confirm-email", json={"token": token})
+    assert response.status_code == 200, response.text
+    body = response.json()
+    return Account(
+        email,
+        password,
+        body["access_token"],
+        response.cookies[REFRESH_COOKIE],
+        UUID(body["organisation_id"]),
+    )
