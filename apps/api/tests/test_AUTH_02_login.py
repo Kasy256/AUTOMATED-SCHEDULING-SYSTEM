@@ -1,5 +1,4 @@
-from collections.abc import Iterator
-
+import httpx2 as httpx
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -81,13 +80,15 @@ def test_unverified_account_cannot_log_in(client: TestClient) -> None:
     assert response.json()["detail"] == "Email address not confirmed"
 
 
+# Fixed windows can reset mid-test, so send 2*limit+1 requests: by pigeonhole at least
+# limit+1 land in one window, whichever way the window boundary falls.
 def test_AUTH_02_login_rate_limited_per_ip(client: TestClient) -> None:
     statuses = [
         client.post("/api/v1/auth/login", json={"email": f"n{i}@example.com", **WRONG}).status_code
-        for i in range(11)
+        for i in range(21)
     ]
     assert statuses[:10] == [401] * 10
-    assert statuses[10] == 429
+    assert 429 in statuses[10:]
 
 
 @pytest.fixture
@@ -96,20 +97,18 @@ def strict_app(migrated_pg: PostgresContainer, redis_url: str) -> FastAPI:
     return create_app(settings)
 
 
-@pytest.fixture
-def second_ip(strict_app: FastAPI) -> Iterator[TestClient]:
-    with TestClient(strict_app, client=("10.0.0.2", 50000)) as client:
-        yield client
+def _from_ip(app: FastAPI, ip: str, body: dict[str, str]) -> httpx.Response:
+    with TestClient(app, client=(ip, 50000)) as client:
+        return client.post("/api/v1/auth/login", json=body)
 
 
-def test_AUTH_02_login_rate_limited_per_email(strict_app: FastAPI, second_ip: TestClient) -> None:
+def test_AUTH_02_login_rate_limited_per_email(strict_app: FastAPI) -> None:
+    # One request per IP, so only the per-email counter can trip.
     victim = {"email": "victim@example.com", **WRONG}
-    with TestClient(strict_app) as first_ip:
-        assert [first_ip.post("/api/v1/auth/login", json=victim).status_code for _ in range(3)] == [
-            401
-        ] * 3
-    blocked = second_ip.post("/api/v1/auth/login", json=victim)
-    assert blocked.status_code == 429
+    responses = [_from_ip(strict_app, f"10.0.0.{i}", victim) for i in range(1, 8)]
+    statuses = [r.status_code for r in responses]
+    assert statuses[:3] == [401] * 3
+    blocked = next(r for r in responses if r.status_code == 429)
     assert int(blocked.headers["retry-after"]) > 0
-    other = second_ip.post("/api/v1/auth/login", json={"email": "other@example.com", **WRONG})
+    other = _from_ip(strict_app, "10.0.0.99", {"email": "other@example.com", **WRONG})
     assert other.status_code == 401
