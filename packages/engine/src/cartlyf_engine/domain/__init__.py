@@ -1,5 +1,6 @@
 from cartlyf_engine.domain.activities import Activity, Pin, Requirement, activity_matches
 from cartlyf_engine.domain.base import KEY_PATTERN, Frozen, Id, Key, Tag
+from cartlyf_engine.domain.constraints import ConstraintInstance, Scope
 from cartlyf_engine.domain.filters import (
     ActivityFilter,
     AttributePredicate,
@@ -28,6 +29,7 @@ __all__ = [
     "AttrScalar",
     "AttrValue",
     "AttributePredicate",
+    "ConstraintInstance",
     "Frozen",
     "Id",
     "Key",
@@ -38,6 +40,7 @@ __all__ = [
     "Resource",
     "ResourceFilter",
     "ResourceKind",
+    "Scope",
     "Score",
     "Solution",
     "SolveOptions",

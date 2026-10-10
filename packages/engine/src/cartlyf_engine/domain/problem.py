@@ -8,6 +8,7 @@ from pydantic import Field, NonNegativeInt, PositiveInt, model_validator
 
 from cartlyf_engine.domain.activities import Activity
 from cartlyf_engine.domain.base import Frozen, Id, Key
+from cartlyf_engine.domain.constraints import ConstraintInstance
 from cartlyf_engine.domain.resources import Resource
 from cartlyf_engine.domain.solution import Assignment
 from cartlyf_engine.domain.time import Window
@@ -30,13 +31,18 @@ class Problem(Frozen):
     named_windows: dict[Key, tuple[Window, ...]] = Field(default_factory=dict)
     resources: tuple[Resource, ...]
     activities: tuple[Activity, ...]
+    constraints: tuple[ConstraintInstance, ...] = ()
     baseline: tuple[Assignment, ...] | None = None
     history: dict[Id, dict[Key, NonNegativeInt]] | None = None
     options: SolveOptions = SolveOptions()
 
     @model_validator(mode="after")
     def _consistent(self) -> Self:
-        for kind, items in (("resource", self.resources), ("activity", self.activities)):
+        for kind, items in (
+            ("resource", self.resources),
+            ("activity", self.activities),
+            ("constraint", self.constraints),
+        ):
             if dupes := _duplicates(item.id for item in items):
                 raise ValueError(f"duplicate {kind} ids: {dupes}")
         windows = [*self.day_windows, *self.week_windows]
