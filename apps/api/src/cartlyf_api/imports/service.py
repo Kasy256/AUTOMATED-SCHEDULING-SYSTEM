@@ -11,9 +11,11 @@ from cartlyf_api.auth.permissions import Permission, Principal
 from cartlyf_api.errors import Conflict, NotFound, PayloadTooLarge, Unprocessable, field_error
 from cartlyf_api.imports import repository as repo
 from cartlyf_api.imports.csv_table import CsvError, CsvTable, parse_csv
+from cartlyf_api.imports.demands_import import run_demand_import
 from cartlyf_api.imports.models import ImportJob
 from cartlyf_api.imports.resources_import import run_resource_import
 from cartlyf_api.imports.schemas import (
+    DemandMapping,
     DryRunRequest,
     ImportCreate,
     ImportKind,
@@ -174,13 +176,15 @@ async def _run(
     principal: Principal,
     job: ImportJob,
     table: CsvTable,
-    mapping: ResourceMapping,
+    mapping: ResourceMapping | DemandMapping,
     *,
     commit: bool,
 ) -> ImportReport:
     if mapping.kind != job.kind:
         message = f"this is a {job.kind} import"
         raise Unprocessable([field_error(("body", "mapping", "kind"), message)])
+    if isinstance(mapping, DemandMapping):
+        return await run_demand_import(session, principal, job, table, mapping, commit=commit)
     return await run_resource_import(session, principal, job, table, mapping, commit=commit)
 
 

@@ -72,6 +72,9 @@ def test_TEN_03_other_org_ids_in_bodies_are_not_found(client: TestClient, app: F
         )
         assert response.status_code == 404, f"{route} with org-B body ids -> {response.status_code}"
         checked.append(route)
+    # POST /resources, demands POST/PUT, activities POST/PUT, pin PUT, constraints POST/PUT,
+    # POST /imports: guards against example bodies silently losing their ids.
+    assert len(checked) >= 9, checked
 
 
 def test_TEN_03_substitutes_example_ids_in_bodies() -> None:

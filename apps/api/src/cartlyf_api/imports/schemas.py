@@ -2,7 +2,15 @@ from datetime import datetime
 from typing import Annotated, Literal, Self
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field, StringConstraints, model_validator
+from pydantic import (
+    BaseModel,
+    ConfigDict,
+    Field,
+    NonNegativeInt,
+    PositiveInt,
+    StringConstraints,
+    model_validator,
+)
 
 from cartlyf_api.examples import example_id
 from cartlyf_engine.domain import Key
@@ -88,6 +96,35 @@ class ResourceMapping(BaseModel):
     attributes: dict[Key, Column] = Field(default_factory=dict[str, str])
 
 
+class RequirementMapping(BaseModel):
+    """One requirement per imported demand; *_column fields read per-row values."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    role: Key
+    resource_type_id: UUID | None = None
+    count_min: NonNegativeInt = 1
+    count_max: PositiveInt = 1
+    hard: bool = True
+    weight: NonNegativeInt = 0
+    tags_column: Column | None = None
+    fixed_codes_column: Column | None = None
+    attribute_columns: dict[Key, Column] = Field(default_factory=dict[str, str])
+
+
+class DemandMapping(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    kind: Literal["demands"]
+    demand_kind: Literal["session", "coverage"]
+    slot_template_id: UUID
+    name: Column
+    sessions_per_week: Column | None = None
+    duration_minutes: Column | None = None
+    slot_labels: Column | None = None
+    requirements: list[RequirementMapping] = Field(min_length=1, max_length=20)
+
+
 class DryRunRequest(BaseModel):
     model_config = ConfigDict(
         extra="forbid",
@@ -96,4 +133,4 @@ class DryRunRequest(BaseModel):
         },
     )
 
-    mapping: ResourceMapping
+    mapping: Annotated[ResourceMapping | DemandMapping, Field(discriminator="kind")]
