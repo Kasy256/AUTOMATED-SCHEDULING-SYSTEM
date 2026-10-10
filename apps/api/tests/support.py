@@ -33,6 +33,11 @@ def make_settings(database_url: str, redis_url: str, **overrides: object) -> Set
             "jwt_secret": TEST_JWT_SECRET,
             "web_base_url": "http://web.test",
             "cookie_secure": False,
+            "s3_endpoint": "127.0.0.1:1",
+            "s3_access_key": "test-access-key",
+            "s3_secret_key": "test-secret-key",
+            "s3_bucket": "cartlyf-test",
+            "s3_secure": False,
             **overrides,
         }
     )

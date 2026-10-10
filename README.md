@@ -24,13 +24,13 @@ The legacy folders are kept for reference and as the Education benchmark. Do not
 
 - [uv](https://docs.astral.sh/uv/) (manages Python 3.12 and the workspace)
 - Node.js 24 (see `.nvmrc`) and [pnpm](https://pnpm.io/)
-- Docker (for Postgres 16 and Redis 7 locally, and for the test suite)
+- Docker (for Postgres 16, Redis 7 and MinIO locally, and for the test suite)
 
 ## Run locally
 
 ```sh
 cp .env.example .env          # then change the passwords; change the ports if 5432/6379 are taken
-docker compose up -d --wait   # Postgres 16 (with cartlyf_owner / cartlyf_app roles) and Redis 7
+docker compose up -d --wait   # Postgres 16 (cartlyf_owner / cartlyf_app roles), Redis 7, MinIO (S3 API) + bucket
 uv sync
 uv run --env-file .env alembic -c apps/api/alembic.ini upgrade head
 ```

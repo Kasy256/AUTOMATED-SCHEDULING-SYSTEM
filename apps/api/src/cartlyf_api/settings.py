@@ -17,6 +17,14 @@ class Settings(BaseSettings):
     access_token_minutes: int = 15
     refresh_token_days: int = 30
     auth_rate_limit_per_minute: int = 10
+    s3_endpoint: str
+    s3_access_key: SecretStr
+    s3_secret_key: SecretStr
+    s3_bucket: str
+    s3_secure: bool = True
+    s3_region: str | None = None
+    import_max_bytes: int = 5_000_000
+    import_max_rows: int = 20_000
 
 
 def load_settings(env_file: str | None = ".env") -> Settings:
