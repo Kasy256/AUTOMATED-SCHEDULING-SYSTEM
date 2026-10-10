@@ -5,7 +5,7 @@ from typing import Any
 from uuid import UUID, uuid4
 
 from alembic.config import Config
-from sqlalchemy import Row, text
+from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 from testcontainers.community.postgres import PostgresContainer
 
@@ -52,12 +52,13 @@ def alembic_config(url: str) -> Config:
     return config
 
 
-def fetch(url: str, sql: str) -> list[Row[Any]]:
-    async def run() -> list[Row[Any]]:
+# Any: raw SQL rows are untyped; tests assert on their values.
+def fetch(url: str, sql: str) -> list[tuple[Any, ...]]:
+    async def run() -> list[tuple[Any, ...]]:
         engine = create_async_engine(url)
         try:
             async with engine.begin() as conn:
-                return list((await conn.execute(text(sql))).all())
+                return [tuple(row) for row in (await conn.execute(text(sql))).all()]
         finally:
             await engine.dispose()
 
