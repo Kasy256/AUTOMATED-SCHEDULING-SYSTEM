@@ -5,8 +5,9 @@ Cartlyf is a multi-tenant scheduling platform: one configurable product that any
 Rules are configuration, not code; a pure CP-SAT engine solves the schedule, and an independent
 checker verifies every solution before anyone sees it.
 
-> Status: Phase 00 scaffold. The engine, API and web app are empty skeletons, wired together
-> and tested.
+> Status: Phase 02. Multi-tenant configuration API: resources and availability calendars,
+> schedules, demands and activities, constraint rules, pins, CSV import and a pre-solve feasibility
+> check. The solver arrives in Phase 03; the web app is still a skeleton.
 
 ## Repository layout
 
