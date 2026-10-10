@@ -5,14 +5,11 @@ from fastapi.testclient import TestClient
 from testcontainers.community.postgres import PostgresContainer
 
 from cartlyf_api.main import create_app
-from cartlyf_api.settings import Settings
-from support import APP, db_url, execute
+from support import APP, db_url, execute, make_settings
 
 
 def _client(database_url: str, **overrides: object) -> TestClient:
-    settings = Settings.model_validate(
-        {"database_url": database_url, "redis_url": "redis://localhost:1/0", **overrides}
-    )
+    settings = make_settings(database_url, "redis://localhost:1/0", **overrides)
     return TestClient(create_app(settings), raise_server_exceptions=False)
 
 

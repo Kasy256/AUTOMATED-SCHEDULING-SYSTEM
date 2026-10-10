@@ -1,19 +1,15 @@
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
+from cartlyf_api.errors import Conflict, RateLimited, Unauthorized
 from cartlyf_api.main import create_app
-from cartlyf_api.settings import Settings
+from support import make_settings
 
 PROBLEM = "application/problem+json"
 
 
 def _app() -> FastAPI:
-    settings = Settings.model_validate(
-        {
-            "database_url": "postgresql+asyncpg://u:p@localhost:1/x",
-            "redis_url": "redis://localhost:1/0",
-        }
-    )
+    settings = make_settings("postgresql+asyncpg://u:p@localhost:1/x", "redis://localhost:1/0")
     app = create_app(settings)
 
     async def boom() -> None:
@@ -22,6 +18,18 @@ def _app() -> FastAPI:
     async def needs_int(n: int) -> int:
         return n
 
+    async def conflict() -> None:
+        raise Conflict("Already a member")
+
+    async def unauthorized() -> None:
+        raise Unauthorized()
+
+    async def rate_limited() -> None:
+        raise RateLimited(retry_after=17)
+
+    app.add_api_route("/conflict", conflict)
+    app.add_api_route("/unauthorized", unauthorized)
+    app.add_api_route("/rate-limited", rate_limited)
     app.add_api_route("/boom", boom)
     app.add_api_route("/needs-int", needs_int)
     return app
@@ -56,3 +64,30 @@ def test_validation_error_does_not_echo_input() -> None:
     assert response.headers["content-type"] == PROBLEM
     assert "hunter2" not in response.text
     assert response.json()["errors"][0]["loc"] == ["query", "n"]
+
+
+def test_domain_error_maps_to_problem() -> None:
+    with TestClient(_app()) as client:
+        response = client.get("/conflict")
+    assert response.status_code == 409
+    assert response.headers["content-type"] == PROBLEM
+    assert response.json() == {
+        "type": "about:blank",
+        "title": "Conflict",
+        "status": 409,
+        "detail": "Already a member",
+    }
+
+
+def test_unauthorized_sets_www_authenticate() -> None:
+    with TestClient(_app()) as client:
+        response = client.get("/unauthorized")
+    assert response.status_code == 401
+    assert response.headers["www-authenticate"] == "Bearer"
+
+
+def test_rate_limited_sets_retry_after() -> None:
+    with TestClient(_app()) as client:
+        response = client.get("/rate-limited")
+    assert response.status_code == 429
+    assert response.headers["retry-after"] == "17"

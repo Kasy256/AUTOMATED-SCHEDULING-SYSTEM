@@ -1,6 +1,6 @@
 from typing import Literal
 
-from pydantic import PostgresDsn, RedisDsn
+from pydantic import AnyHttpUrl, Field, PostgresDsn, RedisDsn, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -11,6 +11,12 @@ class Settings(BaseSettings):
     redis_url: RedisDsn
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
     db_timeout_seconds: float = 5
+    jwt_secret: SecretStr = Field(min_length=32)
+    web_base_url: AnyHttpUrl
+    cookie_secure: bool = True
+    access_token_minutes: int = 15
+    refresh_token_days: int = 30
+    auth_rate_limit_per_minute: int = 10
 
 
 def load_settings(env_file: str | None = ".env") -> Settings:

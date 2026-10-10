@@ -7,9 +7,25 @@ from sqlalchemy import Row, text
 from sqlalchemy.ext.asyncio import create_async_engine
 from testcontainers.community.postgres import PostgresContainer
 
+from cartlyf_api.settings import Settings
+
 API_DIR = Path(__file__).resolve().parents[1]
 OWNER = ("cartlyf_owner", "owner-test-password")
 APP = ("cartlyf_app", "app-test-password")
+TEST_JWT_SECRET = "test-secret-" + "x" * 40
+
+
+def make_settings(database_url: str, redis_url: str, **overrides: object) -> Settings:
+    return Settings.model_validate(
+        {
+            "database_url": database_url,
+            "redis_url": redis_url,
+            "jwt_secret": TEST_JWT_SECRET,
+            "web_base_url": "http://web.test",
+            "cookie_secure": False,
+            **overrides,
+        }
+    )
 
 
 def apply_roles(pg: PostgresContainer) -> None:
