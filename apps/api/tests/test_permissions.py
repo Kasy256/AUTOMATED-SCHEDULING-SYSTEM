@@ -17,10 +17,11 @@ def test_AUTH_04_permissions_are_union_of_roles() -> None:
 
 def test_role_capabilities() -> None:
     assert permissions_for([Role.ORG_ADMIN]) == frozenset(Permission)
-    assert permissions_for([Role.PLANNER]) == {Permission.MEMBERS_READ}
+    planner = {Permission.MEMBERS_READ, Permission.CONFIG_READ, Permission.CONFIG_MANAGE}
+    assert permissions_for([Role.PLANNER]) == planner
     assert permissions_for([Role.MEMBER]) == frozenset()
-    assert permissions_for([Role.VIEWER]) == frozenset()
-    assert permissions_for([Role.MEMBER, Role.PLANNER]) == {Permission.MEMBERS_READ}
+    assert permissions_for([Role.VIEWER]) == {Permission.CONFIG_READ}
+    assert permissions_for([Role.MEMBER, Role.PLANNER]) == planner
 
 
 def test_principal_require() -> None:

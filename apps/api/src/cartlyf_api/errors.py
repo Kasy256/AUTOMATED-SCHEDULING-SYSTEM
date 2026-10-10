@@ -1,6 +1,6 @@
-from collections.abc import Mapping
+from collections.abc import Mapping, Sequence
 from http import HTTPStatus
-from typing import ClassVar
+from typing import ClassVar, TypedDict
 
 import structlog
 from fastapi import FastAPI, Request
@@ -43,6 +43,16 @@ def problem(
     return JSONResponse(body, status_code=status, headers=headers, media_type=PROBLEM_JSON)
 
 
+class FieldError(TypedDict):
+    loc: list[str | int]
+    msg: str
+    type: str
+
+
+def field_error(loc: Sequence[str | int], msg: str, type_: str = "value_error") -> FieldError:
+    return {"loc": list(loc), "msg": msg, "type": type_}
+
+
 class DomainError(Exception):
     """Raised by services; mapped to a problem response by one handler."""
 
@@ -50,9 +60,10 @@ class DomainError(Exception):
     title: ClassVar[str] = "Bad Request"
     headers: ClassVar[Mapping[str, str] | None] = None
 
-    def __init__(self, detail: str | None = None) -> None:
+    def __init__(self, detail: str | None = None, **extra: object) -> None:
         super().__init__(detail)
         self.detail = detail
+        self.extra = extra
 
 
 class InvalidLink(DomainError):
@@ -78,6 +89,20 @@ class NotFound(DomainError):
 class Conflict(DomainError):
     status = 409
     title = "Conflict"
+
+
+class Unprocessable(DomainError):
+    status = 422
+    title = "Unprocessable Content"
+
+    def __init__(self, errors: list[FieldError], detail: str | None = None) -> None:
+        super().__init__(detail, errors=errors)
+        self.errors = errors
+
+
+class PayloadTooLarge(DomainError):
+    status = 413
+    title = "Content Too Large"
 
 
 class RateLimited(DomainError):
@@ -107,7 +132,7 @@ async def _domain_error(_: Request, exc: Exception) -> JSONResponse:
     headers = dict(exc.headers or {})
     if isinstance(exc, RateLimited):
         headers["Retry-After"] = str(exc.retry_after)
-    return problem(exc.status, exc.title, exc.detail, headers or None)
+    return problem(exc.status, exc.title, exc.detail, headers or None, **exc.extra)
 
 
 async def _validation_error(_: Request, exc: Exception) -> JSONResponse:

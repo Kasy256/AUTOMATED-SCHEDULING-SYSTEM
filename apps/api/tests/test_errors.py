@@ -1,7 +1,14 @@
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from cartlyf_api.errors import Conflict, RateLimited, Unauthorized
+from cartlyf_api.errors import (
+    Conflict,
+    PayloadTooLarge,
+    RateLimited,
+    Unauthorized,
+    Unprocessable,
+    field_error,
+)
 from cartlyf_api.main import create_app
 from support import make_settings
 
@@ -27,6 +34,16 @@ def _app() -> FastAPI:
     async def rate_limited() -> None:
         raise RateLimited(retry_after=17)
 
+    async def unprocessable() -> None:
+        raise Unprocessable(
+            [field_error(("body", "attributes", "seats"), "must be a whole number")]
+        )
+
+    async def too_large() -> None:
+        raise PayloadTooLarge("File is larger than 5000000 bytes")
+
+    app.add_api_route("/unprocessable", unprocessable)
+    app.add_api_route("/too-large", too_large)
     app.add_api_route("/conflict", conflict)
     app.add_api_route("/unauthorized", unauthorized)
     app.add_api_route("/rate-limited", rate_limited)
@@ -91,3 +108,24 @@ def test_rate_limited_sets_retry_after() -> None:
         response = client.get("/rate-limited")
     assert response.status_code == 429
     assert response.headers["retry-after"] == "17"
+
+
+def test_unprocessable_lists_field_errors() -> None:
+    with TestClient(_app(), raise_server_exceptions=False) as client:
+        response = client.get("/unprocessable")
+    assert response.status_code == 422
+    assert response.headers["content-type"] == PROBLEM
+    assert response.json()["errors"] == [
+        {
+            "loc": ["body", "attributes", "seats"],
+            "msg": "must be a whole number",
+            "type": "value_error",
+        }
+    ]
+
+
+def test_payload_too_large() -> None:
+    with TestClient(_app(), raise_server_exceptions=False) as client:
+        response = client.get("/too-large")
+    assert response.status_code == 413
+    assert response.json()["detail"] == "File is larger than 5000000 bytes"

@@ -2,7 +2,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
-from support import build_world, openapi_operations
+from support import build_world, openapi_operations, substitute_ids, url_for
 
 pytestmark = pytest.mark.integration
 MUTATING = {"POST", "PUT", "PATCH", "DELETE"}
@@ -16,8 +16,9 @@ def test_AUTH_06_viewer_cannot_mutate_anything(client: TestClient, app: FastAPI)
     for op in openapi_operations(app):
         if op.method not in MUTATING or op.path.startswith(SELF_SERVICE_PREFIX):
             continue
-        url = op.path.format(**{name: world.a_ids[name] for name in op.path_params})
-        response = client.request(op.method, url, headers=world.a_viewer.auth, json=op.body)
+        url = url_for(op, world.a_ids)
+        body = substitute_ids(op.body, world.a_ids)
+        response = client.request(op.method, url, headers=world.a_viewer.auth, json=body)
         expected = 404 if op.path.startswith("/api/v1/platform/") else 403
         assert response.status_code == expected, f"{op.method} {op.path} -> {response.status_code}"
         checked.append(f"{op.method} {op.path}")

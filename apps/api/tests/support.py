@@ -1,8 +1,9 @@
 import asyncio
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 import httpx2 as httpx
@@ -15,6 +16,7 @@ from testcontainers.community.postgres import PostgresContainer
 
 from cartlyf_api.auth.cookies import REFRESH_COOKIE
 from cartlyf_api.email.provider import ConsoleEmailProvider
+from cartlyf_api.examples import EXAMPLE_IDS
 from cartlyf_api.settings import Settings
 
 API_DIR = Path(__file__).resolve().parents[1]
@@ -246,12 +248,56 @@ def openapi_operations(app: FastAPI) -> list[Operation]:
 
 def _example_body(spec: dict[str, Any], op: dict[str, Any]) -> object | None:
     body = op.get("requestBody")
-    if body is None:
-        return None
+    if body is None or "application/json" not in body["content"]:
+        return None  # raw uploads (e.g. text/csv) carry no ids; the harness sends no body
     name = body["content"]["application/json"]["schema"]["$ref"].rsplit("/", 1)[-1]
     examples = spec["components"]["schemas"][name].get("examples")
     assert examples, f"{name}: add json_schema_extra examples so the isolation harness can call it"
     return examples[0]
+
+
+_SENTINELS = {str(uuid): name for name, uuid in EXAMPLE_IDS.items()}
+
+
+def body_id_names(value: object) -> set[str]:
+    if isinstance(value, str):
+        return {_SENTINELS[value]} if value in _SENTINELS else set()
+    if isinstance(value, list):
+        return set[str]().union(*(body_id_names(v) for v in cast(list[object], value)))
+    if isinstance(value, dict):
+        values = cast(dict[str, object], value).values()
+        return set[str]().union(*(body_id_names(v) for v in values))
+    return set()
+
+
+def substitute_ids(value: object, ids: Mapping[str, str]) -> object:
+    """Replace example placeholder ids with the seeded ids of one organisation."""
+    if isinstance(value, str) and value in _SENTINELS:
+        name = _SENTINELS[value]
+        assert name in ids, f"seed an id for {name!r} in seed_config"
+        return ids[name]
+    if isinstance(value, list):
+        return [substitute_ids(v, ids) for v in cast(list[object], value)]
+    if isinstance(value, dict):
+        return {k: substitute_ids(v, ids) for k, v in cast(dict[str, object], value).items()}
+    return value
+
+
+def ordered(operations: list[Operation]) -> list[Operation]:
+    """Non-DELETE routes first; DELETEs deepest first, children (reverse-alphabetical) before
+    parents, so a positive-control delete never removes an object a later route still needs."""
+    deletes = [op for op in operations if op.method == "DELETE"]
+    others = [op for op in operations if op.method != "DELETE"]
+    return others + sorted(deletes, key=lambda op: (op.path.count("/"), op.path), reverse=True)
+
+
+def url_for(op: Operation, ids: Mapping[str, str]) -> str:
+    return op.path.format(**{name: ids[name] for name in op.path_params})
+
+
+def seed_config(client: TestClient, admin: Account) -> dict[str, str]:
+    """Create one of each configuration object in the admin's org; returns ids by path name."""
+    return {}
 
 
 def missing_seeds(operation: Operation, ids: dict[str, str]) -> set[str]:
@@ -283,6 +329,7 @@ def build_world(client: TestClient, app: FastAPI) -> World:
         return {
             "membership_id": own["membership_id"],
             "organisation_id": str(admin.organisation_id),
+            **seed_config(client, admin),
         }
 
     return World(a_admin, a_viewer, a_member, b_admin, ids(a_admin), ids(b_admin))

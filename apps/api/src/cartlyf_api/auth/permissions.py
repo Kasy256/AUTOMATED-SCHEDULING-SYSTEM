@@ -16,13 +16,17 @@ class Role(StrEnum):
 class Permission(StrEnum):
     MEMBERS_READ = "members.read"
     MEMBERS_MANAGE = "members.manage"
+    CONFIG_READ = "config.read"
+    CONFIG_MANAGE = "config.manage"
 
 
 _ROLE_PERMISSIONS: Mapping[Role, frozenset[Permission]] = {
     Role.ORG_ADMIN: frozenset(Permission),
-    Role.PLANNER: frozenset({Permission.MEMBERS_READ}),
+    Role.PLANNER: frozenset(
+        {Permission.MEMBERS_READ, Permission.CONFIG_READ, Permission.CONFIG_MANAGE}
+    ),
     Role.MEMBER: frozenset(),
-    Role.VIEWER: frozenset(),
+    Role.VIEWER: frozenset({Permission.CONFIG_READ}),
 }
 
 
