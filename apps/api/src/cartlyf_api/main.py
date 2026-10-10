@@ -6,6 +6,7 @@ from fastapi.routing import APIRoute
 
 from cartlyf_api.activities.router import router as activities_router
 from cartlyf_api.auth.router import router as auth_router
+from cartlyf_api.constraints.router import router as constraints_router
 from cartlyf_api.db import create_db_engine
 from cartlyf_api.email.provider import ConsoleEmailProvider
 from cartlyf_api.errors import install_error_handlers
@@ -53,4 +54,5 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(resources_router, prefix="/api/v1")
     app.include_router(schedules_router, prefix="/api/v1")
     app.include_router(activities_router, prefix="/api/v1")
+    app.include_router(constraints_router, prefix="/api/v1")
     return app

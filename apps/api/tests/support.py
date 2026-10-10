@@ -435,6 +435,16 @@ def seed_config(client: TestClient, admin: Account) -> dict[str, str]:
             "requirements": [{"role": "lecturer", "resource_type_id": ids["resource_type_id"]}],
         },
     )
+    ids["constraint_instance_id"] = post(
+        f"/api/v1/schedules/{ids['schedule_id']}/constraints",
+        {
+            "name": "Seed rule",
+            "template_key": "max_load",
+            "template_version": 1,
+            "params": {"period": "day", "max_count": 2},
+            "hard": True,
+        },
+    )
     return ids
 
 
