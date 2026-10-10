@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Any
 from uuid import UUID, uuid4
 
+import httpx2 as httpx
 from alembic.config import Config
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -191,6 +192,11 @@ class Account:
     @property
     def auth(self) -> dict[str, str]:
         return {"Authorization": f"Bearer {self.access_token}"}
+
+
+def refresh_with(client: TestClient, raw: str) -> httpx.Response:
+    client.cookies.clear()
+    return client.post("/api/v1/auth/refresh", headers={"Cookie": f"{REFRESH_COOKIE}={raw}"})
 
 
 def signup_and_confirm(

@@ -91,3 +91,19 @@ async def default_organisation(session: AsyncSession, user_id: UUID) -> UUID | N
         .order_by(Membership.created_at, Membership.organisation_id)
         .limit(1)
     )
+
+
+async def membership_summaries(session: AsyncSession, user_id: UUID) -> list[tuple[UUID, str]]:
+    """The user's active organisations (visible through the self-read policies)."""
+    rows = await session.execute(
+        select(Organisation.id, Organisation.name)
+        .join(Membership, Membership.organisation_id == Organisation.id)
+        .where(
+            Membership.user_id == user_id,
+            Membership.status == "active",
+            Membership.deleted_at.is_(None),
+            Organisation.deleted_at.is_(None),
+        )
+        .order_by(Organisation.name, Organisation.id)
+    )
+    return [(row[0], row[1]) for row in rows]
