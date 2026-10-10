@@ -1,3 +1,4 @@
+import math
 from collections.abc import Mapping, Sequence
 from typing import Annotated, Literal, Self, cast
 
@@ -100,12 +101,17 @@ def coerce_cell(definition: AttributeDef, cell: str) -> object:
     text = cell.strip()
     match definition.type:
         case "integer":
-            return int(text) if text.lstrip("-").isdigit() else text
-        case "number":
             try:
-                return float(text) if any(c in text for c in ".eE") else int(text)
+                return int(text)
             except ValueError:
                 return text
+        case "number":
+            try:
+                value = float(text) if any(c in text for c in ".eE") else int(text)
+            except ValueError:
+                return text
+            # inf/nan cannot be stored as JSON; report them like any other bad number.
+            return value if math.isfinite(value) else text
         case "boolean":
             lowered = text.lower()
             return True if lowered in _TRUE else False if lowered in _FALSE else text

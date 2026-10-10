@@ -91,3 +91,10 @@ def test_DOM_01_schema_itself_is_validated() -> None:
 def test_coerce_csv_cells(key: str, cell: str, expected: object) -> None:
     definition = next(d for d in SCHEMA.attributes if d.key == key)
     assert coerce_cell(definition, cell) == expected
+
+
+@pytest.mark.parametrize(("key", "cell"), [("floor", "--5"), ("floor", "²"), ("area", "1e999")])
+def test_coerce_never_raises_and_rejects_non_finite(key: str, cell: str) -> None:
+    definition = next(d for d in SCHEMA.attributes if d.key == key)
+    assert coerce_cell(definition, cell) == cell
+    assert errors({"room_type": "lab", key: coerce_cell(definition, cell)})[key]
