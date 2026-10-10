@@ -65,3 +65,16 @@ docs/
 build_prompts/
 .claude/
 skills-lock.json
+
+# Cartlyf toolchain
+node_modules/
+coverage/
+.pytest_cache/
+.ruff_cache/
+playwright-report/
+test-results/
+*.tsbuildinfo
+.env*
+!.env.example
+apps/web/openapi.json
+apps/web/src/api/generated/
