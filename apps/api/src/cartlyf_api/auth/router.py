@@ -14,13 +14,14 @@ from cartlyf_api.auth.schemas import (
     MeResponse,
     OrganisationSummary,
     SignupRequest,
+    SwitchOrganisationRequest,
     TokenRequest,
     TokenResponse,
 )
 from cartlyf_api.auth.sessions import IssuedSession, RefreshRejected, login, logout, rotate
 from cartlyf_api.auth.signup import confirm_email, sign_up
 from cartlyf_api.email.outbox import deliver
-from cartlyf_api.errors import Unauthorized, problem, problem_response
+from cartlyf_api.errors import Forbidden, Unauthorized, problem, problem_response
 from cartlyf_api.orgs import repository as orgs_repo
 from cartlyf_api.rate_limit import WINDOW_SECONDS, enforce, rate_limit
 from cartlyf_api.settings import Settings
@@ -149,3 +150,36 @@ async def me(session: DbSession, claims: Claims) -> MeResponse:
         platform_admin_session=claims.platform_admin,
         organisations=[OrganisationSummary(organisation_id=i, name=n) for i, n in organisations],
     )
+
+
+@router.post(
+    "/switch-organisation",
+    response_model=TokenResponse,
+    dependencies=[Depends(rate_limit("switch"))],
+    responses={
+        **_UNAUTHORIZED,
+        404: problem_response("Not a member of that organisation"),
+        **_RATE_LIMITED,
+    },
+)
+async def switch_organisation(
+    request: Request,
+    body: SwitchOrganisationRequest,
+    session: DbSession,
+    claims: Claims,
+    response: Response,
+    refresh_cookie: RefreshCookie = None,
+) -> TokenResponse | JSONResponse:
+    if claims.platform_admin:
+        raise Forbidden("Platform-admin sessions cannot switch organisation")
+    settings = settings_of(request)
+    result = await rotate(
+        session,
+        settings,
+        refresh_cookie,
+        expected_user_id=claims.user_id,
+        switch_to=body.organisation_id,
+    )
+    if isinstance(result, RefreshRejected):
+        return _rejected(settings)
+    return _token_response(response, settings, result)
