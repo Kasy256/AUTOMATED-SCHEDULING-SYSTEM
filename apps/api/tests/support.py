@@ -224,6 +224,70 @@ def add_member(
     )
 
 
+@dataclass(frozen=True)
+class Operation:
+    path: str
+    method: str
+    path_params: list[str]
+    body: object | None
+
+
+# Any: the OpenAPI document is untyped JSON.
+def openapi_operations(app: FastAPI) -> list[Operation]:
+    """Every route in the app's OpenAPI schema, with an example body where it takes one."""
+    spec: dict[str, Any] = app.openapi()
+    operations: list[Operation] = []
+    for path, item in spec["paths"].items():
+        for method, op in item.items():
+            params = [p["name"] for p in op.get("parameters", []) if p["in"] == "path"]
+            operations.append(Operation(path, method.upper(), params, _example_body(spec, op)))
+    return operations
+
+
+def _example_body(spec: dict[str, Any], op: dict[str, Any]) -> object | None:
+    body = op.get("requestBody")
+    if body is None:
+        return None
+    name = body["content"]["application/json"]["schema"]["$ref"].rsplit("/", 1)[-1]
+    examples = spec["components"]["schemas"][name].get("examples")
+    assert examples, f"{name}: add json_schema_extra examples so the isolation harness can call it"
+    return examples[0]
+
+
+def missing_seeds(operation: Operation, ids: dict[str, str]) -> set[str]:
+    return set(operation.path_params) - ids.keys()
+
+
+@dataclass(frozen=True)
+class World:
+    """Two organisations: A with an admin, a viewer and a member; B with an admin."""
+
+    a_admin: Account
+    a_viewer: Account
+    a_member: Account
+    b_admin: Account
+    a_ids: dict[str, str]
+    b_ids: dict[str, str]
+
+
+def build_world(client: TestClient, app: FastAPI) -> World:
+    a_admin = signup_and_confirm(client, app, org_name="World A")
+    b_admin = signup_and_confirm(client, app, org_name="World B")
+    a_viewer = add_member(client, app, a_admin, ["viewer"])
+    a_member = add_member(client, app, a_admin, ["member"])
+
+    # One id per path-parameter name used by any route; add a seed when a route adds a name.
+    def ids(admin: Account) -> dict[str, str]:
+        members = client.get("/api/v1/members", headers=admin.auth).json()
+        own = next(m for m in members if m["email"] == admin.email)
+        return {
+            "membership_id": own["membership_id"],
+            "organisation_id": str(admin.organisation_id),
+        }
+
+    return World(a_admin, a_viewer, a_member, b_admin, ids(a_admin), ids(b_admin))
+
+
 def refresh_with(client: TestClient, raw: str) -> httpx.Response:
     client.cookies.clear()
     return client.post("/api/v1/auth/refresh", headers={"Cookie": f"{REFRESH_COOKIE}={raw}"})
