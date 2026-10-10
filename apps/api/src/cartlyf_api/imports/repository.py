@@ -11,10 +11,11 @@ async def insert_job(session: AsyncSession, values: Mapping[str, object]) -> Non
     await session.execute(insert(ImportJob).values(**values))
 
 
-async def get_job(session: AsyncSession, org: UUID, import_id: UUID) -> ImportJob | None:
-    return await session.scalar(
-        select(ImportJob).where(ImportJob.organisation_id == org, ImportJob.id == import_id)
-    )
+async def get_job(
+    session: AsyncSession, org: UUID, import_id: UUID, *, for_update: bool = False
+) -> ImportJob | None:
+    query = select(ImportJob).where(ImportJob.organisation_id == org, ImportJob.id == import_id)
+    return await session.scalar(query.with_for_update() if for_update else query)
 
 
 async def list_jobs(session: AsyncSession, org: UUID) -> Sequence[ImportJob]:

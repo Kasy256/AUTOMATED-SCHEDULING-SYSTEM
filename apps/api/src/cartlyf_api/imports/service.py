@@ -46,8 +46,10 @@ def job_response(job: ImportJob) -> ImportResponse:
     )
 
 
-async def job_of(session: AsyncSession, principal: Principal, import_id: UUID) -> ImportJob:
-    job = await repo.get_job(session, principal.organisation_id, import_id)
+async def job_of(
+    session: AsyncSession, principal: Principal, import_id: UUID, *, for_update: bool = False
+) -> ImportJob:
+    job = await repo.get_job(session, principal.organisation_id, import_id, for_update=for_update)
     if job is None:
         raise NotFound("Unknown import")
     return job
@@ -126,7 +128,8 @@ async def upload_file(
 ) -> ImportResponse:
     principal.require(Permission.CONFIG_MANAGE)
     org = principal.organisation_id
-    job = await job_of(session, principal, import_id)
+    # Row lock: a double-submitted request waits, then sees the first one's status.
+    job = await job_of(session, principal, import_id, for_update=True)
     if job.status == "committed":
         raise Conflict("This import is already committed")
     data = await read_limited(chunks, settings.import_max_bytes)
@@ -197,7 +200,8 @@ async def dry_run(
     body: DryRunRequest,
 ) -> ImportResponse:
     principal.require(Permission.CONFIG_MANAGE)
-    job = await job_of(session, principal, import_id)
+    # Row lock: a double-submitted request waits, then sees the first one's status.
+    job = await job_of(session, principal, import_id, for_update=True)
     if job.status == "committed":
         raise Conflict("This import is already committed")
     table = await load_table(store, settings, job, principal.organisation_id)
@@ -223,7 +227,8 @@ async def commit(
     import_id: UUID,
 ) -> ImportResponse:
     principal.require(Permission.CONFIG_MANAGE)
-    job = await job_of(session, principal, import_id)
+    # Row lock: a double-submitted request waits, then sees the first one's status.
+    job = await job_of(session, principal, import_id, for_update=True)
     if job.status != "validated" or job.mapping is None:
         raise Conflict("Run a dry run without errors before committing")
     table = await load_table(store, settings, job, principal.organisation_id)

@@ -1,8 +1,18 @@
+import asyncio
+from uuid import UUID
+
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy.ext.asyncio import create_async_engine
+from testcontainers.community.postgres import PostgresContainer
 
-from support import Account, seed_config, signup_and_confirm
+from cartlyf_api.auth.permissions import Principal, Role
+from cartlyf_api.errors import Conflict
+from cartlyf_api.imports import service
+from cartlyf_api.storage import S3ObjectStore
+from cartlyf_api.tenancy import scoped_transaction
+from support import APP, Account, db_url, seed_config, signup_and_confirm
 
 pytestmark = pytest.mark.integration
 
@@ -94,3 +104,41 @@ def test_DOM_07_mapping_kind_must_match_job(client: TestClient, app: FastAPI) ->
     wrong = {"mapping": {"kind": "resources", "code": "Course", "name": "Course"}}
     response = client.post(f"/api/v1/imports/{import_id}/dry-run", headers=admin.auth, json=wrong)
     assert response.status_code == 422
+
+
+def test_DOM_07_concurrent_commits_import_once(
+    client: TestClient, app: FastAPI, migrated_pg: PostgresContainer
+) -> None:
+    admin = signup_and_confirm(client, app)
+    ids = seed_config(client, admin)
+    import_id = start(client, admin, ids["schedule_id"], "Course,Sessions\nTwice,1\n")
+    one_req = mapping(ids) | {"slot_labels": None, "requirements": [{"role": "lecturer"}]}
+    dry = client.post(
+        f"/api/v1/imports/{import_id}/dry-run", headers=admin.auth, json={"mapping": one_req}
+    )
+    assert dry.json()["status"] == "validated", dry.text
+    user_id = UUID(client.get("/api/v1/auth/me", headers=admin.auth).json()["user_id"])
+    principal = Principal(user_id, admin.organisation_id, frozenset({Role.ORG_ADMIN}))
+    settings = app.state.settings
+
+    async def run() -> list[object]:
+        engine = create_async_engine(db_url(migrated_pg, *APP))
+        store = S3ObjectStore(settings)
+
+        async def attempt() -> object:
+            try:
+                async with scoped_transaction(engine, admin.organisation_id, user_id) as session:
+                    return await service.commit(
+                        session, store, settings, principal, UUID(import_id)
+                    )
+            except Conflict as exc:
+                return exc
+
+        try:
+            return list(await asyncio.gather(attempt(), attempt()))
+        finally:
+            await engine.dispose()
+
+    results = asyncio.run(run())
+    assert sum(isinstance(r, Conflict) for r in results) == 1
+    assert sorted(demand_names(client, admin, ids["schedule_id"])).count("Twice") == 1
