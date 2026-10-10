@@ -25,7 +25,7 @@ async def accept_invitation(
     except (TokenInvalid, KeyError, ValueError, TypeError) as exc:
         raise InvalidLink() from exc
     await set_context(session, org_id, user_id)
-    membership = await orgs_repo.get_membership(session, org_id, membership_id)
+    membership = await orgs_repo.get_membership(session, org_id, membership_id, for_update=True)
     user = await auth_repo.get_user(session, user_id)
     if (
         membership is None
@@ -35,9 +35,11 @@ async def accept_invitation(
     ):
         raise InvalidLink()
     password = request.password.get_secret_value()
-    if user.password_hash is None:
+    # An unconfirmed account's password may have been set by anyone who typed the address;
+    # the invitation link is the proof of ownership, so it sets the password.
+    if user.password_hash is None or not user.email_verified:
         user.password_hash = hash_password(password)
-        user.email_verified = True  # the link proves they control the address
+        user.email_verified = True
     elif not verify_password(user.password_hash, password):
         raise Unauthorized("Invalid email or password")
     membership.status = "active"

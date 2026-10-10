@@ -112,15 +112,14 @@ async def membership_summaries(session: AsyncSession, user_id: UUID) -> list[tup
 
 
 async def get_membership(
-    session: AsyncSession, organisation_id: UUID, membership_id: UUID
+    session: AsyncSession, organisation_id: UUID, membership_id: UUID, *, for_update: bool = False
 ) -> Membership | None:
-    return await session.scalar(
-        select(Membership).where(
-            Membership.organisation_id == organisation_id,
-            Membership.id == membership_id,
-            Membership.deleted_at.is_(None),
-        )
+    query = select(Membership).where(
+        Membership.organisation_id == organisation_id,
+        Membership.id == membership_id,
+        Membership.deleted_at.is_(None),
     )
+    return await session.scalar(query.with_for_update() if for_update else query)
 
 
 async def membership_for_user(

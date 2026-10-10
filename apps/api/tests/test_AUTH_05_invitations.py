@@ -1,11 +1,26 @@
+import asyncio
 from uuid import uuid4
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from testcontainers.community.postgres import PostgresContainer
 
-from support import add_member, fetch, latest_link_token, signup_and_confirm, superuser_url
+from cartlyf_api.auth.invitations import accept_invitation
+from cartlyf_api.auth.schemas import AcceptInvitationRequest
+from cartlyf_api.errors import InvalidLink
+from cartlyf_api.tenancy import scoped_transaction
+from support import (
+    APP,
+    add_member,
+    db_url,
+    fetch,
+    latest_link_token,
+    signup,
+    signup_and_confirm,
+    superuser_url,
+)
 
 pytestmark = pytest.mark.integration
 NEW_PASSWORD = "a brand new password"
@@ -120,3 +135,92 @@ def test_invitation_audited(
         "ORDER BY id",
     )
     assert actions == [("organisation.created",), ("member.invited",), ("invitation.accepted",)]
+
+
+def test_AUTH_05_stranger_signup_cannot_block_invitee(client: TestClient, app: FastAPI) -> None:
+    admin = signup_and_confirm(client, app)
+    email = f"{uuid4().hex}@example.com"
+    client.post(
+        "/api/v1/invitations",
+        headers=admin.auth,
+        json={"email": email, "name": "Invitee", "roles": ["viewer"]},
+    )
+    invite_token = latest_link_token(app, email, "accept-invitation")
+    stranger = client.post(
+        "/api/v1/auth/signup",
+        json={
+            "email": email,
+            "name": "Stranger",
+            "password": "stranger password",
+            "organisation_name": "Stranger Org",
+            "timezone": "Africa/Kampala",
+        },
+    )
+    assert stranger.status_code == 202
+    accepted = client.post(
+        "/api/v1/auth/accept-invitation", json={"token": invite_token, "password": NEW_PASSWORD}
+    )
+    assert accepted.status_code == 200
+    login = client.post("/api/v1/auth/login", json={"email": email, "password": NEW_PASSWORD})
+    assert login.status_code == 200
+    stale = client.post(
+        "/api/v1/auth/login", json={"email": email, "password": "stranger password"}
+    )
+    assert stale.status_code == 401
+
+
+def test_AUTH_05_unconfirmed_signup_then_invitation_can_log_in(
+    client: TestClient, app: FastAPI
+) -> None:
+    admin = signup_and_confirm(client, app)
+    email = signup(client)
+    client.post(
+        "/api/v1/invitations",
+        headers=admin.auth,
+        json={"email": email, "name": "x", "roles": ["viewer"]},
+    )
+    token = latest_link_token(app, email, "accept-invitation")
+    accepted = client.post(
+        "/api/v1/auth/accept-invitation", json={"token": token, "password": NEW_PASSWORD}
+    )
+    assert accepted.status_code == 200
+    login = client.post("/api/v1/auth/login", json={"email": email, "password": NEW_PASSWORD})
+    assert login.status_code == 200
+
+
+def test_concurrent_accepts_activate_once(
+    client: TestClient, app: FastAPI, migrated_pg: PostgresContainer
+) -> None:
+    admin = signup_and_confirm(client, app)
+    email = f"{uuid4().hex}@example.com"
+    client.post(
+        "/api/v1/invitations",
+        headers=admin.auth,
+        json={"email": email, "name": "Racer", "roles": ["viewer"]},
+    )
+    request = AcceptInvitationRequest.model_validate(
+        {"token": latest_link_token(app, email, "accept-invitation"), "password": NEW_PASSWORD}
+    )
+
+    async def accept_once(engine: AsyncEngine) -> str:
+        try:
+            async with scoped_transaction(engine) as session:
+                await accept_invitation(session, app.state.settings, request)
+        except InvalidLink:
+            return "invalid"
+        return "ok"
+
+    async def run() -> list[str]:
+        engine = create_async_engine(db_url(migrated_pg, *APP))
+        try:
+            return list(await asyncio.gather(accept_once(engine), accept_once(engine)))
+        finally:
+            await engine.dispose()
+
+    assert sorted(asyncio.run(run())) == ["invalid", "ok"]
+    accepted = fetch(
+        superuser_url(migrated_pg),
+        "SELECT count(*) FROM audit_log WHERE action = 'invitation.accepted' "
+        f"AND organisation_id = '{admin.organisation_id}'",
+    )
+    assert accepted == [(1,)]

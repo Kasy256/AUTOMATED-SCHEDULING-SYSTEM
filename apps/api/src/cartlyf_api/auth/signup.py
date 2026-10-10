@@ -67,7 +67,8 @@ async def confirm_email(session: AsyncSession, settings: Settings, token: str) -
     except (TokenInvalid, KeyError, ValueError, TypeError) as exc:
         raise InvalidLink() from exc
     await set_context(session, None, user_id)
-    user = await auth_repo.get_user(session, user_id)
+    # Locked so a double-submitted link cannot create two organisations.
+    user = await auth_repo.get_user(session, user_id, for_update=True)
     if user is None or user.email_verified or fingerprint(user.password_hash) != pwfp:
         raise InvalidLink()
     user.email_verified = True

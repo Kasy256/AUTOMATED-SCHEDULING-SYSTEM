@@ -1,11 +1,19 @@
+import asyncio
+
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from testcontainers.community.postgres import PostgresContainer
 
 from cartlyf_api.auth.cookies import REFRESH_COOKIE
+from cartlyf_api.auth.signup import confirm_email
+from cartlyf_api.errors import InvalidLink
+from cartlyf_api.tenancy import scoped_transaction
 from support import (
+    APP,
     DEFAULT_PASSWORD,
+    db_url,
     fetch,
     latest_link_token,
     sent_emails,
@@ -114,3 +122,33 @@ def test_signup_rejects_short_password_without_echoing_it(client: TestClient) ->
     response = client.post("/api/v1/auth/signup", json=body)
     assert response.status_code == 422
     assert "pw-tiny" not in response.text
+
+
+def test_AUTH_01_concurrent_confirms_create_one_org(
+    client: TestClient, app: FastAPI, migrated_pg: PostgresContainer
+) -> None:
+    email = signup(client)
+    token = latest_link_token(app, email, "confirm-email")
+
+    async def confirm_once(engine: AsyncEngine) -> str:
+        try:
+            async with scoped_transaction(engine) as session:
+                await confirm_email(session, app.state.settings, token)
+        except InvalidLink:
+            return "invalid"
+        return "ok"
+
+    async def run() -> list[str]:
+        engine = create_async_engine(db_url(migrated_pg, *APP))
+        try:
+            return list(await asyncio.gather(confirm_once(engine), confirm_once(engine)))
+        finally:
+            await engine.dispose()
+
+    assert sorted(asyncio.run(run())) == ["invalid", "ok"]
+    orgs = fetch(
+        superuser_url(migrated_pg),
+        "SELECT count(*) FROM membership m JOIN app_user u ON u.id = m.user_id "
+        f"WHERE u.email = '{email}'",
+    )
+    assert orgs == [(1,)]

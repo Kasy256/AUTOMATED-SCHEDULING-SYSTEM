@@ -19,10 +19,11 @@ async def refresh_token_owner(session: AsyncSession, digest: bytes) -> UUID | No
     return (await session.execute(_REFRESH_TOKEN_OWNER, {"digest": digest})).scalar_one_or_none()
 
 
-async def get_user(session: AsyncSession, user_id: UUID) -> AppUser | None:
-    return await session.scalar(
-        select(AppUser).where(AppUser.id == user_id, AppUser.deleted_at.is_(None))
-    )
+async def get_user(
+    session: AsyncSession, user_id: UUID, *, for_update: bool = False
+) -> AppUser | None:
+    query = select(AppUser).where(AppUser.id == user_id, AppUser.deleted_at.is_(None))
+    return await session.scalar(query.with_for_update() if for_update else query)
 
 
 async def is_platform_admin(session: AsyncSession, user_id: UUID) -> bool:
