@@ -63,6 +63,17 @@ describe("HealthStatus", () => {
     ).toBeInTheDocument();
   });
 
+  it("shows the HTTP status when an error response has no problem body", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.resolve(new Response(null, { status: 500 }))),
+    );
+    renderWithQuery();
+    expect(
+      await screen.findByText(/api error \(http 500\)/i),
+    ).toBeInTheDocument();
+  });
+
   it("says the API is unreachable when the request fails", async () => {
     vi.stubGlobal(
       "fetch",

@@ -1,4 +1,5 @@
 import { useHealth } from "@/api/generated/health/health";
+import type { Health503 } from "@/api/generated/model";
 import {
   Card,
   CardContent,
@@ -14,7 +15,11 @@ function HealthBody() {
 
   if (isPending) return <p>Checking API…</p>;
   if (isError) return <p>API unreachable</p>;
-  if (response.status !== 200) return <p>{response.data.title}</p>;
+  if (response.status !== 200) {
+    // Types only know the documented 503; proxies and crashes can return any status and body.
+    const { title } = response.data as Partial<Health503>;
+    return <p>{title ?? `API error (HTTP ${String(response.status)})`}</p>;
+  }
 
   const { current_user, rolsuper, rolbypassrls } = response.data.database;
   return (
