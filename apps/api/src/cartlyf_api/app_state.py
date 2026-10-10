@@ -1,0 +1,22 @@
+from fastapi import Request
+from redis.asyncio import Redis
+from sqlalchemy.ext.asyncio import AsyncEngine
+
+from cartlyf_api.email.provider import EmailProvider
+from cartlyf_api.settings import Settings
+
+
+def settings_of(request: Request) -> Settings:
+    return request.app.state.settings
+
+
+def engine_of(request: Request) -> AsyncEngine:
+    return request.app.state.db_engine
+
+
+def redis_of(request: Request) -> Redis:
+    return request.app.state.redis
+
+
+def email_provider_of(request: Request) -> EmailProvider:
+    return request.app.state.email_provider

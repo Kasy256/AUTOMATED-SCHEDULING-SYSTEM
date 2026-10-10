@@ -13,3 +13,18 @@ def test_logs_are_json_lines(capsys: pytest.CaptureFixture[str]) -> None:
     assert line["event"] == "hello"
     assert line["answer"] == 42
     assert line["level"] == "info"
+
+
+def test_exception_logs_never_include_local_variables(capsys: pytest.CaptureFixture[str]) -> None:
+    configure_logging("INFO")
+
+    def login(password: str) -> None:
+        raise ValueError("boom")
+
+    try:
+        login("hunter2-secret")
+    except ValueError:
+        structlog.get_logger().error("failed", exc_info=True)
+    out = capsys.readouterr().out
+    assert "ValueError" in out
+    assert "hunter2-secret" not in out

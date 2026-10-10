@@ -3,3 +3,5 @@
 6176cb109662e0740ed2d77fa3e20709efacc055:ISBAT-TIMETABLE-FRONTEND/firebaseConfig.js:gcp-api-key:10
 0b78c56f9f1020b35f3882331bbe96cc96aa9d79:timetable-scheduler/README.md:generic-api-key:126
 0b78c56f9f1020b35f3882331bbe96cc96aa9d79:timetable-scheduler/README.md:generic-api-key:127
+# Fake example JWT in an OpenAPI request example (replaced in a later commit); not a credential.
+6dee17481fb423dbc47a8782f696eeb6987aecf4:apps/api/src/cartlyf_api/auth/schemas.py:generic-api-key:12

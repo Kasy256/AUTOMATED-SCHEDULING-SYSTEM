@@ -13,6 +13,11 @@ dependencies = [
   "alembic",
   "structlog",
   "dramatiq[redis]",
+  "argon2-cffi>=25.1.0",
+  "pyjwt>=2.15.1",
+  "redis>=8.1.0",
+  "email-validator>=2.3.0",
+  "tzdata>=2026.5",
 ]
 
 [build-system]

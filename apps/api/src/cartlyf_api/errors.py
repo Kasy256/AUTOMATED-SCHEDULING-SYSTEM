@@ -1,5 +1,6 @@
 from collections.abc import Mapping
 from http import HTTPStatus
+from typing import ClassVar
 
 import structlog
 from fastapi import FastAPI, Request
@@ -42,12 +43,71 @@ def problem(
     return JSONResponse(body, status_code=status, headers=headers, media_type=PROBLEM_JSON)
 
 
+class DomainError(Exception):
+    """Raised by services; mapped to a problem response by one handler."""
+
+    status: ClassVar[int] = 400
+    title: ClassVar[str] = "Bad Request"
+    headers: ClassVar[Mapping[str, str] | None] = None
+
+    def __init__(self, detail: str | None = None) -> None:
+        super().__init__(detail)
+        self.detail = detail
+
+
+class InvalidLink(DomainError):
+    title = "Invalid or expired link"
+
+
+class Unauthorized(DomainError):
+    status = 401
+    title = "Unauthorized"
+    headers: ClassVar[Mapping[str, str] | None] = {"WWW-Authenticate": "Bearer"}
+
+
+class Forbidden(DomainError):
+    status = 403
+    title = "Forbidden"
+
+
+class NotFound(DomainError):
+    status = 404
+    title = "Not Found"
+
+
+class Conflict(DomainError):
+    status = 409
+    title = "Conflict"
+
+
+class RateLimited(DomainError):
+    status = 429
+    title = "Too Many Requests"
+
+    def __init__(self, retry_after: int) -> None:
+        super().__init__()
+        self.retry_after = retry_after
+
+
+class ServiceUnavailable(DomainError):
+    status = 503
+    title = "Service Unavailable"
+
+
 # Handlers take Exception (not a subclass) to match Starlette's handler type under pyright strict.
 async def _http_error(_: Request, exc: Exception) -> JSONResponse:
     assert isinstance(exc, HTTPException)
     title = HTTPStatus(exc.status_code).phrase
     detail = exc.detail if exc.detail != title else None
     return problem(exc.status_code, title, detail, exc.headers)
+
+
+async def _domain_error(_: Request, exc: Exception) -> JSONResponse:
+    assert isinstance(exc, DomainError)
+    headers = dict(exc.headers or {})
+    if isinstance(exc, RateLimited):
+        headers["Retry-After"] = str(exc.retry_after)
+    return problem(exc.status, exc.title, exc.detail, headers or None)
 
 
 async def _validation_error(_: Request, exc: Exception) -> JSONResponse:
@@ -65,4 +125,5 @@ async def _unhandled_error(request: Request, exc: Exception) -> JSONResponse:
 def install_error_handlers(app: FastAPI) -> None:
     app.add_exception_handler(HTTPException, _http_error)
     app.add_exception_handler(RequestValidationError, _validation_error)
+    app.add_exception_handler(DomainError, _domain_error)
     app.add_exception_handler(Exception, _unhandled_error)
