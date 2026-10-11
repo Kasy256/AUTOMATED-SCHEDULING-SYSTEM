@@ -217,3 +217,9 @@ RULE_PARAMS["balance"] = lambda draw: {"measure": draw(st.sampled_from(("count",
 
 
 RULE_PARAMS["day_distribution"] = lambda draw: {}
+
+
+RULE_PARAMS["precedence"] = lambda draw: {
+    "pairs": [{"before": "s1", "after": "s2"}],
+    "min_gap": draw(st.sampled_from((0, 60))),
+}
