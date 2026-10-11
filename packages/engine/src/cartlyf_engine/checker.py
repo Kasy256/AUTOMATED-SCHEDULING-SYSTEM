@@ -19,6 +19,7 @@ from cartlyf_engine.domain import (
     Problem,
     Score,
     Violation,
+    resource_matches,
 )
 from cartlyf_engine.index import ProblemIndex
 from cartlyf_engine.templates.registry import UnsupportedTemplate, get_template
@@ -143,7 +144,7 @@ def _requirements(
                             activity_id,
                         )
                     )
-                elif r not in index.eligible(activity_id, role):
+                elif not resource_matches(index.resources[r], roles[role].filter):
                     violations.append(
                         _core(
                             CORE_REQUIREMENT,

@@ -58,3 +58,16 @@ def test_series_scope_and_grouping_keep_problem_order() -> None:
 def test_count_pluralises() -> None:
     assert count(1, "activity", "activities") == "1 activity"
     assert count(2, "activity", "activities") == "2 activities"
+
+
+def test_fixed_resources_that_fill_the_role_are_its_only_candidates() -> None:
+    p = problem(
+        [group("g", 10), group("h", 10), person("p"), person("q")],
+        [
+            act("a1", 60, [0], needs("group", "group", fixed=["g"])),
+            act("a2", 60, [0], needs("who", count=1, count_max=2, fixed=["p"])),
+        ],
+    )
+    index = ProblemIndex(p)
+    assert index.eligible("a1", "group") == ("g",)
+    assert index.eligible("a2", "who") == ("p", "q")

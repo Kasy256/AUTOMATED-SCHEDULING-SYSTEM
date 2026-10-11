@@ -38,13 +38,19 @@ class ProblemIndex:
                     matching[req.filter] = tuple(
                         r.id for r in problem.resources if resource_matches(r, req.filter)
                     )
-                self._eligible[activity.id, req.role] = matching[req.filter]
+                eligible = matching[req.filter]
+                fixed = req.fixed_resource_ids
+                # When the fixed resources fill the role, no other resource can ever be picked.
+                if fixed and len(fixed) == req.count_max:
+                    eligible = tuple(r for r in eligible if r in fixed)
+                self._eligible[activity.id, req.role] = eligible
             self._candidates[activity.id] = frozenset(
                 r for req in activity.requirements for r in self._eligible[activity.id, req.role]
             )
 
     def eligible(self, activity_id: str, role: str) -> tuple[str, ...]:
-        """Resources matching the requirement's filter, in problem order."""
+        """Resources that may fill the role: those matching its filter, in problem order, or only
+        the fixed ones when they fill it."""
         return self._eligible[activity_id, role]
 
     def candidates(self, activity_id: str) -> frozenset[str]:
