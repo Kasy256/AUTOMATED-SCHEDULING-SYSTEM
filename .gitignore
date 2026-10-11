@@ -78,3 +78,4 @@ test-results/
 !.env.example
 apps/web/openapi.json
 apps/web/src/api/generated/
+.hypothesis/

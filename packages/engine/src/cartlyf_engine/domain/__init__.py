@@ -12,17 +12,30 @@ from cartlyf_engine.domain.filters import (
 from cartlyf_engine.domain.problem import Problem, SolveOptions, problem_hash
 from cartlyf_engine.domain.resources import Resource, ResourceKind, resource_matches
 from cartlyf_engine.domain.solution import (
+    CORE_OVERLAP,
+    CORE_PIN,
+    CORE_PLACEMENT,
+    CORE_REQUIREMENT,
+    CORE_UNAVAILABLE,
+    REQUIREMENTS_TERM,
     Assignment,
     PenaltyTerm,
     Score,
     Solution,
     SolveStats,
     SolveStatus,
+    Violation,
 )
 from cartlyf_engine.domain.time import Window
 
 __all__ = [
+    "CORE_OVERLAP",
+    "CORE_PIN",
+    "CORE_PLACEMENT",
+    "CORE_REQUIREMENT",
+    "CORE_UNAVAILABLE",
     "KEY_PATTERN",
+    "REQUIREMENTS_TERM",
     "Activity",
     "ActivityFilter",
     "Assignment",
@@ -47,6 +60,7 @@ __all__ = [
     "SolveStats",
     "SolveStatus",
     "Tag",
+    "Violation",
     "Window",
     "activity_matches",
     "predicate_holds",
