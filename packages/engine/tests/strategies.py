@@ -194,3 +194,17 @@ RULE_PARAMS["max_consecutive"] = lambda draw: {
 
 
 RULE_PARAMS["min_load"] = lambda draw: load_params(draw, "min")
+
+
+def _preference(draw: st.DrawFn) -> dict[str, JsonValue]:
+    if draw(st.booleans()):
+        return {"source": "calendar"}
+    pair: dict[str, JsonValue] = {
+        "resource_id": draw(st.sampled_from(("p1", "p2"))),
+        "series_id": draw(st.sampled_from(("s1", "s2"))),
+        "mode": draw(st.sampled_from(("prefer", "avoid"))),
+    }
+    return {"source": "explicit", "pairs": [pair]}
+
+
+RULE_PARAMS["preference"] = _preference
