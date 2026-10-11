@@ -181,3 +181,6 @@ RULE_PARAMS["spread"] = _spread
 
 
 RULE_PARAMS["same_time"] = lambda draw: {"link_groups": [["s1", "s2"]]}
+
+
+RULE_PARAMS["min_rest"] = lambda draw: {"minutes": draw(st.sampled_from((30, 60, 600)))}
