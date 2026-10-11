@@ -29,7 +29,7 @@ ParamsFn = Callable[[st.DrawFn], dict[str, JsonValue]]
 RULE_PARAMS: dict[str, ParamsFn] = {}
 
 agreement = settings(
-    max_examples=30,
+    max_examples=100,
     deadline=None,
     suppress_health_check=[HealthCheck.too_slow, HealthCheck.filter_too_much],
 )
