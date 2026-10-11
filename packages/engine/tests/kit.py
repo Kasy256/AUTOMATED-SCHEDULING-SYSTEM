@@ -4,6 +4,7 @@ from collections.abc import Sequence
 
 from pydantic import JsonValue
 
+from cartlyf_engine.checker import check
 from cartlyf_engine.domain import (
     Activity,
     Assignment,
@@ -15,10 +16,12 @@ from cartlyf_engine.domain import (
     Resource,
     ResourceFilter,
     Scope,
+    Solution,
     SolveOptions,
     SolveStatus,
     Window,
 )
+from cartlyf_engine.solve import solve
 
 DAY = 1440
 SOLVED = (SolveStatus.OPTIMAL, SolveStatus.FEASIBLE)
@@ -154,6 +157,27 @@ def options(time_limit_s: int = 10) -> SolveOptions:
 
 
 def messages(p: Problem, *assignments: Assignment) -> list[str]:
-    from cartlyf_engine.checker import check
-
     return [v.message for v in check(p, assignments).violations]
+
+
+def solve1(p: Problem, time_limit_s: int = 10) -> Solution:
+    return solve(p, options(time_limit_s))
+
+
+def solved(p: Problem) -> Solution:
+    """Solve deterministically; assert the result is verified and scored consistently."""
+    solution = solve1(p)
+    assert solution.status in SOLVED, solution
+    assert solution.score == check(p, solution.assignments)
+    assert solution.score.hard_violations == 0, solution.score.violations
+    assert solution.score.soft_total == solution.stats.objective
+    return solution
+
+
+def start_of(solution: Solution, activity_id: str) -> int:
+    return next(a.start for a in solution.assignments if a.activity_id == activity_id)
+
+
+def who(solution: Solution, activity_id: str, role: str = "who") -> tuple[str, ...]:
+    assignment = next(a for a in solution.assignments if a.activity_id == activity_id)
+    return assignment.resources.get(role, ())
