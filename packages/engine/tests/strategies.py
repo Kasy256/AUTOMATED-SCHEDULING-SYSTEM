@@ -191,3 +191,6 @@ RULE_PARAMS["max_consecutive"] = lambda draw: {
     "max": 1,
     "activity_filter": draw(st.sampled_from((None, {"series_ids": ["s1"]}))),
 }
+
+
+RULE_PARAMS["min_load"] = lambda draw: load_params(draw, "min")
