@@ -19,10 +19,13 @@ class Compiled:
     model: cp_model.CpModel
     encoding: Encoding
     picks: Picks  # activity -> role -> resource -> literal
-    assumptions: Mapping[int, str]  # assumption literal index -> hard instance id
+    hard: Mapping[int, str]  # enforcing literal index -> hard instance id
 
 
-def compile_problem(problem: Problem) -> Compiled:
+def compile_problem(problem: Problem, *, assumptions: bool = False) -> Compiled:
+    """Hard instances are enforced by one literal each: fixed true for a normal solve, or, with
+    `assumptions=True`, left as solver assumptions and no objective, to explain infeasibility.
+    CP-SAT runs single-threaded with assumptions, so only the explaining solve uses them."""
     model = cp_model.CpModel()
     index = ProblemIndex(problem)
     starts: dict[str, dict[int, cp_model.IntVar]] = {}
@@ -53,7 +56,7 @@ def compile_problem(problem: Problem) -> Compiled:
 
     encoding = Encoding(model, problem, index, starts, start, uses)
     terms: list[Expr] = []
-    assumptions: dict[int, str] = {}
+    hard: dict[int, str] = {}
     for instance in problem.constraints:
         spec = get_template(instance.template_key, instance.version)
         if spec.encode is None:
@@ -62,14 +65,18 @@ def compile_problem(problem: Problem) -> Compiled:
         rule = Rule(encoding, enforce)
         spec.encode(rule, instance)
         if enforce is not None:
-            assumptions[enforce.index] = instance.id
+            hard[enforce.index] = instance.id
         else:
             terms.append(instance.weight * sum(rule.amounts))
     terms += shortfalls
+    literals = [model.get_bool_var_from_proto_index(i) for i in hard]
     if assumptions:
-        model.add_assumptions([model.get_bool_var_from_proto_index(i) for i in assumptions])
-    model.minimize(sum(terms))
-    return Compiled(model, encoding, picks, assumptions)
+        model.add_assumptions(literals)
+    else:
+        for literal in literals:
+            model.add(literal == 1)
+        model.minimize(sum(terms))
+    return Compiled(model, encoding, picks, hard)
 
 
 def _place(

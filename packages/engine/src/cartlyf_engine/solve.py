@@ -144,16 +144,28 @@ def solve(
         )
     conflicts: tuple[str, ...] = ()
     if status is SolveStatus.INFEASIBLE:
-        found = solver.sufficient_assumptions_for_infeasibility()
-        conflicts = tuple(
-            sorted(compiled.assumptions[i] for i in found if i in compiled.assumptions)
-        )
+        conflicts = _conflicts(problem, options)
     return Solution(
         status=status,
         score=_NO_SCORE,
         conflicts=conflicts,
         stats=SolveStats(wall_time_s=solver.wall_time),
     )
+
+
+def _conflicts(problem: Problem, options: SolveOptions) -> tuple[str, ...]:
+    """Hard instances that together make the problem infeasible, from an assumption solve."""
+    compiled = compile_problem(problem, assumptions=True)
+    if not compiled.hard:
+        return ()
+    solver = cp_model.CpSolver()
+    solver.parameters.max_time_in_seconds = options.time_limit_s
+    solver.parameters.random_seed = options.seed
+    solver.parameters.num_workers = 1
+    if solver.solve(compiled.model) != cp_model.INFEASIBLE:
+        return ()
+    found = solver.sufficient_assumptions_for_infeasibility()
+    return tuple(sorted(compiled.hard[i] for i in found if i in compiled.hard))
 
 
 def _assignments(

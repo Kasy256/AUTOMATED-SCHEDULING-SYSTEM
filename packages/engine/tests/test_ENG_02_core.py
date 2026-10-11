@@ -1,5 +1,6 @@
+from cartlyf_engine.compiler import compile_problem
 from cartlyf_engine.domain import Pin, SolveStatus
-from kit import DAY, act, needs, person, problem, solve1, solved, start_of, who, win
+from kit import DAY, act, needs, person, problem, rule, solve1, solved, start_of, who, win
 
 
 def test_ENG_02_no_double_booking() -> None:
@@ -93,3 +94,13 @@ def test_solves_are_deterministic() -> None:
         [act(f"a{i}", 60, [0, 60, 120, DAY], needs()) for i in range(4)],
     )
     assert solve1(p).assignments == solve1(p).assignments
+
+
+def test_main_model_has_no_assumptions_so_workers_can_run_in_parallel() -> None:
+    p = problem(
+        [person("p")],
+        [act("a1", 60, [0], needs())],
+        [rule("cap", "max_load", period="day", max_count=1)],
+    )
+    assert list(compile_problem(p).model.proto.assumptions) == []
+    assert len(compile_problem(p, assumptions=True).model.proto.assumptions) == 1
