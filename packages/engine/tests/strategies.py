@@ -214,3 +214,6 @@ RULE_PARAMS["minimize_gaps"] = lambda draw: {"per_minutes": draw(st.sampled_from
 
 
 RULE_PARAMS["balance"] = lambda draw: {"measure": draw(st.sampled_from(("count", "minutes")))}
+
+
+RULE_PARAMS["day_distribution"] = lambda draw: {}
