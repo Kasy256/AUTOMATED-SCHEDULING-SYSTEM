@@ -20,9 +20,12 @@ jobs:
           enable-cache: true
       - run: uv sync --frozen
       - name: Machine
-        run: echo "::notice title=Machine::$(nproc) vCPU, $(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2)"
+        run: |
+          echo "::notice title=Machine::$(nproc) vCPU, $(grep -m1 'model name' /proc/cpuinfo | cut -d: -f2)"
       - name: ENG-08
-        run: uv run pytest -m benchmark -s packages/engine/tests/test_ENG_08_benchmark.py 2>&1 | tee bench.log
+        run: |
+          set -o pipefail
+          uv run pytest -m benchmark -s packages/engine/tests/test_ENG_08_benchmark.py 2>&1 | tee bench.log
       - name: Result
         if: always()
         run: echo "::notice title=ENG-08::$(grep -m1 'ENG-08 status' bench.log || tail -n 3 bench.log | tr '\n' ' ')"
