@@ -178,3 +178,6 @@ def _spread(draw: st.DrawFn) -> dict[str, JsonValue]:
 
 
 RULE_PARAMS["spread"] = _spread
+
+
+RULE_PARAMS["same_time"] = lambda draw: {"link_groups": [["s1", "s2"]]}
