@@ -155,3 +155,17 @@ def _capacity_fit(draw: st.DrawFn) -> dict[str, JsonValue]:
 
 
 RULE_PARAMS["capacity_fit"] = _capacity_fit
+
+
+def load_params(draw: st.DrawFn, prefix: str) -> dict[str, JsonValue]:
+    limit = draw(st.sampled_from((None, 0, 1, 2)))
+    minutes = draw(st.sampled_from((60, 120) if limit is None else (None, 60, 120)))
+    return {
+        "period": draw(st.sampled_from(("day", "week", "horizon"))),
+        "window": draw(st.sampled_from((None, "morning"))),
+        f"{prefix}_count": limit,
+        f"{prefix}_minutes": minutes,
+    }
+
+
+RULE_PARAMS["max_load"] = lambda draw: load_params(draw, "max")
