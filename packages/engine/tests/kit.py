@@ -151,3 +151,9 @@ def place(activity_id: str, start: int, **roles: str | Sequence[str]) -> Assignm
 
 def options(time_limit_s: int = 10) -> SolveOptions:
     return SolveOptions(time_limit_s=time_limit_s, seed=0, num_workers=1)
+
+
+def messages(p: Problem, *assignments: Assignment) -> list[str]:
+    from cartlyf_engine.checker import check
+
+    return [v.message for v in check(p, assignments).violations]

@@ -1,7 +1,17 @@
 from collections.abc import Callable
 from dataclasses import dataclass, field
+from typing import TYPE_CHECKING
 
 from pydantic import BaseModel
+
+if TYPE_CHECKING:
+    from cartlyf_engine.checking import CheckContext, Finding
+    from cartlyf_engine.domain.constraints import ConstraintInstance
+    from cartlyf_engine.encoding import Rule
+
+Encoder = Callable[["Rule", "ConstraintInstance"], None]
+Checker = Callable[["CheckContext", "ConstraintInstance"], "list[Finding]"]
+Explainer = Callable[["ConstraintInstance"], str]
 
 
 @dataclass(frozen=True)
@@ -24,3 +34,6 @@ class TemplateSpec:
     # Objective-only rules (preferences, balance, stability…) cannot be hard.
     soft_only: bool = False
     references: Callable[[BaseModel], References] = field(default=_no_references)
+    encode: Encoder | None = None
+    check: Checker | None = None
+    explain: Explainer | None = None

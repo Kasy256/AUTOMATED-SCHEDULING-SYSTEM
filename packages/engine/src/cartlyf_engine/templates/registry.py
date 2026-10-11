@@ -49,6 +49,14 @@ class UnknownTemplate(LookupError):
         self.field = field
 
 
+class UnsupportedTemplate(LookupError):
+    """A known template whose encoder and checker arrive in a later phase."""
+
+    def __init__(self, key: str) -> None:
+        super().__init__(f"'{key}' rules cannot be solved or checked yet")
+        self.key = key
+
+
 @dataclass(frozen=True)
 class InstanceProblem:
     loc: tuple[str | int, ...]
