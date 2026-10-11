@@ -169,3 +169,12 @@ def load_params(draw: st.DrawFn, prefix: str) -> dict[str, JsonValue]:
 
 
 RULE_PARAMS["max_load"] = lambda draw: load_params(draw, "max")
+
+
+def _spread(draw: st.DrawFn) -> dict[str, JsonValue]:
+    per_day = draw(st.sampled_from((None, 1, 2)))
+    apart = draw(st.sampled_from((1, 2) if per_day is None else (None, 1, 2)))
+    return {"max_per_day": per_day, "min_days_apart": apart}
+
+
+RULE_PARAMS["spread"] = _spread
