@@ -18,6 +18,7 @@ dependencies = [
   "redis>=8.1.0",
   "email-validator>=2.3.0",
   "tzdata>=2026.5",
+  "minio>=7.2.20",
 ]
 
 [build-system]

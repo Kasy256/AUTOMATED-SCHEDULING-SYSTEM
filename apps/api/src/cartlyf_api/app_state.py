@@ -4,6 +4,7 @@ from sqlalchemy.ext.asyncio import AsyncEngine
 
 from cartlyf_api.email.provider import EmailProvider
 from cartlyf_api.settings import Settings
+from cartlyf_api.storage import ObjectStore
 
 
 def settings_of(request: Request) -> Settings:
@@ -20,3 +21,7 @@ def redis_of(request: Request) -> Redis:
 
 def email_provider_of(request: Request) -> EmailProvider:
     return request.app.state.email_provider
+
+
+def object_store_of(request: Request) -> ObjectStore:
+    return request.app.state.object_store

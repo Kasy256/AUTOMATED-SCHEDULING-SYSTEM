@@ -20,5 +20,28 @@ services:
       interval: 5s
       retries: 10
 
+  minio:
+    # Community fork: upstream MinIO images are no longer published on Docker Hub.
+    image: pgsty/minio:RELEASE.2026-08-04T00-00-00Z
+    command: server /data --console-address :9001
+    environment:
+      MINIO_ROOT_USER: ${CARTLYF_S3_ACCESS_KEY:?set CARTLYF_S3_ACCESS_KEY in .env}
+      MINIO_ROOT_PASSWORD: ${CARTLYF_S3_SECRET_KEY:?set CARTLYF_S3_SECRET_KEY in .env}
+    ports: ["${CARTLYF_MINIO_PORT:-9000}:9000"]
+    volumes:
+      - miniodata:/data
+  # Creates the bucket once MinIO answers (the image has no curl for a healthcheck).
+  minio-init:
+    image: pgsty/mc:RELEASE.2026-09-16T00-00-00Z
+    depends_on: [minio]
+    environment:
+      CARTLYF_S3_ACCESS_KEY: ${CARTLYF_S3_ACCESS_KEY}
+      CARTLYF_S3_SECRET_KEY: ${CARTLYF_S3_SECRET_KEY}
+      CARTLYF_S3_BUCKET: ${CARTLYF_S3_BUCKET:-cartlyf}
+    entrypoint: >
+      sh -c 'until mc alias set local http://minio:9000 "$$CARTLYF_S3_ACCESS_KEY" "$$CARTLYF_S3_SECRET_KEY";
+      do sleep 1; done && mc mb --ignore-existing "local/$$CARTLYF_S3_BUCKET"'
+
 volumes:
   pgdata: {}
+  miniodata: {}

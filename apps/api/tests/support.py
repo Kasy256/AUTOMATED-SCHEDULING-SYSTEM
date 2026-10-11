@@ -1,8 +1,9 @@
 import asyncio
 import re
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, cast
 from uuid import UUID, uuid4
 
 import httpx2 as httpx
@@ -15,6 +16,7 @@ from testcontainers.community.postgres import PostgresContainer
 
 from cartlyf_api.auth.cookies import REFRESH_COOKIE
 from cartlyf_api.email.provider import ConsoleEmailProvider
+from cartlyf_api.examples import EXAMPLE_IDS
 from cartlyf_api.settings import Settings
 
 API_DIR = Path(__file__).resolve().parents[1]
@@ -31,6 +33,11 @@ def make_settings(database_url: str, redis_url: str, **overrides: object) -> Set
             "jwt_secret": TEST_JWT_SECRET,
             "web_base_url": "http://web.test",
             "cookie_secure": False,
+            "s3_endpoint": "127.0.0.1:1",
+            "s3_access_key": "test-access-key",
+            "s3_secret_key": "test-secret-key",
+            "s3_bucket": "cartlyf-test",
+            "s3_secure": False,
             **overrides,
         }
     )
@@ -111,26 +118,58 @@ def seed_org(url: str, name: str) -> SeededOrg:
     """Insert (as superuser) an org with an org_admin member and a row in every auth table."""
     org, user, membership = uuid4(), uuid4(), uuid4()
     email = f"{user.hex}@example.com"
-    execute_many(
-        url,
-        [
-            "INSERT INTO organisation (id, name, timezone) "
-            f"VALUES ('{org}', '{name}', 'Africa/Kampala')",
-            "INSERT INTO app_user (id, email, name, email_verified) "
-            f"VALUES ('{user}', '{email}', 'Seed User', true)",
-            "INSERT INTO membership (id, organisation_id, user_id, status) "
-            f"VALUES ('{membership}', '{org}', '{user}', 'active')",
-            "INSERT INTO membership_role (organisation_id, membership_id, role) "
-            f"VALUES ('{org}', '{membership}', 'org_admin')",
-            "INSERT INTO audit_log (organisation_id, actor_user_id, action) "
-            f"VALUES ('{org}', '{user}', 'seed')",
-            "INSERT INTO refresh_token (id, user_id, family_id, token_hash, expires_at) "
-            f"VALUES ('{uuid4()}', '{user}', '{uuid4()}', '\\x{uuid4().hex}', "
-            "now() + interval '1 day')",
-            "INSERT INTO email_outbox (id, user_id, to_address, subject, body) "
-            f"VALUES ('{uuid4()}', '{user}', '{email}', 's', 'b')",
-        ],
-    )
+    statements = [
+        "INSERT INTO organisation (id, name, timezone) "
+        f"VALUES ('{org}', '{name}', 'Africa/Kampala')",
+        "INSERT INTO app_user (id, email, name, email_verified) "
+        f"VALUES ('{user}', '{email}', 'Seed User', true)",
+        "INSERT INTO membership (id, organisation_id, user_id, status) "
+        f"VALUES ('{membership}', '{org}', '{user}', 'active')",
+        "INSERT INTO membership_role (organisation_id, membership_id, role) "
+        f"VALUES ('{org}', '{membership}', 'org_admin')",
+        "INSERT INTO audit_log (organisation_id, actor_user_id, action) "
+        f"VALUES ('{org}', '{user}', 'seed')",
+        "INSERT INTO refresh_token (id, user_id, family_id, token_hash, expires_at) "
+        f"VALUES ('{uuid4()}', '{user}', '{uuid4()}', '\\x{uuid4().hex}', "
+        "now() + interval '1 day')",
+        "INSERT INTO email_outbox (id, user_id, to_address, subject, body) "
+        f"VALUES ('{uuid4()}', '{user}', '{email}', 's', 'b')",
+    ]
+    rt, res, sched, slot, dem, act = (uuid4() for _ in range(6))
+    empty_schema = '{"version": 1, "attributes": []}'
+    statements += [
+        "INSERT INTO resource_type (id, organisation_id, key, name, kind, attribute_schema) "
+        f"VALUES ('{rt}', '{org}', 'seed_type', 'Seed', 'space', '{empty_schema}')",
+        "INSERT INTO resource (id, organisation_id, resource_type_id, code, name) "
+        f"VALUES ('{res}', '{org}', '{rt}', 'SEED-1', 'Seed resource')",
+        "INSERT INTO availability_rule (id, organisation_id, resource_id, kind, weekday, "
+        f"start_minute, end_minute) VALUES ('{uuid4()}', '{org}', '{res}', 'available', 0, 480, "
+        "1020)",
+        "INSERT INTO availability_exception (id, organisation_id, resource_id, kind, starts_at, "
+        f"ends_at) VALUES ('{uuid4()}', '{org}', '{res}', 'unavailable', now(), "
+        "now() + interval '1 day')",
+        "INSERT INTO schedule (id, organisation_id, name, timezone, start_date, end_date, "
+        f"day_parts) VALUES ('{sched}', '{org}', 'Seed', 'Africa/Kampala', '2027-01-11', "
+        """'2027-01-15', '{"version": 1, "parts": []}')""",
+        "INSERT INTO slot_template (id, organisation_id, schedule_id, name, definition) "
+        f"""VALUES ('{slot}', '{org}', '{sched}', 'Seed', '{{"version": 1, "slots": []}}')""",
+        "INSERT INTO demand (id, organisation_id, schedule_id, slot_template_id, name, kind, spec) "
+        f"VALUES ('{dem}', '{org}', '{sched}', '{slot}', 'Seed', 'session', '{{}}')",
+        "INSERT INTO activity (id, organisation_id, schedule_id, demand_id, series_id, name, "
+        f"duration_minutes, candidate_starts) VALUES ('{act}', '{org}', '{sched}', '{dem}', "
+        f"'{dem}', 'Seed', 60, ARRAY[now()])",
+        "INSERT INTO requirement (id, organisation_id, activity_id, position, role, count_min, "
+        f"count_max) VALUES ('{uuid4()}', '{org}', '{act}', 0, 'room', 1, 1)",
+        "INSERT INTO constraint_instance (id, organisation_id, schedule_id, name, template_key, "
+        f"template_version, params, scope, hard) VALUES ('{uuid4()}', '{org}', '{sched}', "
+        """'Seed', 'min_rest', 1, '{"minutes": 60}', '{}', true)""",
+        "INSERT INTO pin (id, organisation_id, schedule_id, activity_id, start_at) "
+        f"VALUES ('{uuid4()}', '{org}', '{sched}', '{act}', now())",
+        "INSERT INTO import_job (id, organisation_id, kind, status, resource_type_id, filename, "
+        f"created_by) VALUES ('{uuid4()}', '{org}', 'resources', 'awaiting_file', '{rt}', "
+        f"'seed.csv', '{user}')",
+    ]
+    execute_many(url, statements)
     return SeededOrg(org, user, membership)
 
 
@@ -246,12 +285,177 @@ def openapi_operations(app: FastAPI) -> list[Operation]:
 
 def _example_body(spec: dict[str, Any], op: dict[str, Any]) -> object | None:
     body = op.get("requestBody")
-    if body is None:
-        return None
+    if body is None or "application/json" not in body["content"]:
+        return None  # raw uploads (e.g. text/csv) carry no ids; the harness sends no body
     name = body["content"]["application/json"]["schema"]["$ref"].rsplit("/", 1)[-1]
     examples = spec["components"]["schemas"][name].get("examples")
     assert examples, f"{name}: add json_schema_extra examples so the isolation harness can call it"
     return examples[0]
+
+
+_SENTINELS = {str(uuid): name for name, uuid in EXAMPLE_IDS.items()}
+
+
+def body_id_names(value: object) -> set[str]:
+    if isinstance(value, str):
+        return {_SENTINELS[value]} if value in _SENTINELS else set()
+    if isinstance(value, list):
+        return set[str]().union(*(body_id_names(v) for v in cast(list[object], value)))
+    if isinstance(value, dict):
+        values = cast(dict[str, object], value).values()
+        return set[str]().union(*(body_id_names(v) for v in values))
+    return set()
+
+
+def substitute_ids(value: object, ids: Mapping[str, str]) -> object:
+    """Replace example placeholder ids with the seeded ids of one organisation."""
+    if isinstance(value, str) and value in _SENTINELS:
+        name = _SENTINELS[value]
+        assert name in ids, f"seed an id for {name!r} in seed_config"
+        return ids[name]
+    if isinstance(value, list):
+        return [substitute_ids(v, ids) for v in cast(list[object], value)]
+    if isinstance(value, dict):
+        return {k: substitute_ids(v, ids) for k, v in cast(dict[str, object], value).items()}
+    return value
+
+
+def ordered(operations: list[Operation]) -> list[Operation]:
+    """Non-DELETE routes first; DELETEs deepest first, children (reverse-alphabetical) before
+    parents, so a positive-control delete never removes an object a later route still needs."""
+    deletes = [op for op in operations if op.method == "DELETE"]
+    others = [op for op in operations if op.method != "DELETE"]
+    return others + sorted(deletes, key=lambda op: (op.path.count("/"), op.path), reverse=True)
+
+
+def url_for(op: Operation, ids: Mapping[str, str]) -> str:
+    return op.path.format(**{name: ids[name] for name in op.path_params})
+
+
+def seed_config(client: TestClient, admin: Account) -> dict[str, str]:
+    """Create one of each configuration object in the admin's org; returns ids by path name."""
+
+    def post(path: str, body: object) -> str:
+        response = client.post(path, headers=admin.auth, json=body)
+        assert response.status_code == 201, f"{path}: {response.text}"
+        return response.json()["id"]
+
+    ids: dict[str, str] = {}
+    ids["resource_type_id"] = post(
+        "/api/v1/resource-types",
+        {
+            "key": "lecturer",
+            "name": "Lecturer",
+            "kind": "person",
+            "attribute_schema": {
+                "version": 1,
+                "attributes": [
+                    {"key": "employment", "type": "enum", "enum_values": ["full_time", "part_time"]}
+                ],
+            },
+        },
+    )
+    ids["resource_id"] = post(
+        "/api/v1/resources",
+        {
+            "resource_type_id": ids["resource_type_id"],
+            "code": "LEC-001",
+            "name": "Seed lecturer",
+            "tags": ["math101"],
+            "attributes": {"employment": "full_time"},
+        },
+    )
+    resource_base = f"/api/v1/resources/{ids['resource_id']}"
+    ids["availability_rule_id"] = post(
+        f"{resource_base}/availability-rules",
+        {"kind": "available", "weekday": 0, "start_minute": 480, "end_minute": 1020},
+    )
+    ids["availability_exception_id"] = post(
+        f"{resource_base}/availability-exceptions",
+        {
+            "kind": "unavailable",
+            "starts_at": "2027-01-12T08:00:00+03:00",
+            "ends_at": "2027-01-12T10:00:00+03:00",
+        },
+    )
+    ids["schedule_id"] = post(
+        "/api/v1/schedules",
+        {
+            "name": "Seed term",
+            "timezone": "Africa/Kampala",
+            "start_date": "2027-01-11",
+            "end_date": "2027-01-15",
+        },
+    )
+    ids["slot_template_id"] = post(
+        f"/api/v1/schedules/{ids['schedule_id']}/slot-templates",
+        {
+            "name": "Periods",
+            "definition": {
+                "version": 1,
+                "slots": [
+                    {
+                        "label": "P1",
+                        "weekdays": [0, 1, 2, 3, 4],
+                        "start_minute": 510,
+                        "duration_minutes": 115,
+                    },
+                    {
+                        "label": "P2",
+                        "weekdays": [0, 1, 2, 3, 4],
+                        "start_minute": 660,
+                        "duration_minutes": 115,
+                    },
+                ],
+            },
+        },
+    )
+    schedule_base = f"/api/v1/schedules/{ids['schedule_id']}"
+    ids["demand_id"] = post(
+        f"{schedule_base}/demands",
+        {
+            "name": "Seed demand",
+            "slot_template_id": ids["slot_template_id"],
+            "spec": {
+                "kind": "session",
+                "sessions_per_week": 1,
+                "requirements": [
+                    {"role": "lecturer", "resource_type_id": ids["resource_type_id"]},
+                    {"role": "group", "fixed_resource_ids": [ids["resource_id"]]},
+                ],
+            },
+        },
+    )
+    ids["activity_id"] = post(
+        f"{schedule_base}/activities",
+        {
+            "name": "Seed meeting",
+            "duration_minutes": 60,
+            "candidate_starts": ["2027-01-11T09:00:00+03:00", "2027-01-12T09:00:00+03:00"],
+            "requirements": [{"role": "lecturer", "resource_type_id": ids["resource_type_id"]}],
+        },
+    )
+    ids["constraint_instance_id"] = post(
+        f"/api/v1/schedules/{ids['schedule_id']}/constraints",
+        {
+            "name": "Seed rule",
+            "template_key": "max_load",
+            "template_version": 1,
+            "params": {"period": "day", "max_count": 2},
+            "hard": True,
+        },
+    )
+    ids["import_id"] = post(
+        "/api/v1/imports",
+        {"kind": "resources", "resource_type_id": ids["resource_type_id"], "filename": "seed.csv"},
+    )
+    uploaded = client.put(
+        f"/api/v1/imports/{ids['import_id']}/file",
+        headers=admin.auth | {"Content-Type": "text/csv"},
+        content=b"Code,Name\nIMP-SEED,Imported seed\n",
+    )
+    assert uploaded.status_code == 200, uploaded.text
+    return ids
 
 
 def missing_seeds(operation: Operation, ids: dict[str, str]) -> set[str]:
@@ -283,6 +487,7 @@ def build_world(client: TestClient, app: FastAPI) -> World:
         return {
             "membership_id": own["membership_id"],
             "organisation_id": str(admin.organisation_id),
+            **seed_config(client, admin),
         }
 
     return World(a_admin, a_viewer, a_member, b_admin, ids(a_admin), ids(b_admin))

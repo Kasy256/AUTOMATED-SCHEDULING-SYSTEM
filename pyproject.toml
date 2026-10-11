@@ -23,7 +23,7 @@ dev = [
   "import-linter",
   "pip-audit",
   "httpx2",
-  "testcontainers[postgres,redis]",
+  "testcontainers[minio,postgres,redis]",
 ]
 
 [tool.ruff]
