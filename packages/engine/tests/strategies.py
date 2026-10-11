@@ -184,3 +184,10 @@ RULE_PARAMS["same_time"] = lambda draw: {"link_groups": [["s1", "s2"]]}
 
 
 RULE_PARAMS["min_rest"] = lambda draw: {"minutes": draw(st.sampled_from((30, 60, 600)))}
+
+
+RULE_PARAMS["max_consecutive"] = lambda draw: {
+    "unit": "days",
+    "max": 1,
+    "activity_filter": draw(st.sampled_from((None, {"series_ids": ["s1"]}))),
+}
