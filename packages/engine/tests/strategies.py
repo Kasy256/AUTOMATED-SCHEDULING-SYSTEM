@@ -141,3 +141,17 @@ def tiny_problems(
     )
     constraints = [_instance(draw, n, key) for n, key in enumerate(chosen)]
     return problem([*people, *rooms, *groups], activities, constraints)
+
+
+def _capacity_fit(draw: st.DrawFn) -> dict[str, JsonValue]:
+    return draw(
+        st.sampled_from(
+            (
+                {"headcount_from": "group_sizes"},
+                {"headcount_from": "activity_attr", "headcount_attr": "heads"},
+            )
+        )
+    )
+
+
+RULE_PARAMS["capacity_fit"] = _capacity_fit
