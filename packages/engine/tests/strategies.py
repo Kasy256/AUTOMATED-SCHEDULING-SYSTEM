@@ -208,3 +208,6 @@ def _preference(draw: st.DrawFn) -> dict[str, JsonValue]:
 
 
 RULE_PARAMS["preference"] = _preference
+
+
+RULE_PARAMS["minimize_gaps"] = lambda draw: {"per_minutes": draw(st.sampled_from((30, 60)))}
