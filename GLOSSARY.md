@@ -86,3 +86,24 @@ _Avoid_: validation (used for inputs), pre-solve
 
 **Import**:
 Bringing resources or demands in from a spreadsheet: upload, map columns, dry run, commit.
+
+## Solving
+
+**Score**:
+The verdict on a set of placements: how many hard rules are broken, plus the penalty of each soft rule.
+_Avoid_: fitness, cost (alone)
+
+**Penalty**:
+What a soft rule costs a schedule: its weight times how far the rule is broken.
+
+**Violation**:
+One place where a hard rule, or a built-in rule such as no double-booking, is broken.
+_Avoid_: error, clash (for anything other than double-booking)
+
+**Conflict**:
+A hard rule named as part of the reason no schedule can satisfy all hard rules together.
+_Avoid_: blocker
+
+**Checker**:
+The part of Cartlyf that scores any set of placements without the solver, so every result can be verified.
+_Avoid_: validator
