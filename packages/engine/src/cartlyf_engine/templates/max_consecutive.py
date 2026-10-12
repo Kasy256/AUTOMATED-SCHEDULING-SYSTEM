@@ -66,14 +66,15 @@ def encode(rule: Rule, instance: ConstraintInstance) -> None:
         for day in range(n_days):
             lits: list[IntVar] = []
             for a in activities:
-                lit = enc.assigned_at(a.id, resource.id, by_day[a.id].get(day, []), "exact")
+                lit = enc.assigned_at(a.id, resource.id, by_day[a.id].get(day, []), "over")
                 if not isinstance(lit, int):
                     lits.append(lit)
             if not lits:
                 worked.append(0)
                 continue
             w = enc.model.new_bool_var("")
-            enc.model.add_max_equality(w, lits)
+            for lit in lits:
+                enc.model.add(w >= lit)
             worked.append(w)
         for i in range(n_days - p.max):
             run = worked[i : i + p.max + 1]

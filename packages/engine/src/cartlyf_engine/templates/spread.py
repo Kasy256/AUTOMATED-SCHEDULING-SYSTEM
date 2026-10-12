@@ -63,12 +63,12 @@ def encode(rule: Rule, instance: ConstraintInstance) -> None:
         days = [(a, _starts_by_day(enc.index, a)) for a in series]
         if p.max_per_day is not None:
             for day in range(n_days):
-                on_day = [enc.starts_in(a.id, by_day[day]) for a, by_day in days if day in by_day]
+                on_day = [enc.bucket(a.id, by_day[day]) for a, by_day in days if day in by_day]
                 rule.at_most(sum(on_day), p.max_per_day, len(on_day))
         if p.min_days_apart is not None:
             for span in day_spans(n_days, p.min_days_apart):
                 within = [
-                    enc.starts_in(a.id, [s for d in span for s in by_day.get(d, ())])
+                    enc.bucket(a.id, [s for d in span for s in by_day.get(d, ())])
                     for a, by_day in days
                     if any(d in by_day for d in span)
                 ]

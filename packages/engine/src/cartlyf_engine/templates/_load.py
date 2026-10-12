@@ -15,7 +15,7 @@ from cartlyf_engine.templates.text import count
 if TYPE_CHECKING:
     from ortools.sat.python.cp_model import IntVar
 
-    from cartlyf_engine.encoding import Expr, Rule
+    from cartlyf_engine.encoding import Bound, Expr, Rule
 
 
 @dataclass(frozen=True)
@@ -54,7 +54,9 @@ def describe_load(load: Load, period: Period) -> tuple[str, str]:
     )
 
 
-def encode_loads(rule: Rule, scope: Scope, period: Period, window: str | None) -> list[LoadExpr]:
+def encode_loads(
+    rule: Rule, scope: Scope, period: Period, window: str | None, bound: Bound
+) -> list[LoadExpr]:
     enc = rule.enc
     activities = scoped_activities(enc.problem, scope)
     n = len(enc.index.periods(period))
@@ -70,7 +72,7 @@ def encode_loads(rule: Rule, scope: Scope, period: Period, window: str | None) -
                 if p is not None:
                     by_period[p].append(start)
             for p, starts in by_period.items():
-                lit = enc.assigned_at(activity.id, resource.id, starts, "exact")
+                lit = enc.assigned_at(activity.id, resource.id, starts, bound)
                 if not isinstance(lit, int):
                     buckets[p].append((activity.duration, lit))
         for p, items in enumerate(buckets):

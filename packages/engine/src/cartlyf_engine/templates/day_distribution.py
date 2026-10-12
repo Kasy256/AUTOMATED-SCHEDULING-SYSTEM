@@ -56,9 +56,10 @@ def encode(rule: Rule, instance: ConstraintInstance) -> None:
             counts.append(sum(lits))
         top = sum(1 for a in activities if (a.id, resource.id) in enc.uses)
         hi = rule.model.new_int_var(0, top, "")
-        rule.model.add_max_equality(hi, counts)
         lo = rule.model.new_int_var(0, top, "")
-        rule.model.add_min_equality(lo, counts)
+        for count in counts:
+            rule.model.add(hi >= count)
+            rule.model.add(lo <= count)
         rule.penalize(hi - lo)
 
 

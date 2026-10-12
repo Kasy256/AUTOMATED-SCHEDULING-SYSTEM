@@ -44,7 +44,7 @@ def explain(instance: ConstraintInstance) -> str:
 
 def encode(rule: Rule, instance: ConstraintInstance) -> None:
     p = _params(instance)
-    for load in encode_loads(rule, instance.scope, p.period, p.window):
+    for load in encode_loads(rule, instance.scope, p.period, p.window, "over"):
         if p.max_count is not None:
             rule.at_most(load.count, p.max_count, load.count_upper)
         if p.max_minutes is not None:

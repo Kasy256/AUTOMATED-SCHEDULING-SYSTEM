@@ -44,7 +44,7 @@ def explain(instance: ConstraintInstance) -> str:
 
 def encode(rule: Rule, instance: ConstraintInstance) -> None:
     p = _params(instance)
-    for load in encode_loads(rule, instance.scope, p.period, p.window):
+    for load in encode_loads(rule, instance.scope, p.period, p.window, "under"):
         if p.min_count is not None:
             rule.at_least(load.count, p.min_count)
         if p.min_minutes is not None:
