@@ -154,7 +154,9 @@ def solve(
     if status in (SolveStatus.OPTIMAL, SolveStatus.FEASIBLE):
         assignments = _assignments(problem, compiled, solver)
         score = check(problem, assignments)
-        if not verified or score.soft_total <= built.soft_total or status is SolveStatus.OPTIMAL:
+        better = score.soft_total <= built.soft_total or status is SolveStatus.OPTIMAL
+        # A checker-verified construction always beats a search result the checker rejects.
+        if not verified or (score.hard_violations == 0 and better):
             objective = round(solver.objective_value)
             bound = solver.best_objective_bound
             return Solution(

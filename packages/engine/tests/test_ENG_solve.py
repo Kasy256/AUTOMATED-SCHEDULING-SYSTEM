@@ -1,10 +1,22 @@
 import random
 import threading
 import time
+from collections.abc import Sequence
 from itertools import pairwise
 
+import pytest
+
 from cartlyf_engine.checker import check
-from cartlyf_engine.domain import Problem, Resource, Scope, SolveOptions, SolveStatus
+from cartlyf_engine.domain import (
+    Assignment,
+    Problem,
+    Resource,
+    Scope,
+    Score,
+    SolveOptions,
+    SolveStatus,
+    Violation,
+)
 from cartlyf_engine.solve import CancelToken, Progress, solve
 from cartlyf_engine.synthetic import synthetic_problem
 from kit import DAY, SOLVED, act, needs, options, person, problem, rule, solve1, solved, win
@@ -186,3 +198,25 @@ def test_unverified_construction_is_not_returned() -> None:
     )
     solution = solved(p)
     assert all(a.resources["who"] == ("q",) for a in solution.assignments)
+
+
+def test_a_search_result_with_hard_violations_never_beats_a_verified_construction(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import cartlyf_engine.solve as solve_module
+
+    calls: list[int] = []
+
+    def disagreeing_check(p: Problem, assignments: Sequence[Assignment]) -> Score:
+        calls.append(1)
+        score = check(p, assignments)
+        if len(calls) == 1:
+            return score
+        broken = Violation(constraint_id="core:overlap", message="simulated solver bug")
+        return score.model_copy(update={"hard_violations": 1, "violations": (broken,)})
+
+    monkeypatch.setattr(solve_module, "check", disagreeing_check)
+    solution = solve(_improvable(), options())
+    assert solution.status is SolveStatus.FEASIBLE
+    assert solution.score.hard_violations == 0
+    assert solution.stats.objective == solution.score.soft_total
