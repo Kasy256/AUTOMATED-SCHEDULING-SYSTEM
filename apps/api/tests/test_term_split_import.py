@@ -74,7 +74,7 @@ def mapping(applied: dict[str, Any], **overrides: object) -> dict[str, Any]:
             {
                 "role": "group",
                 "resource_type_id": types["student_group"],
-                "count_max": 50,
+                "count_from_fixed": True,
                 "fixed_codes_column": "group",
             },
             {
@@ -118,6 +118,8 @@ def test_term_split_import_merges_subjects(client: TestClient, app: FastAPI) -> 
     assert prog_c["spec"]["sessions_per_week"] == 2
     group, room = prog_c["spec"]["requirements"]
     assert len(group["fixed_resource_ids"]) == 2
+    # Exactly the merged groups: the solver must not add other groups to the class.
+    assert (group["count_min"], group["count_max"]) == (2, 2)
     assert room["attrs"] == [{"attr": "room_type", "op": "eq", "value": "Lab"}]
     assert {d["name"] for d in demands} == {"PROG_C", "COMP_ORG_ARCH"}
 

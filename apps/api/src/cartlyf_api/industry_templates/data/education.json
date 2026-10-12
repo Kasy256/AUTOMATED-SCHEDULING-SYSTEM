@@ -69,7 +69,7 @@
     "name_column": "subject",
     "weekly_minutes_column": "weekly_minutes",
     "requirements": [
-      {"role": "group", "resource_type_key": "student_group", "count_min": 1, "count_max": 50,
+      {"role": "group", "resource_type_key": "student_group", "count_from_fixed": true,
        "fixed_codes_column": "group"},
       {"role": "lecturer", "resource_type_key": "lecturer", "tags_column": "subject"},
       {"role": "room", "resource_type_key": "room", "attribute_columns": {"room_type": "room_type"}}

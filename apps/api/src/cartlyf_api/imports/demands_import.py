@@ -103,6 +103,8 @@ def _demand_from_row(
             message = f"Unknown resource codes: {', '.join(unknown)}"
             errors.append(RowError(row=line, column=req.fixed_codes_column, message=message))
         requirement["fixed_resource_ids"] = [codes[c] for c in wanted if c in codes]
+        if req.count_from_fixed and wanted:
+            requirement["count_min"] = requirement["count_max"] = len(wanted)
         rtype = types.get(req.resource_type_id) if req.resource_type_id else None
         schema = (
             AttributeSchema.model_validate(rtype.attribute_schema) if rtype else AttributeSchema()

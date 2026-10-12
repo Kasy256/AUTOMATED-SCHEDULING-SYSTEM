@@ -75,6 +75,7 @@ class TemplateRequirement(_Model):
     resource_type_key: Key
     count_min: NonNegativeInt = 1
     count_max: PositiveInt = 1
+    count_from_fixed: bool = False
     fixed_codes_column: Column | None = None
     tags_column: Column | None = None
     attribute_columns: dict[Key, Column] = Field(default_factory=dict[str, str])

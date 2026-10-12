@@ -127,6 +127,8 @@ class RequirementMapping(BaseModel):
     resource_type_id: UUID | None = None
     count_min: NonNegativeInt = 1
     count_max: PositiveInt = 1
+    # Count = exactly the row's fixed resources (e.g. every merged student group), no others.
+    count_from_fixed: bool = False
     hard: bool = True
     weight: NonNegativeInt = 0
     tags_column: Column | None = None
