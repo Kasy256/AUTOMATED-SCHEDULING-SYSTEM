@@ -34,6 +34,8 @@ def synthetic_problem(
     rng = random.Random(seed)
     n_groups, n_rooms = resources // 3, resources // 4
     n_lecturers = resources - n_groups - n_rooms
+    # About eight lecturer places per subject keeps every subject teachable.
+    subjects = max(1, min(subjects, n_lecturers * 3 // 8))
     groups = [
         Resource(id=f"g{i}", type_key="group", kind="group", size=rng.randint(15, 40))
         for i in range(n_groups)
