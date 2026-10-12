@@ -58,6 +58,7 @@ def test_DOM_07_mapped_csv_creates_resources(client: TestClient, app: FastAPI) -
         "errors": [],
         "error_count": 0,
         "feasibility": [],
+        "skipped": 0,
     }
     assert codes(client, admin) == before  # dry run wrote nothing
     committed = client.post(f"/api/v1/imports/{import_id}/commit", headers=admin.auth)

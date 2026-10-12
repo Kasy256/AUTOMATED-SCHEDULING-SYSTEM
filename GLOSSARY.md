@@ -87,6 +87,18 @@ _Avoid_: validation (used for inputs), pre-solve
 **Import**:
 Bringing resources or demands in from a spreadsheet: upload, map columns, dry run, commit.
 
+**Industry template**:
+A ready-made starting configuration for one kind of organisation, such as Education: its resource types, slots, day parts, demand layout and default rules. Applying one creates a new schedule.
+_Avoid_: preset, profile, industry (alone)
+
+**Term split**:
+An import option that keeps only the units belonging to one term of the year, deciding each unit's term the way the organisation always has (equivalent subjects and theory/practical pairs stay in the same term).
+_Avoid_: semester split
+
+**Subject merge**:
+Combining the import rows that share a subject into one demand, so every group taking that subject is taught together in one series.
+_Avoid_: class merging, grouping
+
 ## Solving
 
 **Score**:

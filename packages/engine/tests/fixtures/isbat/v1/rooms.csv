@@ -1,0 +1,38 @@
+code,name,room_type,capacity,specialisations
+R104,104,Lab,16,ICT;Programming;Networking & Cyber Security
+R203,203,Lab,32,ICT;Programming;Multimedia
+R204,204,Lab,32,ICT;Programming
+R205,205,Lab,32,ICT;Programming
+R206,206,Lab,64,ICT;Programming
+R207,207,Lab,24,ICT;Programming;Multimedia
+R300,300,Theory,32,
+R301,301,Theory,32,
+R302,302,Theory,32,
+R303,303,Theory,32,
+R304,304,Theory,32,
+R305,305,Theory,80,
+R306,306,Theory,30,
+R308,308,Lab,32,Networking & Cyber Security;Statistics;Management Lab
+R401,401,Lab,12,BHM
+R402,402,Lab,20,Electronics
+R403,403,Lab,10,Physics
+R404,404,Theory,36,
+R406,406,Lab,32,ICT;Programming;Multimedia
+R407,407,Theory,32,
+R501,501,Theory,40,
+R502,502,Theory,56,
+R503,503,Theory,32,
+R504,504,Theory,50,
+R505,505,Lab,56,Networking & Cyber Security
+R506,506,Lab,25,AI & ML;ICT & Programming
+R507,507,Theory,36,
+R601,601,Lab,88,ICT & Programming
+R602,602,Theory,80,
+R605,605,Theory,32,
+R604,604,Lab,15,Multimedia Studio
+R700,700,Theory,500,
+RB101,B-101,Theory,30,
+RB201,B-201,Theory,70,
+RB202,B-202,Theory,30,
+RB301,B-301,Theory,70,
+RB302,B-302,Theory,30,

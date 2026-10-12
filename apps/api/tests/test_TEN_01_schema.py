@@ -5,8 +5,15 @@ from support import OWNER, db_url, execute, fetch, superuser_url
 
 pytestmark = pytest.mark.integration
 
-# Global by design: identity and the tenant root. Every other table must be tenant-scoped.
-NON_TENANT_TABLES = {"organisation", "app_user", "refresh_token", "email_outbox"}
+# Global by design: identity, the tenant root and read-only reference data (industry templates).
+# Every other table must be tenant-scoped.
+NON_TENANT_TABLES = {
+    "organisation",
+    "app_user",
+    "refresh_token",
+    "email_outbox",
+    "industry_template",
+}
 EXPECTED_DEFINER_FUNCTIONS = {"user_id_by_email", "refresh_token_user_id"}
 
 _TABLES_SQL = """

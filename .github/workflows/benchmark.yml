@@ -1,6 +1,6 @@
 name: Engine benchmark
 
-# ENG-08 needs a 4 vCPU machine; run on demand by pushing a `bench-*` tag.
+# ENG-08 and EDU-05 need a 4 vCPU machine; run on demand by pushing a `bench-*` tag.
 on:
   workflow_dispatch:
   push:
@@ -29,3 +29,9 @@ jobs:
       - name: Result
         if: always()
         run: echo "::notice title=ENG-08::$(grep -m1 'ENG-08 status' bench.log || tail -n 3 bench.log | tr '\n' ' ')"
+      - name: EDU-05
+        if: always()
+        run: |
+          set -o pipefail
+          uv run pytest -m benchmark -s packages/engine/tests/test_EDU_isbat.py 2>&1 | tee edu.log
+          echo "::notice title=EDU-05::$(grep -m1 'EDU-05 status' edu.log || tail -n 3 edu.log | tr '\n' ' ')"

@@ -62,6 +62,8 @@ class ImportReport(BaseModel):
     errors: list[RowError]
     error_count: int
     feasibility: list[Issue] = Field(default_factory=list[Issue])
+    # Rows a term split left out because they belong to another term.
+    skipped: int = 0
 
 
 class ImportResponse(BaseModel):
@@ -79,6 +81,26 @@ class ImportResponse(BaseModel):
 
 
 Column = Annotated[str, StringConstraints(min_length=1, max_length=200)]
+
+
+class TermSplitPreset(BaseModel):
+    """Which columns drive a term split; rows sharing `merge_column` become one demand."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    term_column: Column
+    unit_column: Column
+    group_column: Column
+    merge_column: Column | None = None
+    pair_column: Column | None = None
+    # Attribute key -> preferred values, first match wins when merged rows disagree.
+    prefer: dict[Key, list[str]] = Field(default_factory=dict[str, list[str]])
+
+
+class TermSplit(TermSplitPreset):
+    """Keep only the rows of `term` (e.g. "Term 1"), then merge them per `merge_column`."""
+
+    term: Annotated[str, StringConstraints(min_length=1, max_length=20)]
 
 
 class ResourceMapping(BaseModel):
@@ -105,6 +127,8 @@ class RequirementMapping(BaseModel):
     resource_type_id: UUID | None = None
     count_min: NonNegativeInt = 1
     count_max: PositiveInt = 1
+    # Count = exactly the row's fixed resources (e.g. every merged student group), no others.
+    count_from_fixed: bool = False
     hard: bool = True
     weight: NonNegativeInt = 0
     tags_column: Column | None = None
@@ -120,9 +144,12 @@ class DemandMapping(BaseModel):
     slot_template_id: UUID
     name: Column
     sessions_per_week: Column | None = None
+    # Alternative to sessions_per_week: sessions = ceil(weekly minutes / session length).
+    weekly_minutes: Column | None = None
     duration_minutes: Column | None = None
     slot_labels: Column | None = None
     requirements: list[RequirementMapping] = Field(min_length=1, max_length=20)
+    term_split: TermSplit | None = None
 
 
 class DryRunRequest(BaseModel):
