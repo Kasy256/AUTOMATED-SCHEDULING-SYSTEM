@@ -161,3 +161,31 @@ def test_without_merge_column_rows_stay_separate() -> None:
         lines(row("A", "U1", "S", "Term 1"), row("B", "U2", "S", "Term 1")), split, MERGE
     )
     assert [r["group"] for _, r in result.rows] == ["A", "B"]
+
+
+def test_preference_never_hides_a_value_outside_it() -> None:
+    # "lab" is a typo, not a preferred value: the planner must hear about it.
+    result = split_rows(
+        lines(row("A", "U1", "S", "Term 1", room_type="lab"), row("B", "U2", "S", "Term 1")),
+        SPLIT,
+        MERGE,
+    )
+    assert result.rows == []
+    [error] = result.errors
+    assert error.column == "room_type" and "lab" in error.message
+
+
+def test_a_pair_stays_in_one_term_when_one_unit_is_aligned_elsewhere() -> None:
+    # G2's pair Q aligns subject T to Term 2; G1's pair P holds units of subjects S and T.
+    result = split_rows(
+        lines(
+            row("G2", "C", "T", "Term 2", pair="Q"),
+            row("G2", "D", "T", "Term 2", pair="Q"),
+            row("G1", "A", "S", "Term 1", pair="P"),
+            row("G1", "B", "T", "Term 1", pair="P"),
+        ),
+        SPLIT,
+        MERGE,
+    )
+    kept = {(g, m["subject"]) for _, m in result.rows for g in m["group"].split(";")}
+    assert (("G1", "S") in kept) == (("G1", "T") in kept), kept

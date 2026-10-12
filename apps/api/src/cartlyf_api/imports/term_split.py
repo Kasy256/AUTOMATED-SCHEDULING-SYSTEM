@@ -69,11 +69,20 @@ def _resolve_terms(lines: Sequence[Line], split: TermSplit, own: list[int]) -> l
         if len(codes) > 1
     }
 
+    # A pair moves as one: the first of its subjects that is aligned decides, as in the legacy.
+    pair_resolved: dict[tuple[str, str], int] = {}
+    for _, record in lines:
+        key = (record[split.group_column], cell(record, split.pair_column))
+        subject = cell(record, split.merge_column)
+        if key in pair_term and key not in pair_resolved and subject in aligned:
+            pair_resolved[key] = aligned[subject]
     resolved: list[int] = []
     for (_, record), term in zip(lines, own, strict=True):
-        subject = cell(record, split.merge_column)
         key = (record[split.group_column], cell(record, split.pair_column))
-        resolved.append(aligned.get(subject) or pair_term.get(key) or term)
+        if key in pair_term:
+            resolved.append(pair_resolved.get(key, pair_term[key]))
+        else:
+            resolved.append(aligned.get(cell(record, split.merge_column), term))
     return resolved
 
 
@@ -96,7 +105,9 @@ def _merge(
         values = list(dict.fromkeys(r.get(column, "") for _, r in group))
         if len(values) == 1:
             continue
-        preferred = [v for v in split.prefer.get(key, []) if v in values] if key else []
+        order = split.prefer.get(key, []) if key else []
+        # Only a choice among known values: an unexpected one (a typo) must be reported.
+        preferred = [v for v in order if v in values] if set(values) <= set(order) else []
         if preferred:
             merged[column] = preferred[0]
         else:
