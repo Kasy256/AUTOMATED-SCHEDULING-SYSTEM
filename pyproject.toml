@@ -73,7 +73,8 @@ forbidden_modules = [
 name = "Checker and templates never import the solver"
 type = "forbidden"
 source_modules = [
-  "cartlyf_engine.checker", "cartlyf_engine.checking", "cartlyf_engine.templates",
+  "cartlyf_engine.checker", "cartlyf_engine.checking", "cartlyf_engine.construct",
+  "cartlyf_engine.templates",
   "cartlyf_engine.domain",
   "cartlyf_engine.index",
   "cartlyf_engine.precheck",
