@@ -50,7 +50,7 @@ def encode(rule: Rule, instance: ConstraintInstance) -> None:
                 starts = [
                     s for s in a.candidate_starts if enc.index.attribute(s, "day", None) == day
                 ]
-                lit = enc.assigned_at(a.id, resource.id, starts)
+                lit = enc.assigned_at(a.id, resource.id, starts, "exact")
                 if not isinstance(lit, int):
                     lits.append(lit)
             counts.append(sum(lits))

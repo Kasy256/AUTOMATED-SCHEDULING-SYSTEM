@@ -2,7 +2,7 @@ from hypothesis import HealthCheck, given, settings
 
 from bruteforce import assert_agree
 from cartlyf_engine.checker import check
-from cartlyf_engine.domain import Problem
+from cartlyf_engine.domain import Problem, SolveStatus
 from kit import SOLVED, solve1
 from strategies import RULE_PARAMS, agreement, tiny_problems
 
@@ -20,7 +20,10 @@ def test_ENG_03_every_returned_solution_passes_the_checker(p: Problem) -> None:
     if solution.status in SOLVED:
         score = check(p, solution.assignments)
         assert score.hard_violations == 0, score.violations
-        assert score.soft_total == solution.stats.objective
+        assert solution.stats.objective is not None
+        assert score.soft_total <= solution.stats.objective
+        if solution.status is SolveStatus.OPTIMAL:
+            assert score.soft_total == solution.stats.objective
 
 
 ALL_RULES = tuple(sorted(RULE_PARAMS))
@@ -39,4 +42,7 @@ def test_ENG_03_every_solution_with_rules_passes_the_checker(p: Problem) -> None
     if solution.status in SOLVED:
         score = check(p, solution.assignments)
         assert score.hard_violations == 0, score.violations
-        assert score.soft_total == solution.stats.objective
+        assert solution.stats.objective is not None
+        assert score.soft_total <= solution.stats.objective
+        if solution.status is SolveStatus.OPTIMAL:
+            assert score.soft_total == solution.stats.objective

@@ -66,7 +66,7 @@ def encode(rule: Rule, instance: ConstraintInstance) -> None:
         for day in range(n_days):
             lits: list[IntVar] = []
             for a in activities:
-                lit = enc.assigned_at(a.id, resource.id, by_day[a.id].get(day, []))
+                lit = enc.assigned_at(a.id, resource.id, by_day[a.id].get(day, []), "exact")
                 if not isinstance(lit, int):
                     lits.append(lit)
             if not lits:

@@ -170,7 +170,11 @@ def solved(p: Problem) -> Solution:
     assert solution.status in SOLVED, solution
     assert solution.score == check(p, solution.assignments)
     assert solution.score.hard_violations == 0, solution.score.violations
-    assert solution.score.soft_total == solution.stats.objective
+    assert solution.stats.objective is not None
+    # Loose encodings may over-estimate before optimality (decision A, 2026-10-12).
+    assert solution.score.soft_total <= solution.stats.objective
+    if solution.status is SolveStatus.OPTIMAL:
+        assert solution.score.soft_total == solution.stats.objective
     return solution
 
 

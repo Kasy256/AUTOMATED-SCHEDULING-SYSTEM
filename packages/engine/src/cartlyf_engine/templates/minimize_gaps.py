@@ -45,7 +45,7 @@ def encode(rule: Rule, instance: ConstraintInstance) -> None:
         for day in range(len(enc.problem.day_windows)):
             items: list[tuple[Activity, IntVar]] = []
             for a in activities:
-                lit = enc.assigned_at(a.id, resource.id, by_day[a.id].get(day, []))
+                lit = enc.assigned_at(a.id, resource.id, by_day[a.id].get(day, []), "exact")
                 if not isinstance(lit, int):
                     items.append((a, lit))
             if len(items) > 1:

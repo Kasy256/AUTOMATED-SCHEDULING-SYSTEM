@@ -70,7 +70,7 @@ def encode_loads(rule: Rule, scope: Scope, period: Period, window: str | None) -
                 if p is not None:
                     by_period[p].append(start)
             for p, starts in by_period.items():
-                lit = enc.assigned_at(activity.id, resource.id, starts)
+                lit = enc.assigned_at(activity.id, resource.id, starts, "exact")
                 if not isinstance(lit, int):
                     buckets[p].append((activity.duration, lit))
         for p, items in enumerate(buckets):
