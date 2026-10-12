@@ -7,7 +7,7 @@ from cartlyf_engine.checker import check
 from cartlyf_engine.domain import Problem, Resource, Scope, SolveOptions, SolveStatus
 from cartlyf_engine.solve import CancelToken, Progress, solve
 from cartlyf_engine.synthetic import synthetic_problem
-from kit import DAY, SOLVED, act, needs, person, problem, rule, solve1, solved, win
+from kit import DAY, SOLVED, act, needs, options, person, problem, rule, solve1, solved, win
 
 
 def _busy() -> Problem:
@@ -158,3 +158,31 @@ def test_cancel_before_solving_returns_unknown_at_once() -> None:
     token.cancel()
     solution = solve(problem([person("p")], [act("a1", 60, [0], needs())]), cancel=token)
     assert (solution.status, solution.stats.wall_time_s) == (SolveStatus.UNKNOWN, 0)
+
+
+def test_construction_is_returned_when_search_is_stopped_at_once() -> None:
+    token = CancelToken()
+    events: list[Progress] = []
+
+    def on_progress(event: Progress) -> None:
+        events.append(event)
+        if event.kind == "constructed":
+            token.cancel()
+
+    p = _improvable()
+    solution = solve(p, options(), on_progress=on_progress, cancel=token)
+    assert solution.status is SolveStatus.FEASIBLE
+    assert solution.score == check(p, solution.assignments)
+    assert solution.score.hard_violations == 0
+    assert solution.stats.objective == solution.score.soft_total
+    assert [e.kind for e in events if e.kind == "constructed"] == ["constructed"]
+
+
+def test_unverified_construction_is_not_returned() -> None:
+    p = problem(
+        [person("p"), person("q")],
+        [act("a1", 60, [0], needs()), act("a2", 60, [120], needs())],
+        [rule("min", "min_load", period="horizon", min_count=2, scope=Scope(resource_ids=("q",)))],
+    )
+    solution = solved(p)
+    assert all(a.resources["who"] == ("q",) for a in solution.assignments)

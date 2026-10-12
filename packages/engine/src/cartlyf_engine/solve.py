@@ -8,6 +8,7 @@ from ortools.sat.python import cp_model
 
 from cartlyf_engine.checker import check
 from cartlyf_engine.compiler import Compiled, compile_problem
+from cartlyf_engine.construct import construct
 from cartlyf_engine.domain import (
     Assignment,
     Frozen,
@@ -21,7 +22,7 @@ from cartlyf_engine.domain import (
 
 
 class Progress(Frozen):
-    kind: Literal["solution", "bound", "log"]
+    kind: Literal["solution", "bound", "log", "constructed"]
     objective: int | None = None
     best_bound: float | None = None
     wall_time_s: float | None = None
@@ -88,6 +89,8 @@ _STATUS = {
     cp_model.UNKNOWN: SolveStatus.UNKNOWN,
 }
 _NO_SCORE = Score(hard_violations=0, soft_total=0)
+# Enough first-fit evaluations for a few options per activity; ENG-08 sizes it (ADR 0010).
+_EVALUATIONS_PER_ACTIVITY = 50
 
 
 def solve(
@@ -100,6 +103,25 @@ def solve(
     exception. The score always comes from the independent checker."""
     options = options or problem.options
     compiled = compile_problem(problem)
+    plan = construct(
+        problem,
+        keep_going=lambda: cancel is None or not cancel.cancelled,
+        max_evaluations=_EVALUATIONS_PER_ACTIVITY * max(1, len(problem.activities)),
+    )
+    built = check(problem, plan)
+    verified = len(plan) == len(problem.activities) and built.hard_violations == 0
+    if verified and on_progress is not None:
+        on_progress(Progress(kind="constructed", objective=built.soft_total))
+    _hint(compiled, plan)
+
+    def constructed(wall_time_s: float) -> Solution:
+        return Solution(
+            status=SolveStatus.FEASIBLE,
+            assignments=plan,
+            score=built,
+            stats=SolveStats(wall_time_s=wall_time_s, objective=built.soft_total),
+        )
+
     solver = cp_model.CpSolver()
     solver.parameters.max_time_in_seconds = options.time_limit_s
     solver.parameters.random_seed = options.seed
@@ -115,6 +137,8 @@ def solve(
         cancel.attach(solver.stop_search)
         if cancel.cancelled:
             cancel.attach(None)
+            if verified:
+                return constructed(0)
             return Solution(
                 status=SolveStatus.UNKNOWN, score=_NO_SCORE, stats=SolveStats(wall_time_s=0)
             )
@@ -129,19 +153,26 @@ def solve(
 
     if status in (SolveStatus.OPTIMAL, SolveStatus.FEASIBLE):
         assignments = _assignments(problem, compiled, solver)
-        objective = round(solver.objective_value)
-        bound = solver.best_objective_bound
-        return Solution(
-            status=status,
-            assignments=assignments,
-            score=check(problem, assignments),
-            stats=SolveStats(
-                wall_time_s=solver.wall_time,
-                objective=objective,
-                objective_bound=bound,
-                gap=(objective - bound) / max(1, abs(objective)),
-            ),
-        )
+        score = check(problem, assignments)
+        if not verified or score.soft_total <= built.soft_total or status is SolveStatus.OPTIMAL:
+            objective = round(solver.objective_value)
+            bound = solver.best_objective_bound
+            return Solution(
+                status=status,
+                assignments=assignments,
+                score=score,
+                stats=SolveStats(
+                    wall_time_s=solver.wall_time,
+                    objective=objective,
+                    objective_bound=bound,
+                    gap=(objective - bound) / max(1, abs(objective)),
+                ),
+            )
+        return constructed(solver.wall_time)
+    if verified:
+        if status is SolveStatus.INFEASIBLE:
+            raise RuntimeError("CP-SAT reports INFEASIBLE for a checker-verified schedule")
+        return constructed(solver.wall_time)
     conflicts: tuple[str, ...] = ()
     if status is SolveStatus.INFEASIBLE:
         conflicts = _conflicts(problem, options)
@@ -151,6 +182,26 @@ def solve(
         conflicts=conflicts,
         stats=SolveStats(wall_time_s=solver.wall_time),
     )
+
+
+def _hint(compiled: Compiled, plan: tuple[Assignment, ...]) -> None:
+    model, enc = compiled.model, compiled.encoding
+    for placed in plan:
+        activity_id = placed.activity_id
+        for start, lit in enc.starts[activity_id].items():
+            model.add_hint(lit, int(start == placed.start))
+        model.add_hint(enc.start[activity_id], placed.start)
+        chosen: set[str] = set()
+        for role, picks in compiled.picks[activity_id].items():
+            for resource_id, lit in picks.items():
+                on = resource_id in placed.resources.get(role, ())
+                model.add_hint(lit, int(on))
+                if on:
+                    chosen.add(resource_id)
+        for resource_id in enc.index.candidates(activity_id):
+            use = enc.uses.get((activity_id, resource_id))
+            if use is not None:
+                model.add_hint(use, int(resource_id in chosen))
 
 
 def _conflicts(problem: Problem, options: SolveOptions) -> tuple[str, ...]:
