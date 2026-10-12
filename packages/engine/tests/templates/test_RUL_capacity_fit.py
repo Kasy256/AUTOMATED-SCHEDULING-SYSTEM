@@ -78,3 +78,21 @@ def test_RUL_capacity_fit_05_resource_scope_limits_the_spaces_checked() -> None:
 @given(tiny_problems(keys=("capacity_fit",)))
 def test_RUL_capacity_fit_04_encoder_and_checker_agree(p: Problem) -> None:
     assert_agree(p)
+
+
+def test_negative_headcount_attr_is_ignored_not_infeasible() -> None:
+    p = problem(
+        [room("r1", 10)],
+        [act("a1", 60, [0], needs("room", "room"), attrs={"heads": -5})],
+        [
+            rule(
+                "fit",
+                "capacity_fit",
+                hard=False,
+                weight=1,
+                headcount_from="activity_attr",
+                headcount_attr="heads",
+            )
+        ],
+    )
+    assert solved(p).score.soft_total == 0

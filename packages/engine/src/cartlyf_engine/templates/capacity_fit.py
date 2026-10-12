@@ -33,7 +33,10 @@ def _params(instance: ConstraintInstance) -> Params:
 
 def _attr_headcount(activity: Activity, attr: str | None) -> int | None:
     value = activity.attrs.get(attr) if attr is not None else None
-    return value if isinstance(value, int) and not isinstance(value, bool) else None
+    # Activity attrs are customer data; a negative headcount is treated as missing.
+    if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+        return value
+    return None
 
 
 def _spaces(problem: Problem, scope: Scope) -> dict[str, int]:
