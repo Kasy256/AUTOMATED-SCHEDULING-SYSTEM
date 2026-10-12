@@ -11,6 +11,7 @@ from cartlyf_api.constraints.schemas import ConstraintWrite, ScopeWrite
 from cartlyf_api.constraints.service import create_constraint
 from cartlyf_api.errors import Conflict
 from cartlyf_api.industry_templates.service import get_template
+from cartlyf_api.resources.attribute_schema import AttributeSchema
 from cartlyf_api.resources.schemas import ResourceTypeCreate
 from cartlyf_api.resources.service import create_type, list_types
 from cartlyf_api.schedules.schemas import (
@@ -60,6 +61,18 @@ class ScheduleFromTemplateResponse(BaseModel):
     constraint_ids: list[UUID]
 
 
+def _missing_attributes(existing: AttributeSchema, wanted: AttributeSchema) -> list[str]:
+    """Template attributes the existing type lacks or defines differently; extras are fine."""
+    have = {a.key: a for a in existing.attributes}
+    return [
+        a.key
+        for a in wanted.attributes
+        if (h := have.get(a.key)) is None
+        or h.type != a.type
+        or not set(a.enum_values or []) <= set(h.enum_values or [])
+    ]
+
+
 async def apply_template(
     session: AsyncSession, principal: Principal, body: ScheduleFromTemplate
 ) -> ScheduleFromTemplateResponse:
@@ -77,6 +90,11 @@ async def apply_template(
                 raise Conflict(
                     f"Resource type '{rtype.key}' exists with kind '{found.kind}', "
                     f"the template needs '{rtype.kind}'"
+                )
+            if missing := _missing_attributes(found.attribute_schema, rtype.attribute_schema):
+                raise Conflict(
+                    f"Resource type '{rtype.key}' exists without the template's attributes: "
+                    f"{', '.join(missing)}"
                 )
             type_ids[rtype.key] = found.id
             continue

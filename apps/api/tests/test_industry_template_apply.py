@@ -94,3 +94,47 @@ def test_viewer_cannot_apply(client: TestClient, app: FastAPI) -> None:
     admin = signup_and_confirm(client, app)
     viewer = add_member(client, app, admin, ["viewer"])
     assert client.post(URL, headers=viewer.auth, json=body()).status_code == 403
+
+
+def test_apply_rejects_same_kind_type_missing_template_attributes(
+    client: TestClient, app: FastAPI
+) -> None:
+    # Without `role`, the weekly caps scoped to role=Full-Time would silently match nobody.
+    admin = signup_and_confirm(client, app)
+    bare = {"key": "lecturer", "name": "Lecturer", "kind": "person"}
+    assert client.post("/api/v1/resource-types", headers=admin.auth, json=bare).status_code == 201
+    response = client.post(URL, headers=admin.auth, json=body())
+    assert response.status_code == 409
+    assert "role" in response.json()["detail"]
+
+
+def test_apply_reuses_a_type_with_extra_attributes(client: TestClient, app: FastAPI) -> None:
+    admin = signup_and_confirm(client, app)
+    template = client.get("/api/v1/industry-templates", headers=admin.auth).json()[0]
+    lecturer = next(t for t in template["resource_types"] if t["key"] == "lecturer")
+    schema = lecturer["attribute_schema"]
+    extra = {"key": "office", "type": "string", "required": False}
+    richer = lecturer | {
+        "attribute_schema": schema | {"attributes": [*schema["attributes"], extra]}
+    }
+    created = client.post("/api/v1/resource-types", headers=admin.auth, json=richer)
+    assert created.status_code == 201, created.text
+    assert apply(client, admin)["resource_type_ids"]["lecturer"] == created.json()["id"]
+
+
+def test_conflict_on_a_later_type_rolls_back_earlier_ones(
+    client: TestClient, app: FastAPI, migrated_pg: PostgresContainer
+) -> None:
+    admin = signup_and_confirm(client, app)
+    clash = {"key": "student_group", "name": "Groups", "kind": "person"}
+    assert client.post("/api/v1/resource-types", headers=admin.auth, json=clash).status_code == 201
+    assert client.post(URL, headers=admin.auth, json=body()).status_code == 409
+    keys = [t["key"] for t in client.get("/api/v1/resource-types", headers=admin.auth).json()]
+    assert keys == ["student_group"]
+    assert client.get("/api/v1/schedules", headers=admin.auth).json() == []
+    audit = fetch(
+        superuser_url(migrated_pg),
+        "SELECT count(*) FROM audit_log WHERE organisation_id = "
+        f"'{admin.organisation_id}' AND action LIKE 'resource_type.%'",
+    )
+    assert audit == [(1,)]
