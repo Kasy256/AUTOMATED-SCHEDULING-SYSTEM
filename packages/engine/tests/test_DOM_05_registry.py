@@ -136,3 +136,10 @@ def test_DOM_05_templates_declare_the_ids_their_params_reference() -> None:
         "max_consecutive", {"unit": "days", "max": 5, "activity_filter": {"series_ids": ["s8"]}}
     ) == ({"s8"}, set())
     assert refs("max_load", {"period": "day", "max_count": 2}) == (set(), set())
+
+
+def test_RUL_every_phase_03_template_is_wired() -> None:
+    later = {"fairness", "stability"}  # Phases 08 and 06
+    for spec in REGISTRY.values():
+        wired = spec.encode is not None and spec.check is not None and spec.explain is not None
+        assert wired == (spec.key not in later), spec.key

@@ -61,6 +61,10 @@ class Problem(Frozen):
                 raise ValueError(
                     f"activity {activity.id} names unknown resource ids {sorted(unknown)}"
                 )
+        for constraint in self.constraints:
+            window = constraint.params.get("window")
+            if isinstance(window, str) and window not in self.named_windows:
+                raise ValueError(f"constraint {constraint.id} names unknown window '{window}'")
         return self
 
 
