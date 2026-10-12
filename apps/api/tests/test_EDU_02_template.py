@@ -1,5 +1,7 @@
+import ast
 import json
 from importlib.resources import files
+from pathlib import Path
 from typing import Any
 
 import pytest
@@ -132,3 +134,25 @@ def test_members_list_templates(client: TestClient, app: FastAPI) -> None:
     assert education["key"] == "education"
     assert len(education["constraints"]) == 11
     assert client.get("/api/v1/industry-templates").status_code == 401
+
+
+MIGRATION = Path(__file__).resolve().parents[1] / "migrations/versions/0005_industry_template.py"
+
+
+def test_template_migration_is_frozen() -> None:
+    # Migrations never change: 0005 seeds a frozen copy, never the live file or models.
+    tree = ast.parse(MIGRATION.read_text(encoding="utf-8"))
+    imported = {
+        name
+        for node in ast.walk(tree)
+        if isinstance(node, ast.Import | ast.ImportFrom)
+        for name in (
+            [node.module or ""]
+            if isinstance(node, ast.ImportFrom)
+            else [a.name for a in node.names]
+        )
+    }
+    assert not any(n.startswith(("cartlyf_api", "cartlyf_engine")) for n in imported), imported
+    frozen = json.loads(MIGRATION.with_name("0005_education_v1.json").read_text(encoding="utf-8"))
+    # Editing education v1 in place would fork fresh and existing databases: bump the version.
+    assert frozen == load_packaged("education").model_dump(mode="json")

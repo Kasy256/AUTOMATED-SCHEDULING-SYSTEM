@@ -5,18 +5,18 @@ Revises: 0004
 """
 
 import json
+from pathlib import Path
 
 import sqlalchemy as sa
 from alembic import op
-
-from cartlyf_api.industry_templates.schemas import load_packaged
 
 revision = "0005"
 down_revision = "0004"
 branch_labels = None
 depends_on = None
 
-_SEEDED = ["education"]
+# Frozen copies (normalised definitions); a new template version gets a new migration and file.
+_SEEDS = [Path(__file__).with_name("0005_education_v1.json")]
 
 
 def upgrade() -> None:
@@ -44,15 +44,15 @@ def upgrade() -> None:
         "CREATE POLICY industry_template_seed ON industry_template FOR INSERT TO cartlyf_owner "
         "WITH CHECK (true)"
     )
-    for key in _SEEDED:
-        template = load_packaged(key)
+    for seed in _SEEDS:
+        definition = json.loads(seed.read_text(encoding="utf-8"))
         op.get_bind().execute(
             insert,
             {
-                "key": template.key,
-                "version": template.version,
-                "name": template.name,
-                "definition": json.dumps(template.model_dump(mode="json")),
+                "key": definition["key"],
+                "version": definition["version"],
+                "name": definition["name"],
+                "definition": json.dumps(definition),
             },
         )
 
