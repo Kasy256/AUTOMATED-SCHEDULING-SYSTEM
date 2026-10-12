@@ -1,6 +1,6 @@
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from cartlyf_api.activities.schemas import CoverageDemandSpec, RequirementSpec, SessionDemandSpec
 from cartlyf_api.schedules.schemas import Slot
@@ -10,6 +10,9 @@ from cartlyf_engine.domain import AttrScalar
 
 @dataclass(frozen=True)
 class ActivityDraft:
+    # Stable across regenerations: "<date>|<slot>" (coverage) or "<week Monday>#<n>" (session);
+    # None for manual activities.
+    key: str | None
     name: str
     duration_minutes: int
     candidate_starts: tuple[datetime, ...]
@@ -62,6 +65,7 @@ def expand_demand(
     if isinstance(spec, CoverageDemandSpec):
         return [
             ActivityDraft(
+                f"{day}|{slot.label}",
                 _named(name, f" {day} {slot.label}"),
                 slot.duration_minutes,
                 (start,),
@@ -82,9 +86,16 @@ def expand_demand(
         starts = tuple(sorted({s for s, _, _ in occurrences if week_start <= s < week_end}))
         if not starts:
             continue
+        local = week_start.astimezone(horizon.timezone).date()
+        monday = local - timedelta(days=local.weekday())
         drafts += [
             ActivityDraft(
-                _named(name, f" W{week} #{n}"), duration, starts, requirements, spec.attrs
+                f"{monday.isoformat()}#{n}",
+                _named(name, f" W{week} #{n}"),
+                duration,
+                starts,
+                requirements,
+                spec.attrs,
             )
             for n in range(1, spec.sessions_per_week + 1)
         ]

@@ -32,6 +32,7 @@ class Activity(Base):
     schedule_id: Mapped[UUID]
     demand_id: Mapped[UUID | None]
     series_id: Mapped[UUID | None]
+    natural_key: Mapped[str | None]
     name: Mapped[str]
     duration_minutes: Mapped[int]
     candidate_starts: Mapped[list[datetime]] = mapped_column(ARRAY(DateTime(timezone=True)))
