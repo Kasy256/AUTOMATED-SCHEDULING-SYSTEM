@@ -62,6 +62,8 @@ class ImportReport(BaseModel):
     errors: list[RowError]
     error_count: int
     feasibility: list[Issue] = Field(default_factory=list[Issue])
+    # Rows a term split left out because they belong to another term.
+    skipped: int = 0
 
 
 class ImportResponse(BaseModel):
@@ -140,9 +142,12 @@ class DemandMapping(BaseModel):
     slot_template_id: UUID
     name: Column
     sessions_per_week: Column | None = None
+    # Alternative to sessions_per_week: sessions = ceil(weekly minutes / session length).
+    weekly_minutes: Column | None = None
     duration_minutes: Column | None = None
     slot_labels: Column | None = None
     requirements: list[RequirementMapping] = Field(min_length=1, max_length=20)
+    term_split: TermSplit | None = None
 
 
 class DryRunRequest(BaseModel):

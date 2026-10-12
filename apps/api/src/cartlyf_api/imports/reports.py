@@ -9,9 +9,14 @@ MAX_REPORTED_ERRORS = 500
 
 
 def report_of(
-    row_count: int, created: int, errors: Sequence[RowError], feasibility: Iterable[Issue] = ()
+    row_count: int,
+    created: int,
+    errors: Sequence[RowError],
+    feasibility: Iterable[Issue] = (),
+    skipped: int = 0,
 ) -> ImportReport:
     return ImportReport(
+        skipped=skipped,
         valid=not errors,
         row_count=row_count,
         created=created,

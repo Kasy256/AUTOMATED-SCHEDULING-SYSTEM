@@ -1,3 +1,4 @@
+import math
 from collections.abc import Mapping, Sequence
 from uuid import UUID, uuid4
 
@@ -13,6 +14,7 @@ from cartlyf_api.imports.csv_table import CsvTable, split_list
 from cartlyf_api.imports.models import ImportJob
 from cartlyf_api.imports.reports import missing_column_errors, report_of
 from cartlyf_api.imports.schemas import DemandMapping, ImportReport, RowError
+from cartlyf_api.imports.term_split import MergeColumns, split_rows, term_number
 from cartlyf_api.problems.snapshot import build_snapshot
 from cartlyf_api.resources import repository as resources_repo
 from cartlyf_api.resources.attribute_schema import AttributeSchema, coerce_cell
@@ -32,6 +34,8 @@ def _locate(loc: Sequence[str | int], mapping: DemandMapping) -> str | None:
         return mapping.name
     for field in _SPEC_FIELDS:
         if field in parts:
+            if field == "sessions_per_week" and mapping.sessions_per_week is None:
+                return mapping.weekly_minutes
             return getattr(mapping, field)
     if "requirements" in parts:
         rest = parts[parts.index("requirements") + 1 :]
@@ -42,12 +46,28 @@ def _locate(loc: Sequence[str | int], mapping: DemandMapping) -> str | None:
     return None
 
 
+def _sessions_from_minutes(
+    line: int, record: Mapping[str, str], mapping: DemandMapping, slot_minutes: int | None
+) -> tuple[int | None, RowError | None]:
+    column = mapping.weekly_minutes or ""
+    weekly = record.get(column, "").strip()
+    if not weekly.isdigit() or int(weekly) == 0:
+        return None, RowError(row=line, column=column, message="Must be a positive whole number")
+    duration = record.get(mapping.duration_minutes or "", "").strip()
+    length = int(duration) if duration.isdigit() and int(duration) > 0 else slot_minutes
+    if length is None:
+        message = "Slots differ in length: map a duration column to derive sessions"
+        return None, RowError(row=line, column=column, message=message)
+    return math.ceil(int(weekly) / length), None
+
+
 def _demand_from_row(
     line: int,
     record: Mapping[str, str],
     mapping: DemandMapping,
     codes: Mapping[str, UUID],
     types: Mapping[UUID, ResourceType],
+    slot_minutes: int | None,
 ) -> tuple[list[RowError], DemandWrite | None]:
     def cell(column: str | None) -> str:
         return record.get(column, "") if column else ""
@@ -55,7 +75,13 @@ def _demand_from_row(
     errors: list[RowError] = []
     spec: dict[str, object] = {"kind": mapping.demand_kind}
     if mapping.demand_kind == "session":
-        spec["sessions_per_week"] = cell(mapping.sessions_per_week)
+        if mapping.sessions_per_week is None:
+            sessions, error = _sessions_from_minutes(line, record, mapping, slot_minutes)
+            if error is not None:
+                return [error], None
+            spec["sessions_per_week"] = sessions
+        else:
+            spec["sessions_per_week"] = cell(mapping.sessions_per_week)
         if cell(mapping.duration_minutes):
             spec["duration_minutes"] = cell(mapping.duration_minutes)
     if cell(mapping.slot_labels):
@@ -112,6 +138,7 @@ def _mapping_columns(mapping: DemandMapping) -> dict[str, str | None]:
     columns: dict[str, str | None] = {
         "name": mapping.name,
         "sessions_per_week": mapping.sessions_per_week,
+        "weekly_minutes": mapping.weekly_minutes,
         "duration_minutes": mapping.duration_minutes,
         "slot_labels": mapping.slot_labels,
     }
@@ -120,7 +147,25 @@ def _mapping_columns(mapping: DemandMapping) -> dict[str, str | None]:
         columns[f"requirements.{i}.fixed_codes_column"] = req.fixed_codes_column
         for key, column in req.attribute_columns.items():
             columns[f"requirements.{i}.attribute_columns.{key}"] = column
+    if split := mapping.term_split:
+        for field in ("term_column", "unit_column", "group_column", "merge_column", "pair_column"):
+            columns[f"term_split.{field}"] = getattr(split, field)
     return columns
+
+
+def _merge_columns(mapping: DemandMapping) -> MergeColumns:
+    lists = {
+        column
+        for req in mapping.requirements
+        for column in (req.fixed_codes_column, req.tags_column)
+        if column
+    }
+    maxima = {c for c in (mapping.sessions_per_week, mapping.weekly_minutes) if c}
+    attrs = {
+        key: column for req in mapping.requirements for key, column in req.attribute_columns.items()
+    }
+    agree = {c for c in (mapping.name, mapping.duration_minutes, mapping.slot_labels) if c}
+    return MergeColumns(lists=lists, maxima=maxima, attrs=attrs, agree=agree)
 
 
 async def run_demand_import(
@@ -149,19 +194,34 @@ async def run_demand_import(
     if await resources_repo.missing_type_ids(session, org, type_ids):
         raise NotFound("Unknown resource type")
     problems = missing_column_errors(_mapping_columns(mapping), table.columns)
-    if mapping.demand_kind == "session" and mapping.sessions_per_week is None:
-        problems.append(field_error(("body", "mapping", "sessions_per_week"), "Field required"))
+    if mapping.demand_kind == "session" and not (
+        mapping.sessions_per_week or mapping.weekly_minutes
+    ):
+        message = "Map sessions_per_week or weekly_minutes"
+        problems.append(field_error(("body", "mapping", "sessions_per_week"), message))
+    if mapping.term_split and term_number(mapping.term_split.term) is None:
+        message = "Unreadable term, e.g. 'Term 1' or '1'"
+        problems.append(field_error(("body", "mapping", "term_split", "term"), message))
     if problems:
         raise Unprocessable(problems)
 
     codes = await resources_repo.live_codes(session, org)
     types = await resources_repo.types_by_id(session, org)
     slots = SlotTemplateDefinition.model_validate(template.definition).slots
+    lengths = {s.duration_minutes for s in slots}
+    slot_minutes = lengths.pop() if len(lengths) == 1 else None
     horizon = schedule.horizon()
+    rows: Sequence[tuple[int, Mapping[str, str]]] = table.rows
+    skipped = 0
+    if mapping.term_split is not None:
+        split = split_rows(table.rows, mapping.term_split, _merge_columns(mapping))
+        if split.errors:
+            return report_of(len(table.rows), 0, split.errors, skipped=split.skipped)
+        rows, skipped = split.rows, split.skipped
     errors: list[RowError] = []
     bodies: list[DemandWrite] = []
-    for line, record in table.rows:
-        row_errors, body = _demand_from_row(line, record, mapping, codes, types)
+    for line, record in rows:
+        row_errors, body = _demand_from_row(line, record, mapping, codes, types, slot_minutes)
         if body is not None:
             try:
                 expand_demand(body.name, body.spec, slots, horizon)
@@ -172,7 +232,7 @@ async def run_demand_import(
         if body is not None and not row_errors:
             bodies.append(body)
     if errors:
-        return report_of(len(table.rows), 0, errors)
+        return report_of(len(table.rows), 0, errors, skipped=skipped)
 
     savepoint = await session.begin_nested()
     for body in bodies:
@@ -182,4 +242,4 @@ async def run_demand_import(
         await savepoint.commit()
     else:
         await savepoint.rollback()
-    return report_of(len(table.rows), len(bodies), [], issues)
+    return report_of(len(table.rows), len(bodies), [], issues, skipped)
