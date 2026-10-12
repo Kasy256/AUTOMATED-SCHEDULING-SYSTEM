@@ -55,9 +55,10 @@ def encode(rule: Rule, instance: ConstraintInstance) -> None:
         loads.append(sum(w * use for w, use in terms))
         top = max(top, sum(w for w, _ in terms))
     hi = rule.model.new_int_var(0, top, "")
-    rule.model.add_max_equality(hi, loads)
     lo = rule.model.new_int_var(0, top, "")
-    rule.model.add_min_equality(lo, loads)
+    for load in loads:
+        rule.model.add(hi >= load)
+        rule.model.add(lo <= load)
     rule.penalize(hi - lo)
 
 

@@ -38,18 +38,6 @@ class Encoding:
         # The OR-Tools stub's catch-all `*args` overload of only_enforce_if is untyped.
         added.only_enforce_if(list(literals))  # pyright: ignore[reportUnknownMemberType]
 
-    def starts_in(self, activity_id: str, starts: Collection[int]) -> Expr:
-        """1 if the activity starts at one of `starts` (candidate starts), else 0."""
-        return sum(self.starts[activity_id][s] for s in starts)
-
-    def both(self, a: cp_model.IntVar, b: Expr) -> cp_model.IntVar:
-        """A literal equal to a AND b, where b is a 0/1 expression."""
-        z = self.model.new_bool_var("")
-        self.model.add(z <= a)
-        self.model.add(z <= b)
-        self.model.add(z >= a + b - 1)
-        return z
-
     def bucket(self, activity_id: str, starts: Collection[int]) -> cp_model.IntVar | int:
         """1 exactly when the activity starts at one of `starts` (some of its candidate starts).
         One shared literal per (activity, start set); 0 or 1 when the set is empty or complete."""
@@ -97,20 +85,6 @@ class Encoding:
         holds, so it only ever over-counts a minimised penalty."""
         v = self.model.new_bool_var("")
         self.when(ok, ~v, *when)
-        return v
-
-    def holds(self, constraint: Constraint, negation: Constraint) -> cp_model.IntVar:
-        """A literal that is 1 exactly when `constraint` holds; `negation` is its complement."""
-        b = self.model.new_bool_var("")
-        self.when(constraint, b)
-        self.when(negation, ~b)
-        return b
-
-    def gate(self, expr: Expr, lit: cp_model.IntVar, upper: int) -> cp_model.IntVar:
-        """`expr` when `lit` is 1, else 0; `expr` must lie in 0..upper."""
-        v = self.model.new_int_var(0, upper, "")
-        self.when(v == expr, lit)
-        self.when(v == 0, ~lit)
         return v
 
 
@@ -163,10 +137,3 @@ class Rule:
         shortfall = self.model.new_int_var(0, bound, "")
         self.model.add(shortfall >= bound - expr)
         self.amounts.append(shortfall)
-
-    def forbid(self, violated: cp_model.IntVar) -> None:
-        """`violated` is a literal that is 1 exactly when the rule is broken once."""
-        if self.enforce is not None:
-            self.add(violated == 0)
-        else:
-            self.amounts.append(violated)

@@ -75,11 +75,9 @@ def encode(rule: Rule, instance: ConstraintInstance) -> None:
                 if most > capacity:
                     rule.add(headcount <= capacity, use)
                 continue
-            off = rule.model.new_int_var(min(0, capacity - most), capacity, "")
-            rule.enc.when(off == capacity - headcount, use)
-            rule.enc.when(off == 0, ~use)
             seats = rule.model.new_int_var(0, max(capacity, most), "")
-            rule.model.add_abs_equality(seats, off)
+            rule.enc.when(seats >= capacity - headcount, use)
+            rule.enc.when(seats >= headcount - capacity, use)
             rule.penalize(seats)
 
 

@@ -53,27 +53,16 @@ def encode(rule: Rule, instance: ConstraintInstance) -> None:
 
 
 def _idle_blocks(enc: Encoding, items: list[tuple[Activity, IntVar]], per: int) -> IntVar:
-    """max(0, last end - first start - busy minutes) over the present items, // per."""
+    """per * blocks >= last end - first start - busy - per + 1 over the present items, so blocks
+    is at least floor(idle / per); minimisation makes it exactly that."""
     m, horizon = enc.model, enc.problem.horizon_minutes
-    firsts: list[IntVar] = []
-    lasts: list[IntVar] = []
-    for a, lit in items:
-        first = m.new_int_var(0, horizon, "")
-        enc.when(first == enc.start[a.id], lit)
-        enc.when(first == horizon, ~lit)
-        last = m.new_int_var(0, horizon, "")
-        enc.when(last == enc.start[a.id] + a.duration, lit)
-        enc.when(last == 0, ~lit)
-        firsts.append(first)
-        lasts.append(last)
     lo = m.new_int_var(0, horizon, "")
-    m.add_min_equality(lo, firsts)
     hi = m.new_int_var(0, horizon, "")
-    m.add_max_equality(hi, lasts)
-    idle = m.new_int_var(0, horizon, "")
-    m.add_max_equality(idle, [hi - lo - sum(a.duration * lit for a, lit in items), 0])
+    for a, lit in items:
+        enc.when(lo <= enc.start[a.id], lit)
+        enc.when(hi >= enc.start[a.id] + a.duration, lit)
     blocks = m.new_int_var(0, horizon // per, "")
-    m.add_division_equality(blocks, idle, per)
+    m.add(per * blocks >= hi - lo - sum(a.duration * lit for a, lit in items) - per + 1)
     return blocks
 
 

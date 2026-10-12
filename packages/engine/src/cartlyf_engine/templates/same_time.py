@@ -61,7 +61,7 @@ def encode(rule: Rule, instance: ConstraintInstance) -> None:
         if rule.hard:
             rule.add(a == b)
         else:
-            rule.penalize(enc.holds(a != b, a == b))
+            rule.penalize(enc.breach(a == b))
 
 
 def check(ctx: CheckContext, instance: ConstraintInstance) -> list[Finding]:

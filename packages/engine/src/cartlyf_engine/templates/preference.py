@@ -79,7 +79,9 @@ def _encode_calendar(rule: Rule, scope: Scope) -> None:
             costs = {s: _cost(resource, s, a.duration) for s in a.candidate_starts}
             if any(costs.values()):
                 cost = sum(c * enc.starts[a.id][s] for s, c in costs.items() if c)
-                rule.penalize(enc.gate(cost, use, max(costs.values())))
+                paid = enc.model.new_int_var(0, max(costs.values()), "")
+                enc.when(paid >= cost, use)
+                rule.penalize(paid)
 
 
 def _encode_explicit(rule: Rule, scope: Scope, pairs: tuple[Pair, ...]) -> None:

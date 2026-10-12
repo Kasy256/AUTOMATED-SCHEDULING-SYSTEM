@@ -38,7 +38,7 @@ def encode(rule: Rule, instance: ConstraintInstance) -> None:
             # Intervals stretched by the rest time may not overlap: exactly "rest kept".
             stretched: list[IntervalVar] = []
             for a in mine:
-                present = enc.both(enc.uses[a.id, resource.id], rule.enforce)
+                present = enc.conj(enc.uses[a.id, resource.id], rule.enforce, "exact")
                 stretched.append(
                     enc.model.new_optional_fixed_size_interval_var(
                         enc.start[a.id], a.duration + rest, present, ""
@@ -60,13 +60,13 @@ def _can_clash(a: Activity, b: Activity, rest: int) -> bool:
 
 
 def _too_close(enc: Encoding, resource_id: str, a: Activity, b: Activity, rest: int) -> IntVar:
+    """1 whenever both are on the resource less than `rest` apart; may over-count."""
     sa, sb = enc.start[a.id], enc.start[b.id]
-    b_soon = enc.holds(sb < sa + a.duration + rest, sb >= sa + a.duration + rest)
-    a_soon = enc.holds(sa < sb + b.duration + rest, sa >= sb + b.duration + rest)
-    lits = [b_soon, a_soon, enc.uses[a.id, resource_id], enc.uses[b.id, resource_id]]
+    ua, ub = enc.uses[a.id, resource_id], enc.uses[b.id, resource_id]
     clash = enc.model.new_bool_var("")
-    enc.when(enc.model.add_bool_and(lits), clash)
-    enc.when(enc.model.add_bool_or([~lit for lit in lits]), ~clash)
+    a_first = enc.model.new_bool_var("")
+    enc.when(sb >= sa + a.duration + rest, ~clash, ua, ub, a_first)
+    enc.when(sa >= sb + b.duration + rest, ~clash, ua, ub, ~a_first)
     return clash
 
 
