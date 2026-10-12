@@ -3,8 +3,8 @@ from typing import cast
 from cartlyf_engine.compiler import compile_problem
 from cartlyf_engine.synthetic import synthetic_problem
 
-# Measured 2026-10-12 after the lean encoding; guards against helper-literal blow-ups.
-TERMS_PER_ACTIVITY_CEILING = 585
+# Measured 2026-10-12 (lean encoding, feasible generator); guards against helper-literal blow-ups.
+TERMS_PER_ACTIVITY_CEILING = 755
 
 
 def linear_terms(problem_size: tuple[int, int, int]) -> int:
