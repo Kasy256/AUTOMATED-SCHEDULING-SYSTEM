@@ -100,6 +100,7 @@ async def _write(
         id=demand_id,
         schedule_id=schedule.id,
         activity_count=result.activities,
+        pins_removed=result.pins_removed,
         **body.model_dump(),
     )
 

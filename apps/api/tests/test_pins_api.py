@@ -38,36 +38,48 @@ def test_pin_round_trip_and_validation(client: TestClient, app: FastAPI) -> None
     assert client.delete(url, headers=admin.auth).status_code == 404
 
 
-def test_regenerating_a_demand_removes_its_pins_and_audits_it(
+def test_regenerating_keeps_valid_pins_and_reports_the_ones_it_removes(
     client: TestClient, app: FastAPI, migrated_pg: PostgresContainer
 ) -> None:
     admin = signup_and_confirm(client, app)
     ids = seed_config(client, admin)
     base = f"/api/v1/schedules/{ids['schedule_id']}"
-    activity = next(
-        a
-        for a in client.get(f"{base}/activities", headers=admin.auth).json()
-        if a["demand_id"] == ids["demand_id"]
-    )
-    pinned = client.put(
-        f"{base}/pins/{activity['id']}",
-        headers=admin.auth,
-        json={"start_at": activity["candidate_starts"][0]},
-    )
-    assert pinned.status_code == 200
-    demand = client.get(f"{base}/demands/{ids['demand_id']}", headers=admin.auth).json()
+    demand_url = f"{base}/demands/{ids['demand_id']}"
+    demand = client.get(demand_url, headers=admin.auth).json()
     body = {k: demand[k] for k in ("name", "slot_template_id", "spec")}
-    assert (
-        client.put(f"{base}/demands/{ids['demand_id']}", headers=admin.auth, json=body).status_code
-        == 200
+    body["spec"] = body["spec"] | {"sessions_per_week": 2}
+    assert client.put(demand_url, headers=admin.auth, json=body).status_code == 200
+    activities = sorted(
+        (
+            a
+            for a in client.get(f"{base}/activities", headers=admin.auth).json()
+            if a["demand_id"] == ids["demand_id"]
+        ),
+        key=lambda a: a["name"],
     )
-    assert client.get(f"{base}/pins", headers=admin.auth).json() == []
+    for activity in activities:
+        pinned = client.put(
+            f"{base}/pins/{activity['id']}",
+            headers=admin.auth,
+            json={"start_at": activity["candidate_starts"][-1]},
+        )
+        assert pinned.status_code == 200, pinned.text
+
+    unchanged = client.put(demand_url, headers=admin.auth, json=body)
+    assert unchanged.status_code == 200 and unchanged.json()["pins_removed"] == 0
+    assert len(client.get(f"{base}/pins", headers=admin.auth).json()) == len(activities)
+
+    fewer = body | {"spec": body["spec"] | {"sessions_per_week": len(activities) - 1}}
+    shrunk = client.put(demand_url, headers=admin.auth, json=fewer)
+    assert shrunk.json()["pins_removed"] == 1
+    kept = {p["activity_id"] for p in client.get(f"{base}/pins", headers=admin.auth).json()}
+    assert kept == {a["id"] for a in activities[:-1]}
     details = fetch(
         superuser_url(migrated_pg),
         f"SELECT details FROM audit_log WHERE target_id = '{ids['demand_id']}' "
-        "AND action = 'demand.updated'",
+        "AND action = 'demand.updated' ORDER BY created_at",
     )
-    assert details[0][0]["pins_removed"] == 1
+    assert [d[0]["pins_removed"] for d in details] == [0, 0, 1]
 
 
 def test_editing_a_pinned_manual_activity_must_keep_the_pin_valid(

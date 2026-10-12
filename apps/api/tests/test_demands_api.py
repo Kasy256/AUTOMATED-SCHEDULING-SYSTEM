@@ -65,17 +65,50 @@ def test_DOM_04_coverage_demand_via_api(client: TestClient, app: FastAPI) -> Non
     assert {a["requirements"][0]["count_max"] for a in activities} == {3}
 
 
-def test_editing_a_demand_replaces_its_activities(client: TestClient, app: FastAPI) -> None:
+def test_editing_a_demand_keeps_the_activities_it_still_generates(
+    client: TestClient, app: FastAPI
+) -> None:
     admin, ids, base = setup(client, app)
     demand = client.post(f"{base}/demands", headers=admin.auth, json=session_demand(ids)).json()
-    before = {a["id"] for a in generated(client, admin, base, demand["id"])}
-    body = session_demand(ids, sessions_per_week=3)
-    updated = client.put(f"{base}/demands/{demand['id']}", headers=admin.auth, json=body)
-    assert updated.status_code == 200 and updated.json()["activity_count"] == 3
-    after = {a["id"] for a in generated(client, admin, base, demand["id"])}
-    assert len(after) == 3 and not before & after
-    assert client.delete(f"{base}/demands/{demand['id']}", headers=admin.auth).status_code == 204
+    url = f"{base}/demands/{demand['id']}"
+    before = {
+        a["name"].rsplit(" ", 1)[-1]: a["id"] for a in generated(client, admin, base, demand["id"])
+    }
+    renamed = session_demand(ids) | {"name": "Calculus II"}
+    assert client.put(url, headers=admin.auth, json=renamed).json()["pins_removed"] == 0
+    after = generated(client, admin, base, demand["id"])
+    assert {a["id"] for a in after} == set(before.values())
+    assert all(a["name"].startswith("Calculus II") for a in after)
+    more = client.put(url, headers=admin.auth, json=session_demand(ids, sessions_per_week=3)).json()
+    assert more["activity_count"] == 3
+    grown = {
+        a["name"].rsplit(" ", 1)[-1]: a["id"] for a in generated(client, admin, base, demand["id"])
+    }
+    assert grown["#1"] == before["#1"] and grown["#2"] == before["#2"] and len(grown) == 3
+    client.put(url, headers=admin.auth, json=session_demand(ids, sessions_per_week=1))
+    assert [a["id"] for a in generated(client, admin, base, demand["id"])] == [before["#1"]]
+    assert client.delete(url, headers=admin.auth).status_code == 204
     assert generated(client, admin, base, demand["id"]) == []
+
+
+def test_schedule_date_changes_keep_the_weeks_that_still_overlap(
+    client: TestClient, app: FastAPI
+) -> None:
+    admin, ids, base = setup(client, app)
+    demand = client.post(f"{base}/demands", headers=admin.auth, json=session_demand(ids)).json()
+    first_week = {a["id"] for a in generated(client, admin, base, demand["id"])}
+    assert (
+        client.patch(base, headers=admin.auth, json={"end_date": "2027-01-22"}).status_code == 200
+    )
+    two_weeks = generated(client, admin, base, demand["id"])
+    assert len(two_weeks) == 4 and first_week <= {a["id"] for a in two_weeks}
+    second_week = {a["id"] for a in two_weeks} - first_week
+    # The seed's manual activity sits in the first week; it would block the move (409).
+    manual = client.delete(f"{base}/activities/{ids['activity_id']}", headers=admin.auth)
+    assert manual.status_code == 204
+    moved = client.patch(base, headers=admin.auth, json={"start_date": "2027-01-18"})
+    assert moved.status_code == 200, moved.text
+    assert {a["id"] for a in generated(client, admin, base, demand["id"])} == second_week
 
 
 def test_expansion_errors_are_field_errors(client: TestClient, app: FastAPI) -> None:

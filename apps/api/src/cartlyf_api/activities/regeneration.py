@@ -4,8 +4,9 @@ from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from cartlyf_api.activities import repository as repo
-from cartlyf_api.activities.expansion import ExpansionError, expand_demand
+from cartlyf_api.activities.expansion import ActivityDraft, ExpansionError, expand_demand
 from cartlyf_api.activities.models import Demand
+from cartlyf_api.activities.pin_rules import pin_errors, pin_write
 from cartlyf_api.activities.schemas import DEMAND_SPEC, CoverageDemandSpec, SessionDemandSpec
 from cartlyf_api.auth.permissions import Principal
 from cartlyf_api.errors import Conflict
@@ -27,11 +28,42 @@ def stored_spec(demand: Demand) -> SessionDemandSpec | CoverageDemandSpec:
 async def regenerate_demand(
     session: AsyncSession, org: UUID, schedule: Schedule, demand: Demand, template: SlotTemplate
 ) -> Regenerated:
-    """Replace the demand's activities with a fresh expansion. Raises ExpansionError."""
+    """Bring the demand's activities in line with a fresh expansion. Activities whose natural key
+    survives keep their id and, if it still fits, their pin. Raises ExpansionError."""
     slots = SlotTemplateDefinition.model_validate(template.definition).slots
     drafts = expand_demand(demand.name, stored_spec(demand), slots, schedule.horizon())
-    pins_removed = await repo.delete_demand_activities(session, org, demand.id)
-    await repo.insert_activities(session, org, schedule.id, demand.id, drafts)
+    current = await repo.demand_activities(session, org, demand.id)
+    by_key = {a.natural_key: a for a in current if a.natural_key is not None}
+    pins = await repo.pins_for(session, org, schedule.id)
+    kept: set[UUID] = set()
+    fresh: list[ActivityDraft] = []
+    pins_removed = 0
+    for draft in drafts:
+        activity = by_key.get(draft.key) if draft.key is not None else None
+        if activity is None:
+            fresh.append(draft)
+            continue
+        kept.add(activity.id)
+        await repo.update_activity(
+            session,
+            org,
+            activity.id,
+            name=draft.name,
+            duration_minutes=draft.duration_minutes,
+            candidate_starts=draft.candidate_starts,
+            attrs=draft.attrs,
+        )
+        await repo.replace_requirements(session, org, activity.id, draft.requirements)
+        pin = pins.get(activity.id)
+        if pin is not None and pin_errors(
+            pin_write(pin), draft.candidate_starts, draft.requirements
+        ):
+            await repo.delete_pin(session, org, activity.id)
+            pins_removed += 1
+    gone = [a.id for a in current if a.id not in kept]
+    pins_removed += sum(1 for activity_id in gone if activity_id in pins)
+    await repo.delete_activities(session, org, gone)
+    await repo.insert_activities(session, org, schedule.id, demand.id, fresh)
     return Regenerated(len(drafts), pins_removed)
 
 

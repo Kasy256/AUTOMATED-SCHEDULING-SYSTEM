@@ -152,6 +152,7 @@ async def insert_activities(
                 "schedule_id": schedule_id,
                 "demand_id": demand_id,
                 "series_id": demand_id,
+                "natural_key": draft.key,
                 "name": draft.name,
                 "duration_minutes": draft.duration_minutes,
                 "candidate_starts": list(draft.candidate_starts),
@@ -168,6 +169,23 @@ async def insert_activities(
     if requirements:
         await session.execute(insert(Requirement), requirements)
     return ids
+
+
+async def demand_activities(
+    session: AsyncSession, org: UUID, demand_id: UUID
+) -> Sequence[Activity]:
+    rows = await session.scalars(
+        select(Activity).where(Activity.organisation_id == org, Activity.demand_id == demand_id)
+    )
+    return rows.all()
+
+
+async def delete_activities(session: AsyncSession, org: UUID, ids: Collection[UUID]) -> None:
+    """Requirements and pins cascade."""
+    if ids:
+        await session.execute(
+            delete(Activity).where(Activity.organisation_id == org, Activity.id.in_(ids))
+        )
 
 
 async def delete_demand_activities(session: AsyncSession, org: UUID, demand_id: UUID) -> int:

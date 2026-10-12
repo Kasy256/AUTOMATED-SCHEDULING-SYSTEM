@@ -134,3 +134,25 @@ def test_generated_names_fit_the_200_character_limit() -> None:
     drafts += expand_demand(long_name, session(sessions_per_week=12), PERIODS, ONE_WEEK)
     assert all(len(d.name) <= 200 for d in drafts)
     assert drafts[0].name.endswith("2027-01-11 " + "L" * 50)
+
+
+def test_session_keys_name_the_week_monday_and_position() -> None:
+    three_weeks = horizon_for(date(2027, 1, 11), date(2027, 1, 29), "Africa/Kampala")
+    drafts = expand_demand("Calculus", session(sessions_per_week=2), PERIODS, three_weeks)
+    assert [d.key for d in drafts] == [
+        "2027-01-11#1",
+        "2027-01-11#2",
+        "2027-01-18#1",
+        "2027-01-18#2",
+        "2027-01-25#1",
+        "2027-01-25#2",
+    ]
+    midweek = horizon_for(date(2027, 1, 13), date(2027, 1, 22), "Africa/Kampala")
+    later = expand_demand("Calculus", session(sessions_per_week=1), PERIODS, midweek)
+    assert [d.key for d in later] == ["2027-01-11#1", "2027-01-18#1"]
+
+
+def test_coverage_keys_name_the_date_and_slot() -> None:
+    drafts = expand_demand("Ward", coverage(), SHIFTS, ONE_WEEK)
+    assert drafts[0].key == "2027-01-11|day"
+    assert len({d.key for d in drafts}) == len(drafts)

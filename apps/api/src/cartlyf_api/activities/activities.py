@@ -33,7 +33,7 @@ def start_errors(starts: Sequence[datetime], horizon: Horizon) -> list[FieldErro
 def draft_of(body: ActivityWrite) -> ActivityDraft:
     starts = tuple(sorted(s.astimezone(UTC) for s in body.candidate_starts))
     return ActivityDraft(
-        body.name, body.duration_minutes, starts, tuple(body.requirements), body.attrs
+        None, body.name, body.duration_minutes, starts, tuple(body.requirements), body.attrs
     )
 
 
