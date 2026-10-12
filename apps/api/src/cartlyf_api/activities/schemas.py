@@ -131,6 +131,8 @@ class DemandResponse(DemandWrite):
     id: UUID
     schedule_id: UUID
     activity_count: int
+    # Pins this write removed because their activity disappeared or the pin no longer fits.
+    pins_removed: int = 0
 
 
 class ActivityWrite(BaseModel):
