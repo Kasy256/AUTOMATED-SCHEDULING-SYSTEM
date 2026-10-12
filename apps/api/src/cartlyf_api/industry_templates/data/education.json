@@ -1,0 +1,119 @@
+{
+  "key": "education",
+  "version": 1,
+  "name": "Education",
+  "description": "Weekly class timetabling for lecturers, rooms and student groups (ISBAT-equivalent).",
+  "resource_types": [
+    {
+      "key": "lecturer",
+      "name": "Lecturer",
+      "kind": "person",
+      "attribute_schema": {
+        "version": 1,
+        "attributes": [
+          {"key": "role", "label": "Role", "type": "enum", "required": true,
+           "enum_values": ["Full-Time", "Part-Time", "Faculty Dean"]},
+          {"key": "faculty", "label": "Faculty", "type": "string"}
+        ]
+      }
+    },
+    {
+      "key": "room",
+      "name": "Room",
+      "kind": "space",
+      "attribute_schema": {
+        "version": 1,
+        "attributes": [
+          {"key": "room_type", "label": "Room type", "type": "enum", "required": true,
+           "enum_values": ["Theory", "Lab"]}
+        ]
+      }
+    },
+    {
+      "key": "student_group",
+      "name": "Student group",
+      "kind": "group",
+      "attribute_schema": {
+        "version": 1,
+        "attributes": [
+          {"key": "program", "label": "Programme", "type": "string"},
+          {"key": "semester", "label": "Semester", "type": "string"}
+        ]
+      }
+    }
+  ],
+  "day_parts": {
+    "version": 1,
+    "parts": [
+      {"name": "morning", "start_minute": 0, "end_minute": 780},
+      {"name": "afternoon", "start_minute": 780, "end_minute": 1440}
+    ]
+  },
+  "slot_templates": [
+    {
+      "name": "Teaching periods",
+      "definition": {
+        "version": 1,
+        "slots": [
+          {"label": "P1", "weekdays": [0, 1, 2, 3, 4], "start_minute": 540, "duration_minutes": 120},
+          {"label": "P2", "weekdays": [0, 1, 2, 3, 4], "start_minute": 660, "duration_minutes": 120},
+          {"label": "P3", "weekdays": [0, 1, 2, 3, 4], "start_minute": 840, "duration_minutes": 120},
+          {"label": "P4", "weekdays": [0, 1, 2, 3, 4], "start_minute": 960, "duration_minutes": 120}
+        ]
+      }
+    }
+  ],
+  "demand_shape": {
+    "kind": "session",
+    "slot_template": "Teaching periods",
+    "name_column": "subject",
+    "weekly_minutes_column": "weekly_minutes",
+    "requirements": [
+      {"role": "group", "resource_type_key": "student_group", "count_min": 1, "count_max": 50,
+       "fixed_codes_column": "group"},
+      {"role": "lecturer", "resource_type_key": "lecturer", "tags_column": "subject"},
+      {"role": "room", "resource_type_key": "room", "attribute_columns": {"room_type": "room_type"}}
+    ],
+    "term_split": {
+      "term_column": "term",
+      "unit_column": "unit",
+      "group_column": "group",
+      "merge_column": "subject",
+      "pair_column": "pair",
+      "prefer": {"room_type": ["Lab", "Theory"]}
+    }
+  },
+  "constraints": [
+    {"name": "Room seats every student", "template_key": "capacity_fit", "version": 1,
+     "params": {"headcount_from": "group_sizes"}, "hard": true},
+    {"name": "Lecturer: at most 2 sessions a day", "template_key": "max_load", "version": 1,
+     "params": {"period": "day", "max_count": 2},
+     "scope": {"resource_type_keys": ["lecturer"]}, "hard": true},
+    {"name": "Lecturer: at most 1 morning session", "template_key": "max_load", "version": 1,
+     "params": {"period": "day", "window": "morning", "max_count": 1},
+     "scope": {"resource_type_keys": ["lecturer"]}, "hard": true},
+    {"name": "Lecturer: at most 1 afternoon session", "template_key": "max_load", "version": 1,
+     "params": {"period": "day", "window": "afternoon", "max_count": 1},
+     "scope": {"resource_type_keys": ["lecturer"]}, "hard": true},
+    {"name": "Full-time lecturer: at most 22 hours a week", "template_key": "max_load", "version": 1,
+     "params": {"period": "week", "max_minutes": 1320},
+     "scope": {"resource_type_keys": ["lecturer"],
+               "attrs": [{"attr": "role", "op": "eq", "value": "Full-Time"}]}, "hard": true},
+    {"name": "Faculty dean: at most 15 hours a week", "template_key": "max_load", "version": 1,
+     "params": {"period": "week", "max_minutes": 900},
+     "scope": {"resource_type_keys": ["lecturer"],
+               "attrs": [{"attr": "role", "op": "eq", "value": "Faculty Dean"}]}, "hard": true},
+    {"name": "A subject at most once a day", "template_key": "spread", "version": 1,
+     "params": {"max_per_day": 1}, "hard": true},
+    {"name": "Few idle gaps for students", "template_key": "minimize_gaps", "version": 1,
+     "params": {"per_minutes": 60},
+     "scope": {"resource_type_keys": ["student_group"]}, "hard": false, "weight": 35},
+    {"name": "Even lecturer load", "template_key": "balance", "version": 1,
+     "params": {"measure": "count"},
+     "scope": {"resource_type_keys": ["lecturer"]}, "hard": false, "weight": 30},
+    {"name": "Few wasted seats", "template_key": "capacity_fit", "version": 1,
+     "params": {"headcount_from": "group_sizes"}, "hard": false, "weight": 20},
+    {"name": "Classes spread over the week", "template_key": "day_distribution", "version": 1,
+     "scope": {"resource_type_keys": ["student_group"]}, "hard": false, "weight": 15}
+  ]
+}

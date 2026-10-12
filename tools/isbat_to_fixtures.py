@@ -18,7 +18,8 @@ REPO = Path(__file__).resolve().parents[1]
 DEFAULT_LEGACY = REPO / "ISBAT-TIMETABLE-BACKEND"
 DEFAULT_OUT = REPO / "packages/engine/tests/fixtures/isbat/v1"
 FIXTURE_VERSION = 1
-WEEKDAYS = {"MON": 1, "TUE": 2, "WED": 3, "THU": 4, "FRI": 5}
+# Product convention: Monday is 0.
+WEEKDAYS = {"MON": 0, "TUE": 1, "WED": 2, "THU": 3, "FRI": 4}
 
 # Any: legacy records are untyped dicts straight out of the seed modules.
 Record = dict[str, Any]

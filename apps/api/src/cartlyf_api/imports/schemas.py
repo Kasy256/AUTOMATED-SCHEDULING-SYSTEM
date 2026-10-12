@@ -81,6 +81,26 @@ class ImportResponse(BaseModel):
 Column = Annotated[str, StringConstraints(min_length=1, max_length=200)]
 
 
+class TermSplitPreset(BaseModel):
+    """Which columns drive a term split; rows sharing `merge_column` become one demand."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    term_column: Column
+    unit_column: Column
+    group_column: Column
+    merge_column: Column | None = None
+    pair_column: Column | None = None
+    # Attribute key -> preferred values, first match wins when merged rows disagree.
+    prefer: dict[Key, list[str]] = Field(default_factory=dict[str, list[str]])
+
+
+class TermSplit(TermSplitPreset):
+    """Keep only the rows of `term` (e.g. "Term 1"), then merge them per `merge_column`."""
+
+    term: Annotated[str, StringConstraints(min_length=1, max_length=20)]
+
+
 class ResourceMapping(BaseModel):
     """CSV column for each resource field; attributes map attribute key -> column."""
 

@@ -27,7 +27,7 @@ def test_EDU_01_parses_legacy_without_importing_it() -> None:
     legacy = load_legacy(LEGACY)
     counts = (len(legacy.lecturers), len(legacy.rooms), len(legacy.programs), len(legacy.courses))
     assert counts == (23, 37, 12, 73)
-    legacy_modules = ("app.", "pymongo", "seed_", "dotenv")
+    legacy_modules = ("app.", "pymongo", "seed_", "werkzeug")
     assert "app" not in sys.modules
     assert not any(name.startswith(legacy_modules) for name in sys.modules)
 
@@ -64,7 +64,7 @@ def test_EDU_01_part_timers_have_availability(tmp_path: Path) -> None:
     assert lecturers["L003"]["role"] == "Part-Time"
     assert lecturers["L005"]["subjects"].split(";")[0] == "COMP_HARDWARE_OS"
     windows = [r for r in rows(tmp_path / "lecturer_availability.csv") if r["code"] == "L003"]
-    assert {"code": "L003", "weekday": "1", "start": "09:00", "end": "11:00"} in windows
+    assert {"code": "L003", "weekday": "0", "start": "09:00", "end": "11:00"} in windows
     assert len(windows) == 5
 
 
