@@ -2,8 +2,9 @@
 one. Hard rules are judged by the independent checker; this module holds no rule logic."""
 
 from collections.abc import Callable, Iterator
-from itertools import combinations, islice
+from itertools import islice
 from math import prod
+from typing import NamedTuple
 
 from cartlyf_engine.checking import CheckContext, Finding
 from cartlyf_engine.domain import Activity, Assignment, ConstraintInstance, Problem
@@ -62,6 +63,14 @@ def _rank(index: ProblemIndex, activity: Activity) -> tuple[int, int]:
         max(1, len(index.eligible(activity.id, r.role))) for r in activity.requirements
     )
     return pinned, options
+
+
+class _Pool(NamedTuple):
+    role: str
+    forced: tuple[str, ...]
+    free: list[str]
+    extra: int
+    hard: bool
 
 
 class _Timeline:
@@ -157,7 +166,7 @@ def _starts(
     starts = [pin.start] if pin is not None and pin.start is not None else activity.candidate_starts
     for start in starts:
         end = start + activity.duration
-        pools: list[tuple[str, tuple[str, ...], list[str], int]] = []
+        pools: list[_Pool] = []
         for req in activity.requirements:
             eligible = index.eligible(activity.id, req.role)
             pinned = pin.resources.get(req.role, ()) if pin is not None else ()
@@ -168,12 +177,12 @@ def _starts(
             need = max(req.count_min - len(forced), 0)
             if req.hard and len(free) < need:
                 break
-            pools.append((req.role, forced, free, min(need, len(free))))
+            pools.append(_Pool(req.role, forced, free, min(need, len(free)), req.hard))
         else:
             bare = Assignment(
                 activity_id=activity.id,
                 start=start,
-                resources={role: forced for role, forced, _, _ in pools},
+                resources={pool.role: pool.forced for pool in pools},
             )
             yield bare, _fills(activity.id, start, pools)
 
@@ -183,23 +192,27 @@ def _complete(activity: Activity, option: Assignment) -> bool:
     return all(len(option.resources.get(r.role, ())) >= r.count_min for r in activity.requirements)
 
 
-def _fills(
-    activity_id: str, start: int, pools: list[tuple[str, tuple[str, ...], list[str], int]]
-) -> Iterator[Assignment]:
-    """Options that vary every role at once (the i-th choice of each), so a few tries already
-    move past a busy lecturer and a busy room alike."""
-    choices = [
-        list(islice((forced + extra for extra in combinations(free, k)), _OPTIONS_PER_START))
-        for _, forced, free, k in pools
-    ]
-    widest = max((len(c) for c in choices), default=1)
-    for i in range(widest):
-        picked = tuple(c[i % len(c)] for c in choices)
-        chosen = [r for ids in picked for r in ids]
-        if len(chosen) != len(set(chosen)):
-            continue
-        yield Assignment(
-            activity_id=activity_id,
-            start=start,
-            resources={role: ids for (role, *_), ids in zip(pools, picked, strict=True)},
-        )
+def _fills(activity_id: str, start: int, pools: list[_Pool]) -> Iterator[Assignment]:
+    """Options that rotate every role's choice at once, never reusing a resource another role
+    of the same option already took, so a few tries move past busy resources in every role."""
+    forced = [r for pool in pools for r in pool.forced]
+    if len(forced) != len(set(forced)):
+        return
+    widest = max((len(pool.free) for pool in pools), default=0)
+    seen: set[tuple[tuple[str, tuple[str, ...]], ...]] = set()
+    for i in range(max(1, widest)):
+        taken = set(forced)
+        resources: dict[str, tuple[str, ...]] = {}
+        for pool in pools:
+            offset = i % len(pool.free) if pool.free else 0
+            rotated = pool.free[offset:] + pool.free[:offset]
+            extra = tuple(r for r in rotated if r not in taken)[: pool.extra]
+            if pool.hard and len(extra) < pool.extra:
+                break
+            taken |= set(extra)
+            resources[pool.role] = pool.forced + extra
+        else:
+            key = tuple(sorted(resources.items()))
+            if key not in seen:
+                seen.add(key)
+                yield Assignment(activity_id=activity_id, start=start, resources=resources)

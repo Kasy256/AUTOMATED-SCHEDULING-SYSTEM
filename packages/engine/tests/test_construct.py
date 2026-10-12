@@ -95,3 +95,21 @@ def test_construct_places_the_eng08_instance() -> None:
     plan = construct(p)
     assert len(plan) == len(p.activities)
     assert check(p, plan).hard_violations == 0
+
+
+def test_two_roles_from_one_pool_are_both_filled() -> None:
+    p = problem(
+        [person("p1"), person("p2"), person("p3")],
+        [act("a1", 60, [0, 60], needs("lead"), needs("assist"))],
+    )
+    _verified(p)
+
+
+def test_a_role_needing_several_tries_other_resources() -> None:
+    people = [person(f"p{i}") for i in range(10)]
+    p = problem(
+        people,
+        [act("a0", 60, [0], needs()), act("a1", 60, [120], needs(count=2, count_max=2))],
+        [rule("cap", "max_load", period="horizon", max_count=1)],
+    )
+    _verified(p)
