@@ -9,6 +9,8 @@ from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 from starlette.exceptions import HTTPException
 
+from cartlyf_api.log_config import redact_feed_tokens
+
 PROBLEM_JSON = "application/problem+json"
 log = structlog.get_logger()
 
@@ -143,7 +145,7 @@ async def _validation_error(_: Request, exc: Exception) -> JSONResponse:
 
 
 async def _unhandled_error(request: Request, exc: Exception) -> JSONResponse:
-    log.error("unhandled_error", path=request.url.path, exc_info=exc)
+    log.error("unhandled_error", path=redact_feed_tokens(request.url.path), exc_info=exc)
     return problem(500, "Internal Server Error")
 
 

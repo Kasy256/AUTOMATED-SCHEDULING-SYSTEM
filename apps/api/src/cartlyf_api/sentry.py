@@ -2,7 +2,9 @@ from uuid import UUID
 
 import sentry_sdk
 import structlog
+from sentry_sdk.types import Event, Hint
 
+from cartlyf_api.log_config import redact_feed_tokens
 from cartlyf_api.settings import Settings
 
 log = structlog.get_logger()
@@ -11,7 +13,17 @@ log = structlog.get_logger()
 def init_sentry(settings: Settings) -> None:
     if settings.sentry_dsn is None:
         return
-    sentry_sdk.init(dsn=settings.sentry_dsn.get_secret_value(), send_default_pii=False)
+    sentry_sdk.init(
+        dsn=settings.sentry_dsn.get_secret_value(), send_default_pii=False, before_send=scrub_event
+    )
+
+
+def scrub_event(event: Event, _: Hint) -> Event:
+    request = event.get("request")
+    url = request.get("url") if request is not None else None
+    if request is not None and isinstance(url, str):
+        request["url"] = redact_feed_tokens(url)
+    return event
 
 
 def _tag(scope: sentry_sdk.Scope, run_id: UUID, organisation_id: UUID) -> None:
