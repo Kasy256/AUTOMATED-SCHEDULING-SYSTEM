@@ -46,7 +46,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.redis = connect_redis(str(resolved.redis_url), resolved.db_timeout_seconds)
         app.state.email_provider = ConsoleEmailProvider()
         app.state.object_store = S3ObjectStore(resolved)
-        app.state.broker = make_broker(str(resolved.redis_url))
+        app.state.broker = make_broker(str(resolved.redis_url), resolved.db_timeout_seconds)
         app.state.solve_notifier = SolveNotifier(asyncpg_connector(resolved))
         yield
         await app.state.solve_notifier.close()

@@ -804,7 +804,7 @@ def worker_env(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> None:
 def running_worker(redis_url: str, threads: int) -> Generator[Broker]:
     """A real Dramatiq worker on the solves queue; restores the global broker afterwards."""
     previous = dramatiq.broker.global_broker
-    broker = setup_broker(redis_url)
+    broker = setup_broker(redis_url, timeout_seconds=5)
     loaded = sys.modules.get("cartlyf_api.jobs.actors")
     if loaded:
         importlib.reload(loaded)
