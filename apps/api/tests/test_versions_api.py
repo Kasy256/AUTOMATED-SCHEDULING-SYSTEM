@@ -92,9 +92,9 @@ def test_draft_with_too_many_changes_is_422(client: TestClient, app: FastAPI) ->
     app.state.settings = app.state.settings.model_copy(update={"draft_max_changes": 1})
     admin = signup_and_confirm(client, app)
     _, version = solve_now(client, admin, build_schedule(client, admin, demands=2).schedule_id)
-    assignments = client.get(
-        f"/api/v1/solution-versions/{version}", headers=admin.auth
-    ).json()["assignments"]
+    assignments = client.get(f"/api/v1/solution-versions/{version}", headers=admin.auth).json()[
+        "assignments"
+    ]
     changes = [
         {"activity_id": a["activity_id"], "start_at": a["start_at"], "resources": a["resources"]}
         for a in assignments[:2]
