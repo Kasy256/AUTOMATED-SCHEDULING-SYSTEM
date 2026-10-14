@@ -81,9 +81,13 @@ async def my_assignments(session: DbSession, principal: CurrentPrincipal) -> lis
     responses=_DRAFT,
 )
 async def create_draft(
-    version_id: UUID, body: DraftRequest, session: DbSession, principal: CurrentPrincipal
+    request: Request,
+    version_id: UUID,
+    body: DraftRequest,
+    session: DbSession,
+    principal: CurrentPrincipal,
 ) -> VersionDetail:
-    return await editing.create_draft(session, principal, version_id, body)
+    return await editing.create_draft(session, settings_of(request), principal, version_id, body)
 
 
 @router.post(

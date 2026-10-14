@@ -34,6 +34,7 @@ class Settings(BaseSettings):
     solve_heartbeat_seconds: float = 1
     solve_stale_after_seconds: int = 30
     solve_queue_timeout_seconds: int = 3600
+    draft_max_changes: int = 1000
     sentry_dsn: SecretStr | None = None
 
 

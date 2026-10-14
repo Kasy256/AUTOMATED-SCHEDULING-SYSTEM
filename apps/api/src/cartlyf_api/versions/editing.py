@@ -30,7 +30,11 @@ def _engine_resources(roles: Mapping[str, Iterable[UUID]]) -> dict[str, tuple[st
 
 
 async def create_draft(
-    session: AsyncSession, principal: Principal, version_id: UUID, body: DraftRequest
+    session: AsyncSession,
+    settings: Settings,
+    principal: Principal,
+    version_id: UUID,
+    body: DraftRequest,
 ) -> VersionDetail:
     """A new draft: the parent with `body.changes` applied, verified by the checker."""
     principal.require(Permission.SOLVES_RUN)
@@ -46,6 +50,10 @@ async def create_draft(
             raise NotFound("Unknown activity")
         if any(str(r) not in resource_ids for ids in change.resources.values() for r in ids):
             raise NotFound("Unknown resource")
+    if len(body.changes) > settings.draft_max_changes:
+        raise Unprocessable(
+            [field_error(("body", "changes"), f"must have at most {settings.draft_max_changes}")]
+        )
 
     placed: dict[str, Assignment] = {}
     errors: list[FieldError] = []
