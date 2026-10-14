@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import UTC, datetime
 from uuid import UUID, uuid4
@@ -48,3 +49,14 @@ async def deliver(engine: AsyncEngine, provider: EmailProvider, queued: QueuedEm
             return False
         row.sent_at = datetime.now(UTC)
         return True
+
+
+async def deliver_all(
+    engine: AsyncEngine, provider: EmailProvider, queued: Iterable[QueuedEmail]
+) -> None:
+    """Deliver each email in turn; one failure (DB or otherwise) must not drop the rest."""
+    for email in queued:
+        try:
+            await deliver(engine, provider, email)
+        except Exception:
+            log.exception("email_delivery_crashed", outbox_id=str(email.outbox_id))

@@ -6,7 +6,7 @@ from fastapi.responses import StreamingResponse
 
 from cartlyf_api.app_state import email_provider_of, engine_of, settings_of
 from cartlyf_api.auth.dependencies import CurrentPrincipal
-from cartlyf_api.email.outbox import deliver
+from cartlyf_api.email.outbox import deliver_all
 from cartlyf_api.errors import problem_response
 from cartlyf_api.tenancy import DbSession
 from cartlyf_api.versions import editing, service
@@ -97,8 +97,8 @@ async def publish(
     background: BackgroundTasks,
 ) -> VersionDetail:
     detail, queued = await editing.publish(session, settings_of(request), principal, version_id)
-    for email in queued:
-        background.add_task(deliver, engine_of(request), email_provider_of(request), email)
+    if queued:
+        background.add_task(deliver_all, engine_of(request), email_provider_of(request), queued)
     return detail
 
 
