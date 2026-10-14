@@ -1,5 +1,7 @@
-from collections.abc import Collection
+import re
+from collections.abc import Collection, Iterator
 from uuid import UUID
+from zoneinfo import ZoneInfo
 
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -9,6 +11,7 @@ from cartlyf_api.resources import repository as resources_repo
 from cartlyf_api.schedules import repository as schedules_repo
 from cartlyf_api.versions import repository
 from cartlyf_api.versions.diff import Placed, diff
+from cartlyf_api.versions.export import ExportRow, csv_rows
 from cartlyf_api.versions.models import SolutionVersion
 from cartlyf_api.versions.schemas import (
     AssignmentChange,
@@ -100,20 +103,55 @@ async def list_versions(
     return [_summary(v) for v in await repository.list_versions(session, org, schedule_id)]
 
 
-async def get_version(
+async def _readable_version(
     session: AsyncSession, principal: Principal, version_id: UUID
-) -> VersionDetail:
+) -> tuple[SolutionVersion, list[UUID] | None]:
+    """The version plus, for a member-only caller, the resources whose assignments they may see."""
     org = principal.organisation_id
     member_only = not principal.has(Permission.VERSIONS_READ)
     if member_only and Role.MEMBER not in principal.roles:
         principal.require(Permission.VERSIONS_READ)
     version = await require_version(session, org, version_id)
-    own: list[UUID] | None = None
-    if member_only:
-        if version.status != "published":
-            raise NotFound("Unknown version")
-        own = await resources_repo.resource_ids_for_user(session, org, principal.user_id)
-    return await version_detail(session, org, version, own)
+    if not member_only:
+        return version, None
+    if version.status != "published":
+        raise NotFound("Unknown version")
+    return version, await resources_repo.resource_ids_for_user(session, org, principal.user_id)
+
+
+async def get_version(
+    session: AsyncSession, principal: Principal, version_id: UUID
+) -> VersionDetail:
+    version, own = await _readable_version(session, principal, version_id)
+    return await version_detail(session, principal.organisation_id, version, own)
+
+
+async def export_csv(
+    session: AsyncSession, principal: Principal, version_id: UUID
+) -> tuple[str, Iterator[str]]:
+    """(filename, CSV lines) for a version, with a member's export limited to their assignments."""
+    org = principal.organisation_id
+    version, own = await _readable_version(session, principal, version_id)
+    schedule = await repository.schedule_of(session, org, version.schedule_id)
+    assignments = await _assignments(session, org, version.id, own)
+    ids = {rid for a in assignments for rids in a.resources.values() for rid in rids}
+    names = await repository.resource_names(session, org, ids)
+    rows = [
+        ExportRow(
+            activity_id=str(a.activity_id),
+            activity=a.activity_name or str(a.activity_id),
+            start_at=a.start_at,
+            end_at=a.end_at,
+            role=role,
+            resource_code=names.get(rid, (str(rid), str(rid)))[0],
+            resource=names.get(rid, (str(rid), str(rid)))[1],
+        )
+        for a in assignments
+        for role, rids in a.resources.items()
+        for rid in rids
+    ]
+    stem = re.sub(r"[^A-Za-z0-9._-]+", "_", schedule.name).strip("_") or "schedule"
+    return f"{stem}-v{version.number}.csv", csv_rows(rows, ZoneInfo(schedule.timezone))
 
 
 async def diff_versions(

@@ -2,6 +2,7 @@ from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, BackgroundTasks, Request
+from fastapi.responses import StreamingResponse
 
 from cartlyf_api.app_state import email_provider_of, engine_of, settings_of
 from cartlyf_api.auth.dependencies import CurrentPrincipal
@@ -43,6 +44,18 @@ async def get_version(
     version_id: UUID, session: DbSession, principal: CurrentPrincipal
 ) -> VersionDetail:
     return await service.get_version(session, principal, version_id)
+
+
+@router.get("/solution-versions/{version_id}/export.csv", responses=_READ)
+async def export_csv(
+    version_id: UUID, session: DbSession, principal: CurrentPrincipal
+) -> StreamingResponse:
+    filename, lines = await service.export_csv(session, principal, version_id)
+    return StreamingResponse(
+        lines,
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": f'attachment; filename="{filename}"'},
+    )
 
 
 @router.get(

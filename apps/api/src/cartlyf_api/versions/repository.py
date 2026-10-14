@@ -6,6 +6,7 @@ from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from cartlyf_api.activities.models import Activity
+from cartlyf_api.resources.models import Resource
 from cartlyf_api.schedules.models import Schedule
 from cartlyf_api.versions.diff import Placed
 from cartlyf_api.versions.models import Assignment, AssignmentResource, SolutionVersion
@@ -172,3 +173,28 @@ async def assignments_of(
         )
         for row in rows
     }
+
+
+async def schedule_of(session: AsyncSession, org: UUID, schedule_id: UUID) -> Schedule:
+    """The version's schedule, even if since soft-deleted."""
+    return await session.scalar(
+        select(Schedule).where(Schedule.organisation_id == org, Schedule.id == schedule_id)
+    ) or _missing(schedule_id)
+
+
+def _missing(schedule_id: UUID) -> Schedule:
+    raise LookupError(f"schedule {schedule_id} missing for an existing version")
+
+
+async def resource_names(
+    session: AsyncSession, org: UUID, resource_ids: Collection[UUID]
+) -> dict[UUID, tuple[str, str]]:
+    """(code, name) per resource, including soft-deleted ones."""
+    if not resource_ids:
+        return {}
+    rows = await session.execute(
+        select(Resource.id, Resource.code, Resource.name).where(
+            Resource.organisation_id == org, Resource.id.in_(resource_ids)
+        )
+    )
+    return {rid: (code, name) for rid, code, name in rows}
