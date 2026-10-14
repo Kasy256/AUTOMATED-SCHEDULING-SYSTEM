@@ -25,6 +25,7 @@ from cartlyf_api.sentry import init_sentry
 from cartlyf_api.settings import Settings, load_settings
 from cartlyf_api.solves.router import router as solves_router
 from cartlyf_api.storage import S3ObjectStore
+from cartlyf_api.versions.router import router as versions_router
 
 
 def _operation_id(route: APIRoute) -> str:
@@ -66,6 +67,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(constraints_router, prefix="/api/v1")
     app.include_router(problems_router, prefix="/api/v1")
     app.include_router(solves_router, prefix="/api/v1")
+    app.include_router(versions_router, prefix="/api/v1")
     app.include_router(imports_router, prefix="/api/v1")
     app.include_router(industry_templates_router, prefix="/api/v1")
     return app

@@ -482,6 +482,7 @@ def seed_config(client: TestClient, admin: Account) -> dict[str, str]:
     )
     assert uploaded.status_code == 200, uploaded.text
     ids["run_id"], ids["version_id"] = solve_now(client, admin, ids["schedule_id"])
+    _, ids["other_version_id"] = solve_now(client, admin, ids["schedule_id"])
     return ids
 
 
