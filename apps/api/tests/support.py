@@ -11,14 +11,20 @@ import redis
 from alembic.config import Config
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sentry_sdk.envelope import Envelope
+from sentry_sdk.transport import Transport
+from sentry_sdk.types import Event
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 from testcontainers.community.postgres import PostgresContainer
 
 from cartlyf_api.auth.cookies import REFRESH_COOKIE
+from cartlyf_api.db import create_db_engine
 from cartlyf_api.email.provider import ConsoleEmailProvider
 from cartlyf_api.examples import EXAMPLE_IDS
 from cartlyf_api.settings import Settings
+from cartlyf_api.solves.runner import SolveFn, execute_run
+from cartlyf_engine.solve import solve
 
 API_DIR = Path(__file__).resolve().parents[1]
 OWNER = ("cartlyf_owner", "owner-test-password")
@@ -539,3 +545,181 @@ def signup_and_confirm(
         response.cookies[REFRESH_COOKIE],
         UUID(body["organisation_id"]),
     )
+
+
+@dataclass(frozen=True)
+class BuiltSchedule:
+    schedule_id: str
+    lecturer_type_id: str
+    lecturer_ids: list[str]
+    activities: int
+
+
+def build_schedule(
+    client: TestClient,
+    admin: Account,
+    *,
+    lecturers: int = 1,
+    rooms: int = 1,
+    groups: int = 1,
+    demands: int = 1,
+    sessions: int = 2,
+    periods: int = 4,
+    group_gaps: bool = False,
+) -> BuiltSchedule:
+    """A one-week Mon-Fri schedule: demand i needs any lecturer, any room and group i % groups."""
+
+    def post(path: str, body: object) -> str:
+        response = client.post(path, headers=admin.auth, json=body)
+        assert response.status_code == 201, f"{path}: {response.text}"
+        return response.json()["id"]
+
+    def resources(key: str, kind: str, count: int) -> tuple[str, list[str]]:
+        type_id = post(
+            "/api/v1/resource-types", {"key": f"{key}_{uuid4().hex[:8]}", "name": key, "kind": kind}
+        )
+        ids = [
+            post(
+                "/api/v1/resources",
+                {"resource_type_id": type_id, "code": f"{key.upper()}-{i}", "name": f"{key} {i}"},
+            )
+            for i in range(count)
+        ]
+        return type_id, ids
+
+    lecturer_type, lecturer_ids = resources("lecturer", "person", lecturers)
+    room_type, _ = resources("room", "space", rooms)
+    group_type, group_ids = resources("group", "group", groups)
+    schedule_id = post(
+        "/api/v1/schedules",
+        {
+            "name": "Solve term",
+            "timezone": "Africa/Kampala",
+            "start_date": "2027-01-11",
+            "end_date": "2027-01-15",
+        },
+    )
+    base = f"/api/v1/schedules/{schedule_id}"
+    slots = [
+        {
+            "label": f"P{p}",
+            "weekdays": [0, 1, 2, 3, 4],
+            "start_minute": 480 + 60 * p,
+            "duration_minutes": 60,
+        }
+        for p in range(periods)
+    ]
+    slot_template = post(
+        f"{base}/slot-templates", {"name": "Periods", "definition": {"version": 1, "slots": slots}}
+    )
+    for d in range(demands):
+        post(
+            f"{base}/demands",
+            {
+                "name": f"Course {d}",
+                "slot_template_id": slot_template,
+                "spec": {
+                    "kind": "session",
+                    "sessions_per_week": sessions,
+                    "requirements": [
+                        {"role": "lecturer", "resource_type_id": lecturer_type},
+                        {"role": "room", "resource_type_id": room_type},
+                        {"role": "group", "fixed_resource_ids": [group_ids[d % groups]]},
+                    ],
+                },
+            },
+        )
+    if group_gaps:
+        add_rule(
+            client,
+            admin,
+            schedule_id,
+            "minimize_gaps",
+            {"per_minutes": 60},
+            weight=1,
+            scope={"resource_type_ids": [group_type]},
+        )
+    return BuiltSchedule(schedule_id, lecturer_type, lecturer_ids, demands * sessions)
+
+
+def add_rule(
+    client: TestClient,
+    admin: Account,
+    schedule_id: str,
+    template_key: str,
+    params: dict[str, object],
+    *,
+    hard: bool = False,
+    weight: int = 0,
+    scope: dict[str, object] | None = None,
+) -> str:
+    response = client.post(
+        f"/api/v1/schedules/{schedule_id}/constraints",
+        headers=admin.auth,
+        json={
+            "name": f"{template_key} rule",
+            "template_key": template_key,
+            "template_version": 1,
+            "params": params,
+            "scope": scope or {},
+            "hard": hard,
+            "weight": weight,
+        },
+    )
+    assert response.status_code == 201, response.text
+    return response.json()["id"]
+
+
+def slow_schedule(client: TestClient, admin: Account) -> BuiltSchedule:
+    """CP-SAT runs to a 60 s limit on this, yet stops within a second of a cancel; gaps over
+    every resource instead made presolve slow to honour a stop (calibration in task-4 report)."""
+    return build_schedule(
+        client,
+        admin,
+        lecturers=30,
+        rooms=30,
+        groups=10,
+        demands=40,
+        sessions=5,
+        periods=8,
+        group_gaps=True,
+    )
+
+
+def request_run(client: TestClient, admin: Account, schedule_id: str, **body: object) -> str:
+    response = client.post(f"/api/v1/schedules/{schedule_id}/solves", headers=admin.auth, json=body)
+    assert response.status_code == 202, response.text
+    return response.json()["id"]
+
+
+def run_now(app: FastAPI, run_id: str, organisation_id: UUID, solve_fn: SolveFn = solve) -> str:
+    """Execute a queued run in this thread, as the worker would."""
+    settings: Settings = app.state.settings
+
+    async def go() -> str:
+        engine = create_db_engine(settings)
+        try:
+            return await execute_run(engine, settings, UUID(run_id), organisation_id, solve_fn)
+        finally:
+            await engine.dispose()
+
+    return asyncio.run(go())
+
+
+class CollectingTransport(Transport):
+    def __init__(self) -> None:
+        super().__init__()
+        self.events: list[Event] = []
+
+    def capture_envelope(self, envelope: Envelope) -> None:
+        event = envelope.get_event()
+        if event is not None:
+            self.events.append(event)
+
+    @property
+    def messages(self) -> list[str]:
+        return [str(e.get("message") or e.get("logentry", {}).get("message")) for e in self.events]
+
+    @property
+    def tags(self) -> list[dict[str, str]]:
+        return [dict(e.get("tags", {})) for e in self.events]

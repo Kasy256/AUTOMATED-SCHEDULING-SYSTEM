@@ -1,6 +1,7 @@
 from collections.abc import Iterator
 
 import pytest
+import sentry_sdk
 from alembic import command
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -9,7 +10,15 @@ from testcontainers.community.postgres import PostgresContainer
 from testcontainers.community.redis import RedisContainer
 
 from cartlyf_api.main import create_app
-from support import APP, OWNER, alembic_config, apply_roles, db_url, make_settings
+from support import (
+    APP,
+    OWNER,
+    CollectingTransport,
+    alembic_config,
+    apply_roles,
+    db_url,
+    make_settings,
+)
 
 # Community fork: upstream MinIO images are no longer published on Docker Hub.
 MINIO_IMAGE = "pgsty/minio:RELEASE.2026-08-04T00-00-00Z"
@@ -73,4 +82,17 @@ def minio_settings() -> Iterator[dict[str, object]]:
 def app(
     migrated_pg: PostgresContainer, redis_url: str, minio_settings: dict[str, object]
 ) -> FastAPI:
-    return create_app(make_settings(db_url(migrated_pg, *APP), redis_url, **minio_settings))
+    # One CP-SAT worker: solves in tests are deterministic and leave CPU for the rest.
+    return create_app(
+        make_settings(db_url(migrated_pg, *APP), redis_url, solve_num_workers=1, **minio_settings)
+    )
+
+
+@pytest.fixture
+def capture_sentry() -> Iterator[CollectingTransport]:
+    transport = CollectingTransport()
+    sentry_sdk.init(dsn="https://k@o0.ingest.sentry.io/0", transport=transport)
+    try:
+        yield transport
+    finally:
+        sentry_sdk.init()
