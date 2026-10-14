@@ -1,19 +1,23 @@
 import threading
+import time
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from testcontainers.community.postgres import PostgresContainer
 
 from support import (
     add_member,
     build_schedule,
     drain_solves,
+    execute_many,
     parse_sse,
     request_run,
     run_now,
     running_worker,
     signup_and_confirm,
     solve_now,
+    superuser_url,
     worker_env,
 )
 
@@ -51,7 +55,9 @@ def test_JOB_01_post_solve_then_stream_progress_and_completion(
         worker.join(timeout=60)
     assert events[-1].event == "done"
     assert events[-1].data["status"] == "succeeded" and events[-1].data["version_id"]
-    assert any(e.event == "progress" for e in events)
+    progress = [e for e in events if e.event == "progress"]
+    assert any("status" in e.data and "kind" in e.data for e in progress)
+    assert all("progress" not in e.data for e in progress)
     assert [e.event for e in events].count("done") == 1
 
 
@@ -82,3 +88,25 @@ def test_JOB_01_member_cannot_stream(client: TestClient, app: FastAPI) -> None:
     member = add_member(client, app, admin, ["member"])
     response = client.get(f"/api/v1/solves/{run_id}/events", headers=member.auth)
     assert response.status_code == 403
+
+
+def test_JOB_01_notify_wakes_stream_without_heartbeat_tick(
+    client: TestClient, app: FastAPI, migrated_pg: PostgresContainer
+) -> None:
+    app.state.settings = app.state.settings.model_copy(update={"solve_heartbeat_seconds": 30})
+    admin = signup_and_confirm(client, app)
+    run_id = request_run(client, admin, build_schedule(client, admin).schedule_id)
+    finish = [
+        f"UPDATE solve_run SET status = 'succeeded', finished_at = now() WHERE id = '{run_id}'",
+        f"SELECT pg_notify('solve_run', '{run_id}')",
+    ]
+    timer = threading.Timer(2, execute_many, args=(superuser_url(migrated_pg), finish))
+    timer.start()
+    started = time.monotonic()
+    try:
+        with client.stream("GET", f"/api/v1/solves/{run_id}/events", headers=admin.auth) as r:
+            events = parse_sse(r.iter_lines())
+    finally:
+        timer.join()
+    assert events[-1].event == "done" and events[-1].data["status"] == "succeeded"
+    assert time.monotonic() - started < 15

@@ -68,7 +68,7 @@ async def run_events(
                     if last != (status, progress):
                         last = (status, progress)
                         last_sent = time.monotonic()
-                        yield sse("progress", {"status": status, "progress": progress})
+                        yield sse("progress", {"status": status, **progress})
                     if status not in ACTIVE:
                         yield sse(
                             "done", {"status": status, "version_id": version_id, "error": error}
