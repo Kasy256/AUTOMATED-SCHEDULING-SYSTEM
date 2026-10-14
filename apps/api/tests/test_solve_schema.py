@@ -1,9 +1,14 @@
-from uuid import uuid4
+import asyncio
+from datetime import datetime
+from uuid import UUID, uuid4
 
 import pytest
 from sqlalchemy.exc import DBAPIError, IntegrityError, ProgrammingError
+from sqlalchemy.ext.asyncio import create_async_engine
 from testcontainers.community.postgres import PostgresContainer
 
+from cartlyf_api.tenancy import scoped_transaction
+from cartlyf_api.versions import repository as versions_repo
 from support import APP, db_url, execute, execute_many, fetch, seed_org, superuser_url
 
 pytestmark = pytest.mark.integration
@@ -182,3 +187,29 @@ def test_solve_run_snapshot_is_immutable(migrated_pg: PostgresContainer) -> None
             f"started_at = now(), finished_at = now() {where}",
         ),
     )
+
+
+def test_archiving_leaves_an_already_archived_version_untouched(
+    migrated_pg: PostgresContainer,
+) -> None:
+    url, app = superuser_url(migrated_pg), db_url(migrated_pg, *APP)
+    org = str(seed_org(url, "Solve Archive Twice").organisation_id)
+    _, version = _seed_version(url, org, status="published")
+    archived_at = "2026-01-01T00:00:00+00:00"
+    execute(
+        url,
+        f"UPDATE solution_version SET status = 'archived', archived_at = '{archived_at}' "
+        f"WHERE id = '{version}'",
+    )
+
+    async def archive_again() -> None:
+        engine = create_async_engine(app)
+        try:
+            async with scoped_transaction(engine, UUID(org)) as session:
+                await versions_repo.mark_archived(session, UUID(org), UUID(version))
+        finally:
+            await engine.dispose()
+
+    asyncio.run(archive_again())
+    stored = fetch(url, f"SELECT archived_at FROM solution_version WHERE id = '{version}'")[0][0]
+    assert stored == datetime.fromisoformat(archived_at)

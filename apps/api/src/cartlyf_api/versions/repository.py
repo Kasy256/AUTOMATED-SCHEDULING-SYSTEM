@@ -53,9 +53,14 @@ async def mark_published(session: AsyncSession, org: UUID, version_id: UUID, use
 
 
 async def mark_archived(session: AsyncSession, org: UUID, version_id: UUID) -> None:
+    # Skip a row archived concurrently, so its original archived_at stands.
     await session.execute(
         update(SolutionVersion)
-        .where(SolutionVersion.organisation_id == org, SolutionVersion.id == version_id)
+        .where(
+            SolutionVersion.organisation_id == org,
+            SolutionVersion.id == version_id,
+            SolutionVersion.status != "archived",
+        )
         .values(status="archived", archived_at=func.now())
     )
 
