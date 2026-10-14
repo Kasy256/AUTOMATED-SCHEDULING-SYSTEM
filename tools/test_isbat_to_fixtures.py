@@ -3,7 +3,7 @@ import json
 import sys
 from pathlib import Path
 
-from tools.isbat_to_fixtures import load_legacy, write_fixtures
+from tools.isbat_to_fixtures import load_legacy, source_hash, write_fixtures
 
 REPO = Path(__file__).resolve().parents[1]
 LEGACY = REPO / "ISBAT-TIMETABLE-BACKEND"
@@ -74,3 +74,11 @@ def test_EDU_01_source_records_versions_and_hashes(tmp_path: Path) -> None:
     assert source["fixture_version"] == 1
     assert "seed_courses_data.py" in source["sources"]
     assert source["counts"]["groups"] == 12
+
+
+def test_EDU_01_source_hash_ignores_line_endings(tmp_path: Path) -> None:
+    # A Windows checkout has CRLF where CI has LF; the recorded hash must match on both.
+    lf, crlf = tmp_path / "lf.py", tmp_path / "crlf.py"
+    lf.write_bytes(b"A = 1\nB = 2\n")
+    crlf.write_bytes(b"A = 1\r\nB = 2\r\n")
+    assert source_hash(lf) == source_hash(crlf)

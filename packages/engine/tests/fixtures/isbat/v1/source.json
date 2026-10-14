@@ -8,11 +8,11 @@
   },
   "fixture_version": 1,
   "sources": {
-    "app/services/canonical_courses.py": "5c30dc3b2c5367fc3a761958e0dc96b7e95ade4b27cb1cde8895304ed817c8c1",
-    "seed_config_data.py": "3b12301456177c16d2162295d3efb525858d67c9672b6c55b3cebe44e0bc3cd4",
-    "seed_courses_data.py": "3d74c13bd66e042b73f23ef3086c4f4d178d515d33dcba95eb14d9e0b4046f56",
-    "seed_lecturers_data.py": "346c6283933290aaee7f9d06805d817425c4074f18b4bba9f53368a32739e53a",
-    "seed_programs_data.py": "4d378cdd2d96e1fd008e6a47ed1de4e2f8ff0ad21f9548c17a870b7f68ea9b98",
-    "seed_rooms_data.py": "a64ed5ab89bb62f803a06ef5a6750b04b5298c9b471b2f71569f878371dddaa1"
+    "app/services/canonical_courses.py": "ee91e1996745d569430b7a0a2241917b4d3d71f3a4b86f470a77162b61795ce3",
+    "seed_config_data.py": "73dc43fb7a1d141f9f71ac0858634b040307e508cb3515f72396b12b7842eb32",
+    "seed_courses_data.py": "9192808a8fa1db9f550a940e0b6d42531acc2f89ee409c1cbdd41cee4ce1265d",
+    "seed_lecturers_data.py": "f8098739d8e3de32e99510f7367dbf46a05f9079bde89e06b011cffe4e4b84ff",
+    "seed_programs_data.py": "ed9ec84224af7346ae9101aa19fd2e0a00256e5d38cb3bdd60892fe24bb8da3c",
+    "seed_rooms_data.py": "c4b0cb8dd3d3b3f5b8816429ff65c8d965a0d70dea69778a16ee40394adde60f"
   }
 }
