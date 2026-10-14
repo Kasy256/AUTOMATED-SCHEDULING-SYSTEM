@@ -55,17 +55,18 @@ async def request_solve(
     principal.require(Permission.SOLVES_RUN)
     org = principal.organisation_id
     time_limit = body.time_limit_s or settings.solve_default_time_limit_s
-    if time_limit > settings.solve_max_time_limit_s:
-        raise Unprocessable(
-            [
-                field_error(
-                    ("body", "time_limit_s"), f"must be at most {settings.solve_max_time_limit_s}"
-                )
-            ]
-        )
     run_id = uuid4()
     async with scoped_transaction(engine, org, principal.user_id) as session:
         await _require_schedule(session, org, schedule_id)
+        if time_limit > settings.solve_max_time_limit_s:
+            raise Unprocessable(
+                [
+                    field_error(
+                        ("body", "time_limit_s"),
+                        f"must be at most {settings.solve_max_time_limit_s}",
+                    )
+                ]
+            )
         await repository.lock_org_runs(session, org)
         await _sweep(session, settings, org)
         if await repository.count_active(session, org) >= settings.solve_max_concurrent_per_org:

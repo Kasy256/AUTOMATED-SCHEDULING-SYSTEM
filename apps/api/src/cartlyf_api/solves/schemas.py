@@ -25,7 +25,8 @@ class SolveRequest(BaseModel):
     )
 
     time_limit_s: int | None = Field(None, ge=1)
-    seed: int = Field(0, ge=0)
+    # CP-SAT's random_seed is an int32.
+    seed: int = Field(0, ge=0, le=2**31 - 1)
 
 
 class SolveRunResponse(BaseModel):

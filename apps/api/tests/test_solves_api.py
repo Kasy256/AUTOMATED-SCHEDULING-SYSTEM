@@ -1,3 +1,5 @@
+from uuid import uuid4
+
 import pytest
 import redis
 import redis.exceptions
@@ -150,3 +152,17 @@ def test_stale_runs_are_failed_on_read(
     assert (got["status"], got["error"]) == ("failed", "worker stopped responding")
     rows = fetch(db, f"SELECT status FROM solve_run WHERE id = '{queued}'")
     assert rows == [("failed",)]
+
+
+def test_seed_above_int32_is_422(client: TestClient, app: FastAPI) -> None:
+    admin = signup_and_confirm(client, app)
+    ids = seed_config(client, admin)
+    r = client.post(_solves(ids["schedule_id"]), headers=admin.auth, json={"seed": 2**31})
+    assert r.status_code == 422
+    assert r.json()["errors"][0]["loc"] == ["body", "seed"]
+
+
+def test_unknown_schedule_is_404_before_time_limit_422(client: TestClient, app: FastAPI) -> None:
+    admin = signup_and_confirm(client, app)
+    r = client.post(_solves(str(uuid4())), headers=admin.auth, json={"time_limit_s": 601})
+    assert r.status_code == 404
