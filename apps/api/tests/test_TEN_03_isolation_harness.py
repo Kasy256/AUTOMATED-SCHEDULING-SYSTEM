@@ -21,6 +21,8 @@ from support import (
 # Routes that 404 for an ordinary org admin whatever the id, so the positive control below
 # cannot apply; each needs its own isolation test (here: test_TEN_06_platform_admin.py).
 NOT_FOUND_BY_DESIGN = {"POST /api/v1/platform/organisations/{organisation_id}/session"}
+# The token in the path is the credential, not an org-scoped id: see test_TEN_05_calendar_feeds.py.
+CAPABILITY_ROUTES = {"GET /api/v1/calendar/{token}.ics"}
 
 
 @pytest.mark.integration
@@ -33,6 +35,8 @@ def test_TEN_03_other_org_ids_are_not_found_on_every_route(
         if not op.path_params:
             continue
         route = f"{op.method} {op.path}"
+        if route in CAPABILITY_ROUTES:
+            continue
         missing = missing_seeds(op, world.b_ids)
         assert not missing, f"{route}: seed an org-B id for {missing} in build_world"
         response = client.request(

@@ -16,6 +16,7 @@ def test_settings_read_prefixed_env(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("CARTLYF_REDIS_URL", "redis://cache:6379/0")
     monkeypatch.setenv("CARTLYF_JWT_SECRET", "s" * 32)
     monkeypatch.setenv("CARTLYF_WEB_BASE_URL", "http://web.test")
+    monkeypatch.setenv("CARTLYF_PUBLIC_API_BASE_URL", "http://api.test")
     monkeypatch.setenv("CARTLYF_S3_ENDPOINT", "account.r2.cloudflarestorage.com")
     monkeypatch.setenv("CARTLYF_S3_ACCESS_KEY", "access")
     monkeypatch.setenv("CARTLYF_S3_SECRET_KEY", "secret")
@@ -27,6 +28,7 @@ def test_settings_read_prefixed_env(monkeypatch: pytest.MonkeyPatch) -> None:
     assert settings.cookie_secure is True
     assert settings.s3_secure is True
     assert settings.import_max_bytes == 5_000_000
+    assert settings.feed_rate_limit_per_minute == 60
 
 
 def test_settings_reject_short_jwt_secret(monkeypatch: pytest.MonkeyPatch) -> None:

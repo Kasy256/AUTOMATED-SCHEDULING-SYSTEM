@@ -6,6 +6,7 @@ from redis.asyncio import Redis
 from redis.exceptions import RedisError
 
 from cartlyf_api.errors import RateLimited, ServiceUnavailable
+from cartlyf_api.settings import Settings
 
 WINDOW_SECONDS = 60
 
@@ -25,13 +26,19 @@ async def enforce(redis: Redis, key: str, limit: int, window_seconds: int, now: 
         raise RateLimited(retry_after=window_seconds - int(now % window_seconds))
 
 
-def rate_limit(scope: str) -> Callable[[Request], Awaitable[None]]:
+def _auth_limit(settings: Settings) -> int:
+    return settings.auth_rate_limit_per_minute
+
+
+def rate_limit(
+    scope: str, limit: Callable[[Settings], int] = _auth_limit
+) -> Callable[[Request], Awaitable[None]]:
     async def dependency(request: Request) -> None:
         client = request.client.host if request.client else "unknown"
         await enforce(
             request.app.state.redis,
             f"{scope}:ip:{client}",
-            request.app.state.settings.auth_rate_limit_per_minute,
+            limit(request.app.state.settings),
             WINDOW_SECONDS,
             time.time(),
         )

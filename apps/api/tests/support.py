@@ -49,6 +49,7 @@ def make_settings(database_url: str, redis_url: str, **overrides: object) -> Set
             "redis_url": redis_url,
             "jwt_secret": TEST_JWT_SECRET,
             "web_base_url": "http://web.test",
+            "public_api_base_url": "http://api.test",
             "cookie_secure": False,
             "s3_endpoint": "127.0.0.1:1",
             "s3_access_key": "test-access-key",
@@ -485,6 +486,10 @@ def seed_config(client: TestClient, admin: Account) -> dict[str, str]:
     assert uploaded.status_code == 200, uploaded.text
     ids["run_id"], ids["version_id"] = solve_now(client, admin, ids["schedule_id"])
     _, ids["other_version_id"] = solve_now(client, admin, ids["schedule_id"])
+    feed = client.post(f"{resource_base}/calendar-feeds", headers=admin.auth)
+    assert feed.status_code == 201, feed.text
+    ids["calendar_feed_id"] = feed.json()["id"]
+    ids["token"] = feed.json()["url"].rsplit("/", 1)[-1].removesuffix(".ics")
     return ids
 
 
@@ -781,6 +786,7 @@ def worker_env(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> None:
         "REDIS_URL": str(settings.redis_url),
         "JWT_SECRET": settings.jwt_secret.get_secret_value(),
         "WEB_BASE_URL": str(settings.web_base_url),
+        "PUBLIC_API_BASE_URL": str(settings.public_api_base_url),
         "S3_ENDPOINT": settings.s3_endpoint,
         "S3_ACCESS_KEY": settings.s3_access_key.get_secret_value(),
         "S3_SECRET_KEY": settings.s3_secret_key.get_secret_value(),

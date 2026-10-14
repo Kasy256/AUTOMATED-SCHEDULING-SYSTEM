@@ -13,10 +13,12 @@ class Settings(BaseSettings):
     db_timeout_seconds: float = 5
     jwt_secret: SecretStr = Field(min_length=32)
     web_base_url: AnyHttpUrl
+    public_api_base_url: AnyHttpUrl
     cookie_secure: bool = True
     access_token_minutes: int = 15
     refresh_token_days: int = 30
     auth_rate_limit_per_minute: int = 10
+    feed_rate_limit_per_minute: int = 60
     s3_endpoint: str
     s3_access_key: SecretStr
     s3_secret_key: SecretStr
