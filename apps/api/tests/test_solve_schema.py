@@ -9,28 +9,38 @@ from support import APP, db_url, execute, execute_many, fetch, seed_org, superus
 pytestmark = pytest.mark.integration
 
 
-def _seed_version(url: str, org: str, status: str = "draft", number: int = 1) -> tuple[str, str]:
-    """Insert (as superuser) a schedule, run and version; returns (schedule_id, version_id)."""
-    schedule, run, version, activity, resource = (str(uuid4()) for _ in range(5))
+def _seed_version(
+    url: str, org: str, status: str = "draft", number: int = 1, schedule: str | None = None
+) -> tuple[str, str]:
+    """Insert (as superuser) a run and version, plus a schedule unless one is given."""
+    new_schedule, run, version, activity, resource = (str(uuid4()) for _ in range(5))
+    schedule = schedule or new_schedule
     user = fetch(url, f"SELECT user_id FROM membership WHERE organisation_id = '{org}'")[0][0]
     execute_many(
         url,
         [
-            "INSERT INTO schedule (id, organisation_id, name, timezone, start_date, end_date, "
-            f"day_parts) VALUES ('{schedule}', '{org}', 'S', 'Africa/Kampala', '2027-01-11', "
-            """'2027-01-15', '{"version": 1, "parts": []}')""",
+            *(
+                []
+                if schedule != new_schedule
+                else [
+                    "INSERT INTO schedule (id, organisation_id, name, timezone, start_date, "
+                    f"end_date, day_parts) VALUES ('{schedule}', '{org}', 'S', 'Africa/Kampala', "
+                    """'2027-01-11', '2027-01-15', '{"version": 1, "parts": []}')"""
+                ]
+            ),
             "INSERT INTO solve_run (id, organisation_id, schedule_id, requested_by, status, "
             "problem, problem_hash, horizon_origin, timezone) "
             f"VALUES ('{run}', '{org}', '{schedule}', '{user}', 'succeeded', '{{}}', 'h', now(), "
             "'Africa/Kampala')",
             "INSERT INTO solution_version (id, organisation_id, schedule_id, solve_run_id, number, "
             "status, solver_status, score, checker_report, created_by) "
-            f"VALUES ('{version}', '{org}', '{schedule}', '{run}', {number}, '{status}', "
+            f"VALUES ('{version}', '{org}', '{schedule}', '{run}', {number}, 'draft', "
             f"'optimal', '{{}}', '{{}}', '{user}')",
             "INSERT INTO assignment (organisation_id, version_id, activity_id, start_at, end_at) "
             f"VALUES ('{org}', '{version}', '{activity}', now(), now() + interval '1 hour')",
             "INSERT INTO assignment_resource (organisation_id, version_id, activity_id, role, "
             f"resource_id) VALUES ('{org}', '{version}', '{activity}', 'room', '{resource}')",
+            f"UPDATE solution_version SET status = '{status}' WHERE id = '{version}'",
         ],
     )
     return schedule, version
@@ -109,3 +119,38 @@ def test_calendar_feed_org_lookup_ignores_revoked(migrated_pg: PostgresContainer
     assert fetch(app, lookup.format(uuid4().hex))[0][0] is None
     execute(url, f"UPDATE calendar_feed SET revoked_at = now() WHERE organisation_id = '{org}'")
     assert fetch(app, lookup.format(token_hash))[0][0] is None
+
+
+def test_versions_are_never_deleted_and_assignments_only_join_drafts(
+    migrated_pg: PostgresContainer,
+) -> None:
+    url, app = superuser_url(migrated_pg), db_url(migrated_pg, *APP)
+    org = str(seed_org(url, "Solve Draft Only").organisation_id)
+    schedule, draft = _seed_version(url, org)
+    _, published = _seed_version(url, org, status="published", number=2, schedule=schedule)
+    insert_assignment = (
+        "INSERT INTO assignment (organisation_id, version_id, activity_id, start_at, end_at) "
+        f"VALUES ('{org}', '{{}}', '{uuid4()}', now(), now() + interval '1 hour')"
+    )
+    insert_resource = (
+        "INSERT INTO assignment_resource (organisation_id, version_id, activity_id, role, "
+        f"resource_id) VALUES ('{org}', '{{}}', '{uuid4()}', 'room', '{uuid4()}')"
+    )
+
+    with pytest.raises(ProgrammingError, match="permission denied"):
+        execute_many(app, _as_app(org, f"DELETE FROM solution_version WHERE id = '{draft}'"))
+    for insert in (insert_assignment, insert_resource):
+        with pytest.raises(DBAPIError, match="only be added to a draft version"):
+            execute_many(app, _as_app(org, insert.format(published)))
+    execute_many(app, _as_app(org, insert_assignment.format(draft)))
+
+    execute_many(
+        app,
+        _as_app(
+            org,
+            f"UPDATE solution_version SET status = 'archived', archived_at = now() "
+            f"WHERE id = '{draft}'",
+        ),
+    )
+    with pytest.raises(DBAPIError, match="only be added to a draft version"):
+        execute_many(app, _as_app(org, insert_assignment.format(draft)))

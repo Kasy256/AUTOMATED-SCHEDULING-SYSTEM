@@ -77,6 +77,8 @@ _TABLES = [
     """CREATE UNIQUE INDEX solution_version_one_published_idx
        ON solution_version (organisation_id, schedule_id) WHERE status = 'published'""",
     "CREATE INDEX solution_version_org_run_idx ON solution_version (organisation_id, solve_run_id)",
+    """CREATE INDEX solution_version_org_parent_idx
+       ON solution_version (organisation_id, parent_version_id)""",
     # Activities can be regenerated away, so a version snapshot carries no FK to them.
     f"""CREATE TABLE assignment (
       organisation_id uuid NOT NULL REFERENCES organisation (id),
@@ -123,7 +125,7 @@ _TENANT_TABLES = [
 
 _GUARDS = [
     "REVOKE UPDATE, DELETE ON assignment, assignment_resource FROM cartlyf_app",
-    "REVOKE UPDATE ON solution_version FROM cartlyf_app",
+    "REVOKE UPDATE, DELETE ON solution_version FROM cartlyf_app",
     "GRANT UPDATE (status, published_at, published_by, archived_at) "
     "ON solution_version TO cartlyf_app",
     """CREATE FUNCTION solution_version_transition() RETURNS trigger LANGUAGE plpgsql AS $$
@@ -137,6 +139,20 @@ _GUARDS = [
        END $$""",
     """CREATE TRIGGER solution_version_transition BEFORE UPDATE ON solution_version
        FOR EACH ROW EXECUTE FUNCTION solution_version_transition()""",
+    # Runs as the invoking user, so RLS applies and the version is visible in the same org.
+    """CREATE FUNCTION assignment_requires_draft() RETURNS trigger LANGUAGE plpgsql AS $$
+       BEGIN
+         IF NOT EXISTS (SELECT 1 FROM solution_version
+                        WHERE organisation_id = NEW.organisation_id AND id = NEW.version_id
+                          AND status = 'draft') THEN
+           RAISE EXCEPTION 'assignments can only be added to a draft version';
+         END IF;
+         RETURN NEW;
+       END $$""",
+    """CREATE TRIGGER assignment_requires_draft BEFORE INSERT ON assignment
+       FOR EACH ROW EXECUTE FUNCTION assignment_requires_draft()""",
+    """CREATE TRIGGER assignment_resource_requires_draft BEFORE INSERT ON assignment_resource
+       FOR EACH ROW EXECUTE FUNCTION assignment_requires_draft()""",
     # Pre-auth lookup for capability URLs: returns an org id, never a row (same rule as 0002).
     """CREATE FUNCTION auth.calendar_feed_org(p_token_hash bytea) RETURNS uuid
        LANGUAGE sql STABLE SECURITY DEFINER SET search_path = pg_catalog, public
@@ -168,5 +184,6 @@ def downgrade() -> None:
     op.execute("DROP FUNCTION auth.calendar_feed_org(bytea)")
     op.execute(f"DROP TABLE {', '.join(reversed(_TENANT_TABLES))}")
     op.execute("DROP FUNCTION solution_version_transition()")
+    op.execute("DROP FUNCTION assignment_requires_draft()")
     op.execute("DROP INDEX resource_org_user_live_idx")
     op.execute("ALTER TABLE resource DROP COLUMN user_id")
