@@ -4,7 +4,7 @@ from uuid import UUID
 from fastapi import APIRouter, Request
 from fastapi.responses import StreamingResponse
 
-from cartlyf_api.app_state import broker_of, engine_of, settings_of
+from cartlyf_api.app_state import broker_of, engine_of, settings_of, solve_notifier_of
 from cartlyf_api.auth.dependencies import CurrentPrincipal
 from cartlyf_api.errors import problem_response
 from cartlyf_api.solves import service
@@ -78,7 +78,7 @@ async def solve_events(
     engine = engine_of(request)
     await service.require_run(engine, principal, run_id)
     return StreamingResponse(
-        run_events(engine, settings_of(request), principal, run_id),
+        run_events(engine, solve_notifier_of(request), settings_of(request), principal, run_id),
         media_type="text/event-stream",
         headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
     )

@@ -24,6 +24,7 @@ from cartlyf_api.resources.router import router as resources_router
 from cartlyf_api.schedules.router import router as schedules_router
 from cartlyf_api.sentry import init_sentry
 from cartlyf_api.settings import Settings, load_settings
+from cartlyf_api.solves.notifier import SolveNotifier, asyncpg_connector
 from cartlyf_api.solves.router import router as solves_router
 from cartlyf_api.storage import S3ObjectStore
 from cartlyf_api.versions.router import router as versions_router
@@ -46,7 +47,9 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.email_provider = ConsoleEmailProvider()
         app.state.object_store = S3ObjectStore(resolved)
         app.state.broker = make_broker(str(resolved.redis_url))
+        app.state.solve_notifier = SolveNotifier(asyncpg_connector(resolved))
         yield
+        await app.state.solve_notifier.close()
         app.state.broker.close()
         await app.state.redis.aclose()
         await app.state.db_engine.dispose()

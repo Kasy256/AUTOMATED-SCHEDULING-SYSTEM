@@ -1,9 +1,13 @@
+import asyncio
 import threading
 import time
+from typing import cast
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy.pool import QueuePool
+from starlette.types import Message
 from testcontainers.community.postgres import PostgresContainer
 
 from support import (
@@ -110,3 +114,56 @@ def test_JOB_01_notify_wakes_stream_without_heartbeat_tick(
         timer.join()
     assert events[-1].event == "done" and events[-1].data["status"] == "succeeded"
     assert time.monotonic() - started < 15
+
+
+async def _abort_stream_after_first_event(app: FastAPI, path: str, headers: dict[str, str]) -> int:
+    """Open a stream, read one event, then disconnect; returns pool checkouts while it was open."""
+    first_event = asyncio.Event()
+    scope = {
+        "type": "http",
+        "asgi": {"version": "3.0", "spec_version": "2.3"},
+        "http_version": "1.1",
+        "method": "GET",
+        "scheme": "http",
+        "path": path,
+        "raw_path": path.encode(),
+        "query_string": b"",
+        "root_path": "",
+        "headers": [(k.lower().encode(), v.encode()) for k, v in headers.items()],
+        "client": ("testclient", 50000),
+        "server": ("testserver", 80),
+    }
+
+    async def receive() -> Message:
+        await first_event.wait()
+        return {"type": "http.disconnect"}
+
+    async def send(message: Message) -> None:
+        if message["type"] == "http.response.body" and message.get("body"):
+            first_event.set()
+
+    task = asyncio.create_task(app(scope, receive, send))
+    await asyncio.wait_for(first_event.wait(), 30)
+    checked_out = cast(QueuePool, app.state.db_engine.pool).checkedout()
+    await asyncio.wait_for(task, 30)
+    return checked_out
+
+
+def test_JOB_01_streams_hold_no_pooled_connection(client: TestClient, app: FastAPI) -> None:
+    app.state.settings = app.state.settings.model_copy(update={"solve_heartbeat_seconds": 30})
+    admin = signup_and_confirm(client, app)
+    built = build_schedule(client, admin)
+    finished, _ = solve_now(client, admin, built.schedule_id)
+    queued = request_run(client, admin, built.schedule_id)
+    for _ in range(3):
+        with client.stream("GET", f"/api/v1/solves/{finished}/events", headers=admin.auth) as r:
+            assert parse_sse(r.iter_lines())[-1].event == "done"
+    queued_events = f"/api/v1/solves/{queued}/events"
+    portal = client.portal
+    assert portal is not None
+
+    open_checkouts = portal.call(_abort_stream_after_first_event, app, queued_events, admin.auth)
+
+    assert open_checkouts == 0
+    assert cast(QueuePool, app.state.db_engine.pool).checkedout() == 0
+    assert app.state.solve_notifier.subscriber_count() == 0
