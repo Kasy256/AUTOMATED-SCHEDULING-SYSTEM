@@ -69,6 +69,11 @@ def _constant(path: Path, name: str) -> Any:
     raise LookupError(f"{name} not found in {path}")
 
 
+def source_hash(path: Path) -> str:
+    # Line endings depend on the checkout (CRLF on Windows, LF in CI), not on the content.
+    return hashlib.sha256(path.read_bytes().replace(b"\r\n", b"\n")).hexdigest()
+
+
 def load_legacy(root: Path) -> Legacy:
     files = [LECTURERS, ROOMS, PROGRAMS, COURSES, CANONICAL, CONFIG]
     return Legacy(
@@ -78,7 +83,7 @@ def load_legacy(root: Path) -> Legacy:
         courses=_call(root / COURSES, "get_all_courses"),
         canonical=_constant(root / CANONICAL, "FALLBACK_CANONICAL_COURSE_MAPPING"),
         time_slots=_constant(root / CONFIG, "DEFAULT_TIME_SLOTS"),
-        sources={f: hashlib.sha256((root / f).read_bytes()).hexdigest() for f in files},
+        sources={f: source_hash(root / f) for f in files},
     )
 
 
