@@ -154,3 +154,31 @@ def test_versions_are_never_deleted_and_assignments_only_join_drafts(
     )
     with pytest.raises(DBAPIError, match="only be added to a draft version"):
         execute_many(app, _as_app(org, insert_assignment.format(draft)))
+
+
+def test_solve_run_snapshot_is_immutable(migrated_pg: PostgresContainer) -> None:
+    url, app = superuser_url(migrated_pg), db_url(migrated_pg, *APP)
+    org = str(seed_org(url, "Solve Run Immutable").organisation_id)
+    schedule, _ = _seed_version(url, org)
+    where = f"WHERE schedule_id = '{schedule}'"
+
+    for column, value in (
+        ("problem", "'{}'"),
+        ("problem_hash", "'x'"),
+        ("horizon_origin", "now()"),
+        ("timezone", "'UTC'"),
+    ):
+        with pytest.raises(ProgrammingError, match="permission denied"):
+            execute_many(app, _as_app(org, f"UPDATE solve_run SET {column} = {value} {where}"))
+    with pytest.raises(ProgrammingError, match="permission denied"):
+        execute_many(app, _as_app(org, f"DELETE FROM solve_run {where}"))
+
+    execute_many(
+        app,
+        _as_app(
+            org,
+            "UPDATE solve_run SET status = 'failed', progress = '{}', conflicts = '{}', "
+            "error = 'e', version_id = NULL, cancel_requested_at = now(), heartbeat_at = now(), "
+            f"started_at = now(), finished_at = now() {where}",
+        ),
+    )

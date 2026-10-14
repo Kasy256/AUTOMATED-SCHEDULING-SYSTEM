@@ -125,6 +125,10 @@ _TENANT_TABLES = [
 
 _GUARDS = [
     "REVOKE UPDATE, DELETE ON assignment, assignment_resource FROM cartlyf_app",
+    # The run's problem snapshot anchors its versions, so only lifecycle columns may change.
+    "REVOKE UPDATE, DELETE ON solve_run FROM cartlyf_app",
+    "GRANT UPDATE (status, progress, conflicts, error, version_id, cancel_requested_at, "
+    "heartbeat_at, started_at, finished_at) ON solve_run TO cartlyf_app",
     "REVOKE UPDATE, DELETE ON solution_version FROM cartlyf_app",
     "GRANT UPDATE (status, published_at, published_by, archived_at) "
     "ON solution_version TO cartlyf_app",
