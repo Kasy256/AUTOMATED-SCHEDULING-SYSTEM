@@ -25,6 +25,14 @@ class Settings(BaseSettings):
     s3_region: str | None = None
     import_max_bytes: int = 5_000_000
     import_max_rows: int = 20_000
+    solve_default_time_limit_s: int = 60
+    solve_max_time_limit_s: int = 600
+    solve_num_workers: int = 4
+    solve_max_concurrent_per_org: int = 2
+    solve_heartbeat_seconds: float = 1
+    solve_stale_after_seconds: int = 30
+    solve_queue_timeout_seconds: int = 3600
+    sentry_dsn: SecretStr | None = None
 
 
 def load_settings(env_file: str | None = ".env") -> Settings:
