@@ -341,6 +341,9 @@ def seed_config(client: TestClient, admin: Account) -> dict[str, str]:
         return response.json()["id"]
 
     ids: dict[str, str] = {}
+    me = client.get("/api/v1/auth/me", headers=admin.auth)
+    assert me.status_code == 200, me.text
+    ids["user_id"] = me.json()["user_id"]
     ids["resource_type_id"] = post(
         "/api/v1/resource-types",
         {

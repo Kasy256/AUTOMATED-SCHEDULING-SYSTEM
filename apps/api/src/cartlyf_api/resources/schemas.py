@@ -86,6 +86,7 @@ class ResourceCreate(BaseModel):
                     "name": "Dr. A. Okello",
                     "tags": ["math101"],
                     "attributes": {"employment": "full_time"},
+                    "user_id": example_id("user_id"),
                 }
             ]
         },
@@ -99,13 +100,17 @@ class ResourceCreate(BaseModel):
     capacity: PositiveInt | None = None
     size: PositiveInt | None = None
     concurrency: PositiveInt = 1
+    user_id: UUID | None = None
 
 
 class ResourceUpdate(BaseModel):
-    """Partial update: only fields present in the body change; null clears capacity/size."""
+    """Partial update: only fields present in the body change; null clears capacity/size/user_id."""
 
     model_config = ConfigDict(
-        extra="forbid", json_schema_extra={"examples": [{"name": "Dr. Okello"}]}
+        extra="forbid",
+        json_schema_extra={
+            "examples": [{"name": "Dr. Okello"}, {"user_id": example_id("user_id")}]
+        },
     )
 
     code: Code | None = None
@@ -115,6 +120,7 @@ class ResourceUpdate(BaseModel):
     capacity: PositiveInt | None = None
     size: PositiveInt | None = None
     concurrency: PositiveInt | None = None
+    user_id: UUID | None = None
 
 
 class ResourceResponse(BaseModel):
@@ -127,6 +133,7 @@ class ResourceResponse(BaseModel):
     capacity: int | None
     size: int | None
     concurrency: int
+    user_id: UUID | None
 
 
 WeekdayNumber = Annotated[int, Field(ge=0, le=6, description="0 = Monday")]
