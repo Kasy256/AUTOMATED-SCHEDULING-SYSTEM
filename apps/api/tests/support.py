@@ -6,9 +6,11 @@ import sys
 from collections.abc import Generator, Iterable, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, cast
 from uuid import UUID, uuid4
+from zoneinfo import ZoneInfo
 
 import dramatiq
 import httpx2 as httpx
@@ -815,3 +817,48 @@ def running_worker(redis_url: str, threads: int) -> Generator[Broker]:
 
 def drain_solves(broker: Broker) -> None:
     broker.join(SOLVE_QUEUE, timeout=60_000)
+
+
+KAMPALA = ZoneInfo("Africa/Kampala")
+
+
+def candidate_starts(periods: int = 4) -> list[datetime]:
+    """The build_schedule grid: Mon-Fri 2027-01-11..15, periods from 08:00 hourly."""
+    monday = datetime(2027, 1, 11, tzinfo=KAMPALA)
+    return [
+        monday + timedelta(days=d, minutes=480 + 60 * p) for d in range(5) for p in range(periods)
+    ]
+
+
+# Any: response JSON is untyped; tests assert on its values.
+def get_version(client: TestClient, admin: Account, version_id: str) -> dict[str, Any]:
+    response = client.get(f"/api/v1/solution-versions/{version_id}", headers=admin.auth)
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def free_start(assignments: list[dict[str, Any]]) -> datetime:
+    taken = {datetime.fromisoformat(a["start_at"]) for a in assignments}
+    return next(s for s in candidate_starts() if s not in taken)
+
+
+def move(
+    client: TestClient, admin: Account, version_id: str, assignment: dict[str, Any], to: datetime
+) -> Any:
+    return client.post(
+        f"/api/v1/solution-versions/{version_id}/drafts",
+        headers=admin.auth,
+        json={
+            "changes": [
+                {
+                    "activity_id": assignment["activity_id"],
+                    "start_at": to.isoformat(),
+                    "resources": assignment["resources"],
+                }
+            ]
+        },
+    )
+
+
+def publish(client: TestClient, admin: Account, version_id: str) -> Any:
+    return client.post(f"/api/v1/solution-versions/{version_id}/publish", headers=admin.auth)

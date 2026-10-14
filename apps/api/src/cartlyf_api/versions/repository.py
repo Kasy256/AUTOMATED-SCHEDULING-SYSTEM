@@ -1,7 +1,8 @@
 from collections.abc import Collection, Sequence
+from datetime import datetime
 from uuid import UUID
 
-from sqlalchemy import select
+from sqlalchemy import func, select, update
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from cartlyf_api.activities.models import Activity
@@ -21,12 +22,65 @@ async def list_versions(
     return rows.all()
 
 
-async def get_version(session: AsyncSession, org: UUID, version_id: UUID) -> SolutionVersion | None:
+async def get_version(
+    session: AsyncSession, org: UUID, version_id: UUID, *, for_update: bool = False
+) -> SolutionVersion | None:
+    query = select(SolutionVersion).where(
+        SolutionVersion.organisation_id == org, SolutionVersion.id == version_id
+    )
+    if for_update:
+        query = query.with_for_update().execution_options(populate_existing=True)
+    return await session.scalar(query)
+
+
+async def published_version_id(session: AsyncSession, org: UUID, schedule_id: UUID) -> UUID | None:
     return await session.scalar(
-        select(SolutionVersion).where(
-            SolutionVersion.organisation_id == org, SolutionVersion.id == version_id
+        select(SolutionVersion.id).where(
+            SolutionVersion.organisation_id == org,
+            SolutionVersion.schedule_id == schedule_id,
+            SolutionVersion.status == "published",
         )
     )
+
+
+async def mark_published(session: AsyncSession, org: UUID, version_id: UUID, user_id: UUID) -> None:
+    await session.execute(
+        update(SolutionVersion)
+        .where(SolutionVersion.organisation_id == org, SolutionVersion.id == version_id)
+        .values(status="published", published_at=func.now(), published_by=user_id)
+    )
+
+
+async def mark_archived(session: AsyncSession, org: UUID, version_id: UUID) -> None:
+    await session.execute(
+        update(SolutionVersion)
+        .where(SolutionVersion.organisation_id == org, SolutionVersion.id == version_id)
+        .values(status="archived", archived_at=func.now())
+    )
+
+
+async def placements(
+    session: AsyncSession, org: UUID, version_id: UUID
+) -> Sequence[tuple[UUID, datetime, str, UUID]]:
+    """(activity, start, role, resource) for every resource placed in a version."""
+    rows = await session.execute(
+        select(
+            AssignmentResource.activity_id,
+            Assignment.start_at,
+            AssignmentResource.role,
+            AssignmentResource.resource_id,
+        )
+        .join(
+            Assignment,
+            (Assignment.organisation_id == AssignmentResource.organisation_id)
+            & (Assignment.version_id == AssignmentResource.version_id)
+            & (Assignment.activity_id == AssignmentResource.activity_id),
+        )
+        .where(
+            AssignmentResource.organisation_id == org, AssignmentResource.version_id == version_id
+        )
+    )
+    return [(activity, start, role, resource) for activity, start, role, resource in rows]
 
 
 async def published_versions(

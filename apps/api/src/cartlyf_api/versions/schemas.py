@@ -2,9 +2,10 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 from cartlyf_api.db import JsonDict
+from cartlyf_api.examples import example_id
 
 VersionStatus = Literal["draft", "published", "archived"]
 
@@ -55,3 +56,34 @@ class MyAssignment(AssignmentOut):
     schedule_id: UUID
     schedule_name: str
     roles: list[str]
+
+
+class AssignmentEdit(BaseModel):
+    """Place one activity; `resources` replaces its whole role -> resources map."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    activity_id: UUID
+    start_at: AwareDatetime
+    resources: dict[str, list[UUID]]
+
+
+class DraftRequest(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "examples": [
+                {
+                    "changes": [
+                        {
+                            "activity_id": example_id("activity_id"),
+                            "start_at": "2027-01-12T09:00:00+03:00",
+                            "resources": {"lecturer": [example_id("resource_id")]},
+                        }
+                    ]
+                }
+            ]
+        },
+    )
+
+    changes: list[AssignmentEdit] = Field(min_length=1)

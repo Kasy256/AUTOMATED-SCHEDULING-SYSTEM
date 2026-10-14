@@ -1,27 +1,15 @@
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
-from testcontainers.community.postgres import PostgresContainer
 
-from support import (
-    add_member,
-    build_schedule,
-    execute,
-    signup_and_confirm,
-    solve_now,
-    superuser_url,
-)
+from support import Account, add_member, build_schedule, publish, signup_and_confirm, solve_now
 
 pytestmark = pytest.mark.integration
 
 
-def _publish(pg: PostgresContainer, version_id: str) -> None:
-    # Owner SQL until the publish endpoint exists.
-    execute(
-        superuser_url(pg),
-        f"UPDATE solution_version SET status = 'published', published_at = now() "
-        f"WHERE id = '{version_id}'",
-    )
+def _publish(client: TestClient, admin: Account, version_id: str) -> None:
+    response = publish(client, admin, version_id)
+    assert response.status_code == 200, response.text
 
 
 def _link(client: TestClient, admin_auth: dict[str, str], resource_id: str, user_id: str) -> None:
@@ -32,7 +20,7 @@ def _link(client: TestClient, admin_auth: dict[str, str], resource_id: str, user
 
 
 def test_AUTH_06_member_sees_only_published_and_own_assignments(
-    client: TestClient, app: FastAPI, migrated_pg: PostgresContainer
+    client: TestClient, app: FastAPI
 ) -> None:
     admin = signup_and_confirm(client, app)
     member = add_member(client, app, admin, ["member"])
@@ -47,7 +35,7 @@ def test_AUTH_06_member_sees_only_published_and_own_assignments(
     assert client.get(url, headers=member.auth).status_code == 404
     assert client.get("/api/v1/me/assignments", headers=member.auth).json() == []
 
-    _publish(migrated_pg, version)
+    _publish(client, admin, version)
     expected = [a for a in full if mine in a["resources"]["lecturer"]]
     assert expected
 
@@ -66,13 +54,13 @@ def test_AUTH_06_member_sees_only_published_and_own_assignments(
 
 
 def test_AUTH_06_unlinked_member_gets_empty_published_version(
-    client: TestClient, app: FastAPI, migrated_pg: PostgresContainer
+    client: TestClient, app: FastAPI
 ) -> None:
     admin = signup_and_confirm(client, app)
     member = add_member(client, app, admin, ["member"])
     built = build_schedule(client, admin)
     _, version = solve_now(client, admin, built.schedule_id)
-    _publish(migrated_pg, version)
+    _publish(client, admin, version)
     response = client.get(f"/api/v1/solution-versions/{version}", headers=member.auth)
     assert response.status_code == 200
     assert response.json()["assignments"] == []
@@ -89,14 +77,12 @@ def test_AUTH_06_member_cannot_list_schedule_versions(client: TestClient, app: F
     assert diff.status_code == 403
 
 
-def test_AUTH_06_member_in_other_org_gets_404(
-    client: TestClient, app: FastAPI, migrated_pg: PostgresContainer
-) -> None:
+def test_AUTH_06_member_in_other_org_gets_404(client: TestClient, app: FastAPI) -> None:
     admin = signup_and_confirm(client, app)
     other_admin = signup_and_confirm(client, app)
     outsider = add_member(client, app, other_admin, ["member"])
     built = build_schedule(client, admin)
     _, version = solve_now(client, admin, built.schedule_id)
-    _publish(migrated_pg, version)
+    _publish(client, admin, version)
     response = client.get(f"/api/v1/solution-versions/{version}", headers=outsider.auth)
     assert response.status_code == 404

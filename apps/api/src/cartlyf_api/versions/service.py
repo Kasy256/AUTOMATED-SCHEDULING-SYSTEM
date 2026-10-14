@@ -69,11 +69,25 @@ def _placed(assignment: AssignmentOut) -> Placed:
     return assignment.start_at, {r: frozenset(ids) for r, ids in assignment.resources.items()}
 
 
-async def _require_version(session: AsyncSession, org: UUID, version_id: UUID) -> SolutionVersion:
-    version = await repository.get_version(session, org, version_id)
+async def require_version(
+    session: AsyncSession, org: UUID, version_id: UUID, *, for_update: bool = False
+) -> SolutionVersion:
+    version = await repository.get_version(session, org, version_id, for_update=for_update)
     if version is None:
         raise NotFound("Unknown version")
     return version
+
+
+async def version_detail(
+    session: AsyncSession,
+    org: UUID,
+    version: SolutionVersion,
+    resource_ids: Collection[UUID] | None = None,
+) -> VersionDetail:
+    assignments = await _assignments(session, org, version.id, resource_ids)
+    return VersionDetail(
+        **_summary(version).model_dump(), score=version.score, assignments=assignments
+    )
 
 
 async def list_versions(
@@ -93,16 +107,13 @@ async def get_version(
     member_only = not principal.has(Permission.VERSIONS_READ)
     if member_only and Role.MEMBER not in principal.roles:
         principal.require(Permission.VERSIONS_READ)
-    version = await _require_version(session, org, version_id)
+    version = await require_version(session, org, version_id)
     own: list[UUID] | None = None
     if member_only:
         if version.status != "published":
             raise NotFound("Unknown version")
         own = await resources_repo.resource_ids_for_user(session, org, principal.user_id)
-    assignments = await _assignments(session, org, version_id, own)
-    return VersionDetail(
-        **_summary(version).model_dump(), score=version.score, assignments=assignments
-    )
+    return await version_detail(session, org, version, own)
 
 
 async def diff_versions(
@@ -110,8 +121,8 @@ async def diff_versions(
 ) -> VersionDiff:
     principal.require(Permission.VERSIONS_READ)
     org = principal.organisation_id
-    before = await _require_version(session, org, version_id)
-    after = await _require_version(session, org, other_version_id)
+    before = await require_version(session, org, version_id)
+    after = await require_version(session, org, other_version_id)
     if before.schedule_id != after.schedule_id:
         raise Unprocessable(
             [field_error(("path", "other_version_id"), "must belong to the same schedule")]

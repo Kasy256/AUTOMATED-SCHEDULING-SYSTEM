@@ -1,13 +1,21 @@
 from typing import Any
 from uuid import UUID
 
-from fastapi import APIRouter
+from fastapi import APIRouter, BackgroundTasks, Request
 
+from cartlyf_api.app_state import email_provider_of, engine_of, settings_of
 from cartlyf_api.auth.dependencies import CurrentPrincipal
+from cartlyf_api.email.outbox import deliver
 from cartlyf_api.errors import problem_response
 from cartlyf_api.tenancy import DbSession
-from cartlyf_api.versions import service
-from cartlyf_api.versions.schemas import MyAssignment, VersionDetail, VersionDiff, VersionSummary
+from cartlyf_api.versions import editing, service
+from cartlyf_api.versions.schemas import (
+    DraftRequest,
+    MyAssignment,
+    VersionDetail,
+    VersionDiff,
+    VersionSummary,
+)
 
 router = APIRouter(tags=["versions"])
 # Any: FastAPI types OpenAPI response docs as dict[str, Any].
@@ -17,6 +25,8 @@ _READ: dict[int | str, dict[str, Any]] = {
     404: problem_response("Not found"),
 }
 _DIFF = {**_READ, 422: problem_response("Versions belong to different schedules")}
+_DRAFT = {**_READ, 422: problem_response("The edit is invalid or breaks hard rules")}
+_STATE = {**_READ, 409: problem_response("Not allowed in the version's current status")}
 
 
 @router.get(
@@ -49,3 +59,40 @@ async def diff_versions(
 @router.get("/me/assignments", response_model=list[MyAssignment], responses=_READ)
 async def my_assignments(session: DbSession, principal: CurrentPrincipal) -> list[MyAssignment]:
     return await service.my_assignments(session, principal)
+
+
+@router.post(
+    "/solution-versions/{version_id}/drafts",
+    status_code=201,
+    response_model=VersionDetail,
+    responses=_DRAFT,
+)
+async def create_draft(
+    version_id: UUID, body: DraftRequest, session: DbSession, principal: CurrentPrincipal
+) -> VersionDetail:
+    return await editing.create_draft(session, principal, version_id, body)
+
+
+@router.post(
+    "/solution-versions/{version_id}/publish", response_model=VersionDetail, responses=_STATE
+)
+async def publish(
+    request: Request,
+    version_id: UUID,
+    session: DbSession,
+    principal: CurrentPrincipal,
+    background: BackgroundTasks,
+) -> VersionDetail:
+    detail, queued = await editing.publish(session, settings_of(request), principal, version_id)
+    for email in queued:
+        background.add_task(deliver, engine_of(request), email_provider_of(request), email)
+    return detail
+
+
+@router.post(
+    "/solution-versions/{version_id}/archive", response_model=VersionDetail, responses=_STATE
+)
+async def archive(
+    version_id: UUID, session: DbSession, principal: CurrentPrincipal
+) -> VersionDetail:
+    return await editing.archive(session, principal, version_id)

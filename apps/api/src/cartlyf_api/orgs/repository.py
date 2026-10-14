@@ -1,4 +1,4 @@
-from collections.abc import Iterable
+from collections.abc import Collection, Iterable
 from uuid import UUID
 
 from sqlalchemy import Select, delete, func, insert, select
@@ -60,6 +60,25 @@ def _active_membership(organisation_id: UUID, user_id: UUID) -> Select[UUID]:
         Membership.status == "active",
         Membership.deleted_at.is_(None),
     )
+
+
+async def active_member_emails(
+    session: AsyncSession, organisation_id: UUID, user_ids: Collection[UUID]
+) -> dict[UUID, str]:
+    if not user_ids:
+        return {}
+    rows = await session.execute(
+        select(AppUser.id, AppUser.email)
+        .join(Membership, Membership.user_id == AppUser.id)
+        .where(
+            Membership.organisation_id == organisation_id,
+            Membership.status == "active",
+            Membership.deleted_at.is_(None),
+            AppUser.id.in_(user_ids),
+            AppUser.deleted_at.is_(None),
+        )
+    )
+    return {user_id: email for user_id, email in rows}
 
 
 async def is_active_member(session: AsyncSession, organisation_id: UUID, user_id: UUID) -> bool:

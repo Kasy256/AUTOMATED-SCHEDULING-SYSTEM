@@ -14,8 +14,13 @@ from cartlyf_engine.domain import Assignment, Problem, Score
 _LOCK_SCHEDULE = text("SELECT pg_advisory_xact_lock(hashtextextended(:key, 1))")
 
 
-async def _next_number(session: AsyncSession, org: UUID, schedule_id: UUID) -> int:
+async def lock_schedule(session: AsyncSession, schedule_id: UUID) -> None:
+    """Serialise version numbering and publishing per schedule, until the transaction ends."""
     await session.execute(_LOCK_SCHEDULE, {"key": str(schedule_id)})
+
+
+async def _next_number(session: AsyncSession, org: UUID, schedule_id: UUID) -> int:
+    await lock_schedule(session, schedule_id)
     current = await session.scalar(
         select(func.coalesce(func.max(SolutionVersion.number), 0)).where(
             SolutionVersion.organisation_id == org, SolutionVersion.schedule_id == schedule_id
