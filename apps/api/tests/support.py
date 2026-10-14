@@ -7,6 +7,7 @@ from typing import Any, cast
 from uuid import UUID, uuid4
 
 import httpx2 as httpx
+import redis
 from alembic.config import Config
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
@@ -458,7 +459,26 @@ def seed_config(client: TestClient, admin: Account) -> dict[str, str]:
         content=b"Code,Name\nIMP-SEED,Imported seed\n",
     )
     assert uploaded.status_code == 200, uploaded.text
+    # Cancelled at once so seeded orgs do not hold slots against the per-org solve cap.
+    ids["run_id"] = post_accepted(client, admin, f"/api/v1/schedules/{ids['schedule_id']}/solves")
+    cancelled = client.post(f"/api/v1/solves/{ids['run_id']}/cancel", headers=admin.auth)
+    assert cancelled.status_code == 202, cancelled.text
     return ids
+
+
+def post_accepted(client: TestClient, admin: Account, path: str) -> str:
+    response = client.post(path, headers=admin.auth, json={})
+    assert response.status_code == 202, f"{path}: {response.text}"
+    return response.json()["id"]
+
+
+def redis_queue_length(app: FastAPI, queue: str) -> int:
+    """Messages waiting on a Dramatiq queue (list `<namespace>:<queue>` in Redis)."""
+    client = redis.Redis.from_url(str(app.state.settings.redis_url))  # pyright: ignore[reportUnknownMemberType]
+    try:
+        return client.llen(f"dramatiq:{queue}")  # pyright: ignore[reportReturnType]
+    finally:
+        client.close()
 
 
 def missing_seeds(operation: Operation, ids: dict[str, str]) -> set[str]:

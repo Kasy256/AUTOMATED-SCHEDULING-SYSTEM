@@ -13,6 +13,7 @@ from cartlyf_api.errors import install_error_handlers
 from cartlyf_api.health.router import router as health_router
 from cartlyf_api.imports.router import router as imports_router
 from cartlyf_api.industry_templates.router import router as industry_templates_router
+from cartlyf_api.jobs.broker import make_broker
 from cartlyf_api.log_config import configure_logging
 from cartlyf_api.orgs.router import router as orgs_router
 from cartlyf_api.platform.router import router as platform_router
@@ -20,7 +21,9 @@ from cartlyf_api.problems.router import router as problems_router
 from cartlyf_api.redis_client import connect_redis
 from cartlyf_api.resources.router import router as resources_router
 from cartlyf_api.schedules.router import router as schedules_router
+from cartlyf_api.sentry import init_sentry
 from cartlyf_api.settings import Settings, load_settings
+from cartlyf_api.solves.router import router as solves_router
 from cartlyf_api.storage import S3ObjectStore
 
 
@@ -34,12 +37,15 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         resolved = settings or load_settings()
         configure_logging(resolved.log_level)
+        init_sentry(resolved)
         app.state.settings = resolved
         app.state.db_engine = create_db_engine(resolved)
         app.state.redis = connect_redis(str(resolved.redis_url), resolved.db_timeout_seconds)
         app.state.email_provider = ConsoleEmailProvider()
         app.state.object_store = S3ObjectStore(resolved)
+        app.state.broker = make_broker(str(resolved.redis_url))
         yield
+        app.state.broker.close()
         await app.state.redis.aclose()
         await app.state.db_engine.dispose()
 
@@ -59,6 +65,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     app.include_router(activities_router, prefix="/api/v1")
     app.include_router(constraints_router, prefix="/api/v1")
     app.include_router(problems_router, prefix="/api/v1")
+    app.include_router(solves_router, prefix="/api/v1")
     app.include_router(imports_router, prefix="/api/v1")
     app.include_router(industry_templates_router, prefix="/api/v1")
     return app

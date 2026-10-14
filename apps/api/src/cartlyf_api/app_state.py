@@ -1,3 +1,4 @@
+from dramatiq.brokers.redis import RedisBroker
 from fastapi import Request
 from redis.asyncio import Redis
 from sqlalchemy.ext.asyncio import AsyncEngine
@@ -25,3 +26,7 @@ def email_provider_of(request: Request) -> EmailProvider:
 
 def object_store_of(request: Request) -> ObjectStore:
     return request.app.state.object_store
+
+
+def broker_of(request: Request) -> RedisBroker:
+    return request.app.state.broker

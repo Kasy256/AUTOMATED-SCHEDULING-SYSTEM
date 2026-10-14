@@ -109,8 +109,8 @@ class RateLimited(DomainError):
     status = 429
     title = "Too Many Requests"
 
-    def __init__(self, retry_after: int) -> None:
-        super().__init__()
+    def __init__(self, retry_after: int, detail: str | None = None) -> None:
+        super().__init__(detail)
         self.retry_after = retry_after
 
 
