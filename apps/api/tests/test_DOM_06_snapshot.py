@@ -72,7 +72,7 @@ def test_DOM_06_snapshot_content(
     assert meeting.candidate_starts == (540, 1440 + 540)
     generated = [a for a in problem.activities if a.series_id == ids["demand_id"]]
     assert len(generated) == 1 and generated[0].candidate_starts[0] == 510
-    assert generated[0].requirements[1].fixed_resource_ids == (ids["resource_id"],)
+    assert generated[0].requirements[1].fixed_resource_ids == (ids["group_resource_id"],)
     assert [c.id for c in problem.constraints] == [ids["constraint_instance_id"]]
 
 

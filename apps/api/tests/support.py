@@ -1,14 +1,20 @@
 import asyncio
+import importlib
 import re
-from collections.abc import Mapping
+import sys
+from collections.abc import Generator, Mapping
+from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, cast
 from uuid import UUID, uuid4
 
+import dramatiq
 import httpx2 as httpx
+import pytest
 import redis
 from alembic.config import Config
+from dramatiq import Broker, Worker
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sentry_sdk.envelope import Envelope
@@ -22,6 +28,7 @@ from cartlyf_api.auth.cookies import REFRESH_COOKIE
 from cartlyf_api.db import create_db_engine
 from cartlyf_api.email.provider import ConsoleEmailProvider
 from cartlyf_api.examples import EXAMPLE_IDS
+from cartlyf_api.jobs.broker import SOLVE_QUEUE, setup_broker
 from cartlyf_api.settings import Settings
 from cartlyf_api.solves.runner import SolveFn, execute_run
 from cartlyf_engine.solve import solve
@@ -375,6 +382,14 @@ def seed_config(client: TestClient, admin: Account) -> dict[str, str]:
             "attributes": {"employment": "full_time"},
         },
     )
+    # A distinct group resource: fixing the lecturer as the demand's group made the seed unsolvable.
+    group_type_id = post(
+        "/api/v1/resource-types", {"key": "cohort", "name": "Cohort", "kind": "group"}
+    )
+    ids["group_resource_id"] = post(
+        "/api/v1/resources",
+        {"resource_type_id": group_type_id, "code": "GRP-001", "name": "Seed cohort"},
+    )
     resource_base = f"/api/v1/resources/{ids['resource_id']}"
     ids["availability_rule_id"] = post(
         f"{resource_base}/availability-rules",
@@ -431,7 +446,7 @@ def seed_config(client: TestClient, admin: Account) -> dict[str, str]:
                 "sessions_per_week": 1,
                 "requirements": [
                     {"role": "lecturer", "resource_type_id": ids["resource_type_id"]},
-                    {"role": "group", "fixed_resource_ids": [ids["resource_id"]]},
+                    {"role": "group", "fixed_resource_ids": [ids["group_resource_id"]]},
                 ],
             },
         },
@@ -465,10 +480,7 @@ def seed_config(client: TestClient, admin: Account) -> dict[str, str]:
         content=b"Code,Name\nIMP-SEED,Imported seed\n",
     )
     assert uploaded.status_code == 200, uploaded.text
-    # Cancelled at once so seeded orgs do not hold slots against the per-org solve cap.
-    ids["run_id"] = post_accepted(client, admin, f"/api/v1/schedules/{ids['schedule_id']}/solves")
-    cancelled = client.post(f"/api/v1/solves/{ids['run_id']}/cancel", headers=admin.auth)
-    assert cancelled.status_code == 202, cancelled.text
+    ids["run_id"], ids["version_id"] = solve_now(client, admin, ids["schedule_id"])
     return ids
 
 
@@ -692,6 +704,15 @@ def request_run(client: TestClient, admin: Account, schedule_id: str, **body: ob
     return response.json()["id"]
 
 
+def solve_now(client: TestClient, admin: Account, schedule_id: str) -> tuple[str, str]:
+    """POST a solve and execute it in this thread; returns (run_id, version_id)."""
+    run_id = request_run(client, admin, schedule_id)
+    status = run_now(cast(FastAPI, client.app), run_id, admin.organisation_id)
+    assert status == "succeeded", status
+    run = client.get(f"/api/v1/solves/{run_id}", headers=admin.auth).json()
+    return run_id, run["version_id"]
+
+
 def run_now(app: FastAPI, run_id: str, organisation_id: UUID, solve_fn: SolveFn = solve) -> str:
     """Execute a queued run in this thread, as the worker would."""
     settings: Settings = app.state.settings
@@ -723,3 +744,48 @@ class CollectingTransport(Transport):
     @property
     def tags(self) -> list[dict[str, str]]:
         return [dict(e.get("tags", {})) for e in self.events]
+
+
+def worker_env(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> None:
+    """Make load_settings() inside an actor resolve to the test stack (env beats `.env`)."""
+    values: dict[str, str] = {
+        "DATABASE_URL": str(settings.database_url),
+        "REDIS_URL": str(settings.redis_url),
+        "JWT_SECRET": settings.jwt_secret.get_secret_value(),
+        "WEB_BASE_URL": str(settings.web_base_url),
+        "S3_ENDPOINT": settings.s3_endpoint,
+        "S3_ACCESS_KEY": settings.s3_access_key.get_secret_value(),
+        "S3_SECRET_KEY": settings.s3_secret_key.get_secret_value(),
+        "S3_BUCKET": settings.s3_bucket,
+        "S3_SECURE": str(settings.s3_secure),
+        "COOKIE_SECURE": str(settings.cookie_secure),
+        "SOLVE_NUM_WORKERS": "1",
+        "SOLVE_HEARTBEAT_SECONDS": str(settings.solve_heartbeat_seconds),
+    }
+    for name, value in values.items():
+        monkeypatch.setenv(f"CARTLYF_{name}", value)
+
+
+@contextmanager
+def running_worker(redis_url: str, threads: int) -> Generator[Broker]:
+    """A real Dramatiq worker on the solves queue; restores the global broker afterwards."""
+    previous = dramatiq.broker.global_broker
+    broker = setup_broker(redis_url)
+    loaded = sys.modules.get("cartlyf_api.jobs.actors")
+    if loaded:
+        importlib.reload(loaded)
+    else:
+        importlib.import_module("cartlyf_api.jobs.actors")
+    worker = Worker(broker, worker_threads=threads, worker_timeout=100)
+    worker.start()
+    try:
+        yield broker
+    finally:
+        worker.stop()
+        broker.close()
+        if previous is not None:
+            dramatiq.set_broker(previous)
+
+
+def drain_solves(broker: Broker) -> None:
+    broker.join(SOLVE_QUEUE, timeout=60_000)
