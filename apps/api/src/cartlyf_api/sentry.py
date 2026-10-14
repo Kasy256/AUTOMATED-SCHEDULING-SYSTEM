@@ -13,8 +13,12 @@ log = structlog.get_logger()
 def init_sentry(settings: Settings) -> None:
     if settings.sentry_dsn is None:
         return
+    # No frame locals: an ASGI scope local carries the calendar feed token in its path.
     sentry_sdk.init(
-        dsn=settings.sentry_dsn.get_secret_value(), send_default_pii=False, before_send=scrub_event
+        dsn=settings.sentry_dsn.get_secret_value(),
+        send_default_pii=False,
+        include_local_variables=False,
+        before_send=scrub_event,
     )
 
 

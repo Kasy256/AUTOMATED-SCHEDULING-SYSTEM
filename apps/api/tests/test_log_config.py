@@ -2,11 +2,13 @@ import json
 import logging
 
 import pytest
+import sentry_sdk
 import structlog
 from sentry_sdk.types import Event
 
 from cartlyf_api.log_config import configure_logging
-from cartlyf_api.sentry import scrub_event
+from cartlyf_api.sentry import init_sentry, scrub_event
+from support import make_settings
 
 
 def test_logs_are_json_lines(capsys: pytest.CaptureFixture[str]) -> None:
@@ -56,3 +58,17 @@ def test_sentry_events_redact_calendar_feed_tokens() -> None:
     assert (
         scrubbed.get("request", {}).get("url") == "https://api.test/api/v1/calendar/[redacted].ics"
     )
+
+
+def test_sentry_never_captures_local_variables(monkeypatch: pytest.MonkeyPatch) -> None:
+    options: dict[str, object] = {}
+    monkeypatch.setattr(sentry_sdk, "init", lambda **kwargs: options.update(kwargs))
+    init_sentry(
+        make_settings(
+            "postgresql+asyncpg://u:p@h/db",
+            "redis://h:1/0",
+            sentry_dsn="https://k@o0.ingest.sentry.io/0",
+        )
+    )
+    assert options["dsn"] == "https://k@o0.ingest.sentry.io/0"
+    assert options["include_local_variables"] is False
