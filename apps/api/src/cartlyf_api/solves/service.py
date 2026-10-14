@@ -121,6 +121,15 @@ async def get_run(
     return _response(run)
 
 
+async def require_run(engine: AsyncEngine, principal: Principal, run_id: UUID) -> None:
+    """Permission and existence checks that must pass before a stream starts."""
+    principal.require(Permission.VERSIONS_READ)
+    org = principal.organisation_id
+    async with scoped_transaction(engine, org, principal.user_id) as session:
+        if await repository.get_run(session, org, run_id) is None:
+            raise NotFound("Unknown solve run")
+
+
 async def list_runs(
     session: AsyncSession, settings: Settings, principal: Principal, schedule_id: UUID
 ) -> list[SolveRunResponse]:

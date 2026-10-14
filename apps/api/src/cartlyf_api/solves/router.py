@@ -2,11 +2,13 @@ from typing import Any
 from uuid import UUID
 
 from fastapi import APIRouter, Request
+from fastapi.responses import StreamingResponse
 
 from cartlyf_api.app_state import broker_of, engine_of, settings_of
 from cartlyf_api.auth.dependencies import CurrentPrincipal
 from cartlyf_api.errors import problem_response
 from cartlyf_api.solves import service
+from cartlyf_api.solves.events import run_events
 from cartlyf_api.solves.schemas import SolveRequest, SolveRunResponse
 from cartlyf_api.tenancy import DbSession
 
@@ -63,3 +65,20 @@ async def cancel_solve(
     run_id: UUID, session: DbSession, principal: CurrentPrincipal
 ) -> SolveRunResponse:
     return await service.cancel_run(session, principal, run_id)
+
+
+@router.get(
+    "/solves/{run_id}/events",
+    response_class=StreamingResponse,
+    responses={**_READ, 200: {"content": {"text/event-stream": {}}}},
+)
+async def solve_events(
+    run_id: UUID, request: Request, principal: CurrentPrincipal
+) -> StreamingResponse:
+    engine = engine_of(request)
+    await service.require_run(engine, principal, run_id)
+    return StreamingResponse(
+        run_events(engine, settings_of(request), principal, run_id),
+        media_type="text/event-stream",
+        headers={"Cache-Control": "no-store", "X-Accel-Buffering": "no"},
+    )

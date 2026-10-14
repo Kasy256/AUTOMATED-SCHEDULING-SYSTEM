@@ -1,8 +1,9 @@
 import asyncio
 import importlib
+import json
 import re
 import sys
-from collections.abc import Generator, Mapping
+from collections.abc import Generator, Iterable, Mapping
 from contextlib import contextmanager
 from dataclasses import dataclass
 from pathlib import Path
@@ -725,6 +726,30 @@ def run_now(app: FastAPI, run_id: str, organisation_id: UUID, solve_fn: SolveFn 
             await engine.dispose()
 
     return asyncio.run(go())
+
+
+@dataclass(frozen=True)
+class SseEvent:
+    event: str
+    data: dict[str, Any]
+
+
+def parse_sse(lines: Iterable[str]) -> list[SseEvent]:
+    """Parse a finished event stream; comment lines (keep-alives) are dropped."""
+    events: list[SseEvent] = []
+    name, data = "message", ""
+    for line in lines:
+        if line.startswith(":"):
+            continue
+        if line == "":
+            if data:
+                events.append(SseEvent(name, json.loads(data)))
+            name, data = "message", ""
+        elif line.startswith("event: "):
+            name = line[len("event: ") :]
+        elif line.startswith("data: "):
+            data += line[len("data: ") :]
+    return events
 
 
 class CollectingTransport(Transport):
