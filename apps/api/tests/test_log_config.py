@@ -62,7 +62,11 @@ def test_sentry_events_redact_calendar_feed_tokens() -> None:
 
 def test_sentry_never_captures_local_variables(monkeypatch: pytest.MonkeyPatch) -> None:
     options: dict[str, object] = {}
-    monkeypatch.setattr(sentry_sdk, "init", lambda **kwargs: options.update(kwargs))
+
+    def record(**kwargs: object) -> None:
+        options.update(kwargs)
+
+    monkeypatch.setattr(sentry_sdk, "init", record)
     init_sentry(
         make_settings(
             "postgresql+asyncpg://u:p@h/db",
