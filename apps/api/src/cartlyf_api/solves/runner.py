@@ -8,6 +8,7 @@ from uuid import UUID
 
 import structlog
 from sqlalchemy import func, text, update
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 
 from cartlyf_api.db import JsonDict
@@ -173,13 +174,22 @@ async def _run_solver(
         while not task.done():
             await asyncio.wait({task}, timeout=settings.solve_heartbeat_seconds)
             # Cancel again on every beat: a stop sent before CP-SAT's search starts is lost.
-            if not task.done() and not await _heartbeat(engine, run_id, org, latest.take()):
+            if not task.done() and not await _beat(engine, run_id, org, latest.take()):
                 token.cancel()
     except BaseException:
         token.cancel()
         await asyncio.wait({task})
         raise
     return task.result()
+
+
+async def _beat(engine: AsyncEngine, run_id: UUID, org: UUID, progress: Progress | None) -> bool:
+    # A transient DB fault must not kill a long solve; the stale sweep is the liveness backstop.
+    try:
+        return await _heartbeat(engine, run_id, org, progress)
+    except (SQLAlchemyError, OSError, TimeoutError):
+        log.warning("solve_heartbeat_failed", run_id=str(run_id), exc_info=True)
+        return True
 
 
 async def _heartbeat(

@@ -1,4 +1,5 @@
 import asyncio
+import time
 from typing import Any, cast
 from uuid import UUID
 
@@ -6,10 +7,12 @@ import asyncpg  # pyright: ignore[reportMissingTypeStubs]
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sqlalchemy.exc import OperationalError
 from testcontainers.community.postgres import PostgresContainer
 
 from cartlyf_api.db import create_db_engine
 from cartlyf_api.settings import Settings
+from cartlyf_api.solves import runner
 from cartlyf_api.solves.runner import execute_run
 from cartlyf_engine.domain import Problem, Solution, SolveOptions
 from cartlyf_engine.solve import CancelToken, ProgressFn, solve
@@ -210,3 +213,33 @@ def test_run_failed_by_sweep_mid_solve_is_not_overwritten(
     ]
     versions = fetch(db, f"SELECT count(*) FROM solution_version WHERE solve_run_id = '{run_id}'")
     assert versions == [(0,)]
+
+
+def test_transient_heartbeat_failure_does_not_abort_the_solve(
+    client: TestClient, app: FastAPI, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    admin = signup_and_confirm(client, app)
+    built = build_schedule(client, admin)
+    run_id = request_run(client, admin, built.schedule_id)
+    real_heartbeat = runner._heartbeat  # pyright: ignore[reportPrivateUsage]
+    beats: list[str] = []
+
+    async def flaky(*args: Any) -> bool:
+        beats.append("beat")
+        if len(beats) == 1:
+            raise OperationalError("UPDATE solve_run", {}, OSError("connection reset"))
+        return await real_heartbeat(*args)
+
+    def slow_solve(
+        problem: Problem,
+        options: SolveOptions | None,
+        on_progress: ProgressFn | None,
+        cancel: CancelToken | None,
+    ) -> Solution:
+        time.sleep(app.state.settings.solve_heartbeat_seconds * 2.5)
+        return solve(problem, options, on_progress, cancel)
+
+    monkeypatch.setattr(runner, "_heartbeat", flaky)
+    assert run_now(app, run_id, admin.organisation_id, solve_fn=slow_solve) == "succeeded"
+    assert len(beats) >= 2
+    assert _run(client, admin, run_id)["version_id"] is not None
