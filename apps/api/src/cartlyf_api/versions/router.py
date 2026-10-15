@@ -134,6 +134,10 @@ async def validate_move(
     responses=_READ,
 )
 async def explain_assignment(
-    version_id: UUID, activity_id: UUID, session: DbSession, principal: CurrentPrincipal
+    request: Request,
+    version_id: UUID,
+    activity_id: UUID,
+    session: DbSession,
+    principal: CurrentPrincipal,
 ) -> ExplanationOut:
-    return await explain.explain(session, principal, version_id, activity_id)
+    return await explain.explain(session, settings_of(request), principal, version_id, activity_id)

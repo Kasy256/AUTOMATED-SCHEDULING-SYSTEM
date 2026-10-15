@@ -2,6 +2,7 @@
 
 from collections import Counter
 from collections.abc import Iterator, Sequence
+from itertools import islice
 
 from pydantic import NonNegativeInt
 
@@ -30,19 +31,27 @@ class Explanation(Frozen):
     activity_id: Id
     binding: tuple[Binding, ...]
     alternatives: tuple[Alternative, ...]
+    truncated: bool = False  # more alternatives exist than were checked
 
 
 def explain_assignment(
-    problem: Problem, assignments: Sequence[Assignment], activity_id: str
+    problem: Problem,
+    assignments: Sequence[Assignment],
+    activity_id: str,
+    max_alternatives: int | None = None,
 ) -> Explanation:
+    """Checks at most `max_alternatives` alternatives, starts first, then resource swaps."""
     checker = MoveChecker(problem, assignments)
     activity = checker.index.activities.get(activity_id)
     current = checker.placed(activity_id)
     if activity is None or current is None:
         raise ValueError(f"{activity_id} is not placed")
+    options = _options(checker.index, activity, current)
+    chosen = list(islice(options, max_alternatives))
+    truncated = next(options, None) is not None
     alternatives = tuple(
         Alternative(start=option.start, resources=option.resources, check=checker.check(option))
-        for option in _options(checker.index, activity, current)
+        for option in chosen
     )
     blocks: Counter[str] = Counter()
     penalises: Counter[str] = Counter()
@@ -62,7 +71,12 @@ def explain_assignment(
         ),
         key=lambda b: (not b.hard, -b.blocks, -b.penalises, b.constraint_id),
     )
-    return Explanation(activity_id=activity_id, binding=tuple(binding), alternatives=alternatives)
+    return Explanation(
+        activity_id=activity_id,
+        binding=tuple(binding),
+        alternatives=alternatives,
+        truncated=truncated,
+    )
 
 
 def _options(index: ProblemIndex, activity: Activity, current: Assignment) -> Iterator[Assignment]:

@@ -95,3 +95,15 @@ def test_explanation_of_an_unplaced_activity_is_404(client: TestClient, app: Fas
         headers=admin.auth,
     )
     assert response.status_code == 404
+
+
+def test_explanation_checks_at_most_the_configured_alternatives(
+    client: TestClient, app: FastAPI
+) -> None:
+    admin, version_id, _, (_, second) = _setup(client, app)
+    url = f"/api/v1/solution-versions/{version_id}/assignments/{second['activity_id']}/explanation"
+    whole = client.get(url, headers=admin.auth).json()
+    assert whole["truncated"] is False
+    app.state.settings = app.state.settings.model_copy(update={"explain_max_alternatives": 2})
+    capped = client.get(url, headers=admin.auth).json()
+    assert (len(capped["alternatives"]), capped["truncated"]) == (2, True)

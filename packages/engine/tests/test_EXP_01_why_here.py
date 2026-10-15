@@ -49,3 +49,11 @@ def test_EXP_01_unplaced_activity_is_an_error() -> None:
     p = problem([person("p")], [act("a1", 60, [0], needs())])
     with pytest.raises(ValueError, match="not placed"):
         explain_assignment(p, [], "a1")
+
+
+def test_EXP_01_alternatives_can_be_capped() -> None:
+    p = problem([person("p")], [act("a1", 60, [0, 60, 120, 180], needs())])
+    why = explain_assignment(p, [place("a1", 0, who="p")], "a1", max_alternatives=2)
+    assert (len(why.alternatives), why.truncated) == (2, True)
+    whole = explain_assignment(p, [place("a1", 0, who="p")], "a1", max_alternatives=3)
+    assert (len(whole.alternatives), whole.truncated) == (3, False)

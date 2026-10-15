@@ -9,6 +9,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from cartlyf_api.auth.permissions import Permission, Principal
 from cartlyf_api.errors import NotFound, Unprocessable, field_error
 from cartlyf_api.schedules.time_grid import floor_minutes
+from cartlyf_api.settings import Settings
 from cartlyf_api.versions.schemas import (
     AlternativeOut,
     BindingRule,
@@ -73,7 +74,11 @@ async def validate_move(
 
 
 async def explain(
-    session: AsyncSession, principal: Principal, version_id: UUID, activity_id: UUID
+    session: AsyncSession,
+    settings: Settings,
+    principal: Principal,
+    version_id: UUID,
+    activity_id: UUID,
 ) -> ExplanationOut:
     principal.require(Permission.VERSIONS_READ)
     org = principal.organisation_id
@@ -81,7 +86,11 @@ async def explain(
     if str(activity_id) not in state.assignments:
         raise NotFound("The activity is not placed in this version")
     why = await asyncio.to_thread(
-        explain_assignment, state.problem, list(state.assignments.values()), str(activity_id)
+        explain_assignment,
+        state.problem,
+        list(state.assignments.values()),
+        str(activity_id),
+        settings.explain_max_alternatives,
     )
     origin = state.run.horizon_origin
     return ExplanationOut(
@@ -95,4 +104,5 @@ async def explain(
             )
             for a in why.alternatives
         ],
+        truncated=why.truncated,
     )

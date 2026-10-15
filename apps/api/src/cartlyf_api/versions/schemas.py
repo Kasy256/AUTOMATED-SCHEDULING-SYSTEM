@@ -124,6 +124,7 @@ class ExplanationOut(BaseModel):
     activity_id: UUID
     binding: list[BindingRule]
     alternatives: list[AlternativeOut]
+    truncated: bool
 
 
 class DraftRequest(BaseModel):

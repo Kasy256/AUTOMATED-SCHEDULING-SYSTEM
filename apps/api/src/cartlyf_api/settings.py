@@ -36,6 +36,7 @@ class Settings(BaseSettings):
     solve_queue_timeout_seconds: int = 3600
     draft_max_changes: int = 1000
     infeasibility_time_limit_s: int = 30
+    explain_max_alternatives: int = 100
     sentry_dsn: SecretStr | None = None
 
 
