@@ -1,9 +1,11 @@
 from collections.abc import Iterable, Sequence
+from datetime import datetime
 from uuid import UUID
 
 from sqlalchemy import func, insert, select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
+from cartlyf_api.db import JsonDict
 from cartlyf_api.problems.snapshot import Snapshot
 from cartlyf_api.solves.models import SolveRun
 from cartlyf_api.solves.schemas import ACTIVE
@@ -40,6 +42,9 @@ async def insert_run(
     user_id: UUID,
     snapshot: Snapshot,
     options: SolveOptions,
+    kind: str = "solve",
+    baseline_version_id: UUID | None = None,
+    freeze_before: datetime | None = None,
 ) -> None:
     problem = snapshot.problem.model_copy(update={"options": options})
     await session.execute(
@@ -53,6 +58,9 @@ async def insert_run(
             problem_hash=snapshot.hash,
             horizon_origin=snapshot.origin,
             timezone=snapshot.timezone,
+            kind=kind,
+            baseline_version_id=baseline_version_id,
+            freeze_before=freeze_before,
         )
     )
 
@@ -102,11 +110,13 @@ async def finish(
     error: str | None = None,
     conflicts: Iterable[str] = (),
     version_id: UUID | None = None,
+    infeasibility: JsonDict | None = None,
 ) -> None:
     run.status = status
     run.error = error
     run.conflicts = list(conflicts)
     run.version_id = version_id
+    run.infeasibility = infeasibility
     run.finished_at = func.now()  # pyright: ignore[reportAttributeAccessIssue]
     await session.flush()
     await session.refresh(run)

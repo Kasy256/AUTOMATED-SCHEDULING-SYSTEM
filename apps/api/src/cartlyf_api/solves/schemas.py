@@ -5,6 +5,7 @@ from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
 from cartlyf_api.db import JsonDict
+from cartlyf_engine.infeasibility import InfeasibilityReport
 
 RunStatus = Literal[
     "queued",
@@ -43,3 +44,7 @@ class SolveRunResponse(BaseModel):
     created_at: datetime
     started_at: datetime | None
     finished_at: datetime | None
+    kind: Literal["solve", "repair"]
+    baseline_version_id: UUID | None
+    freeze_before: datetime | None
+    infeasibility: InfeasibilityReport | None

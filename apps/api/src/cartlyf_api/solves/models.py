@@ -29,3 +29,7 @@ class SolveRun(Base):
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     started_at: Mapped[datetime | None]
     finished_at: Mapped[datetime | None]
+    kind: Mapped[str] = mapped_column(server_default="solve")
+    baseline_version_id: Mapped[UUID | None]
+    freeze_before: Mapped[datetime | None]
+    infeasibility: Mapped[JsonDict | None] = mapped_column(JSONB)

@@ -20,6 +20,7 @@ from cartlyf_api.tenancy import scoped_transaction
 from cartlyf_api.versions.persist import write_version
 from cartlyf_engine.checker import check
 from cartlyf_engine.domain import Problem, Score, Solution, SolveOptions, SolveStatus
+from cartlyf_engine.infeasibility import diagnose
 from cartlyf_engine.solve import CancelToken, Progress, ProgressFn, solve
 from cartlyf_engine.templates.registry import UnsupportedTemplate
 
@@ -67,6 +68,7 @@ class _Outcome:
     error: str | None = None
     conflicts: tuple[str, ...] = ()
     verified: _Verified | None = None
+    infeasibility: JsonDict | None = None
 
 
 def _progress_json(progress: Progress) -> JsonDict:
@@ -138,11 +140,18 @@ async def _solve(
     token = CancelToken()
     try:
         problem = Problem.model_validate(problem_json)
-        solution = await _run_solver(
-            engine, settings, run_id, org, problem, solve_fn, latest, token
+        solution = await _with_heartbeat(
+            engine,
+            settings,
+            run_id,
+            org,
+            latest,
+            token,
+            lambda: solve_fn(problem, None, latest.set, token),
         )
         if solution.status is SolveStatus.INFEASIBLE:
-            return _Outcome("infeasible", conflicts=solution.conflicts)
+            report = await _diagnose(engine, settings, run_id, org, problem, latest, token)
+            return _Outcome("infeasible", conflicts=solution.conflicts, infeasibility=report)
         if not solution.assignments:
             return _Outcome("cancelled" if token.cancelled else "no_solution")
         # The independent re-check: the solver's own score is never trusted.
@@ -159,17 +168,42 @@ async def _solve(
     return _Outcome(status, verified=_Verified(problem, solution, score))
 
 
-async def _run_solver(
+async def _diagnose(
     engine: AsyncEngine,
     settings: Settings,
     run_id: UUID,
     org: UUID,
     problem: Problem,
-    solve_fn: SolveFn,
     latest: _Latest,
     token: CancelToken,
-) -> Solution:
-    task = asyncio.create_task(asyncio.to_thread(solve_fn, problem, None, latest.set, token))
+) -> JsonDict | None:
+    """A failed diagnosis must not turn an infeasible result into a failed run."""
+    try:
+        report = await _with_heartbeat(
+            engine,
+            settings,
+            run_id,
+            org,
+            latest,
+            token,
+            lambda: diagnose(problem, settings.infeasibility_time_limit_s, token),
+        )
+    except Exception as exc:
+        report_worker_error(run_id, org, exc)
+        return None
+    return report.model_dump(mode="json")
+
+
+async def _with_heartbeat[T](
+    engine: AsyncEngine,
+    settings: Settings,
+    run_id: UUID,
+    org: UUID,
+    latest: _Latest,
+    token: CancelToken,
+    work: Callable[[], T],
+) -> T:
+    task = asyncio.create_task(asyncio.to_thread(work))
     try:
         while not task.done():
             await asyncio.wait({task}, timeout=settings.solve_heartbeat_seconds)
@@ -251,6 +285,7 @@ async def _finish(
             outcome.status,
             error=outcome.error,
             conflicts=outcome.conflicts,
+            infeasibility=outcome.infeasibility,
             version_id=version_id,
         )
         await _notify(session, run_id)
