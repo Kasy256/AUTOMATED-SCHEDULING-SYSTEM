@@ -269,7 +269,7 @@ async def _finish(
                 org=org,
                 schedule_id=run.schedule_id,
                 run=run,
-                parent_id=None,
+                parent_id=run.baseline_version_id,
                 solver_status=verified.solution.status.value,
                 assignments=verified.solution.assignments,
                 score=verified.score,

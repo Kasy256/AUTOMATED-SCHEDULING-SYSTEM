@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 from cartlyf_api.db import JsonDict
 from cartlyf_engine.infeasibility import InfeasibilityReport
@@ -28,6 +28,18 @@ class SolveRequest(BaseModel):
     time_limit_s: int | None = Field(None, ge=1)
     # CP-SAT's random_seed is an int32.
     seed: int = Field(0, ge=0, le=2**31 - 1)
+
+
+class RepairRequest(SolveRequest):
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "examples": [{"freeze_before": "2027-01-13T00:00:00+03:00", "time_limit_s": 30}]
+        },
+    )
+
+    # Assignments of the published version starting before this instant are kept as they are.
+    freeze_before: AwareDatetime
 
 
 class SolveRunResponse(BaseModel):
