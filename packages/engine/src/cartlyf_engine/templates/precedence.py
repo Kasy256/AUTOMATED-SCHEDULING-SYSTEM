@@ -57,6 +57,10 @@ def explain(instance: ConstraintInstance) -> str:
     return f"Series finish at least {gap} minutes before their successors start"
 
 
+def relax(instance: ConstraintInstance) -> str:
+    return f"Shorten the {_params(instance).min_gap}-minute gap or remove a pair"
+
+
 def encode(rule: Rule, instance: ConstraintInstance) -> None:
     p, enc = _params(instance), rule.enc
     for before, after in _ordered(enc.problem, instance.scope, p.pairs):
@@ -88,5 +92,12 @@ def check(ctx: CheckContext, instance: ConstraintInstance) -> list[Finding]:
 
 
 SPEC = TemplateSpec(
-    "precedence", 1, Params, references=_references, encode=encode, check=check, explain=explain
+    "precedence",
+    1,
+    Params,
+    references=_references,
+    encode=encode,
+    check=check,
+    explain=explain,
+    relax=relax,
 )

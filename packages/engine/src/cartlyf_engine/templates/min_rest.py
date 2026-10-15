@@ -29,6 +29,10 @@ def explain(instance: ConstraintInstance) -> str:
     return f"At least {_params(instance).minutes} minutes between a resource's activities"
 
 
+def relax(instance: ConstraintInstance) -> str:
+    return f"Shorten the {_params(instance).minutes}-minute rest"
+
+
 def encode(rule: Rule, instance: ConstraintInstance) -> None:
     rest, enc = _params(instance).minutes, rule.enc
     activities = scoped_activities(enc.problem, instance.scope)
@@ -91,4 +95,4 @@ def check(ctx: CheckContext, instance: ConstraintInstance) -> list[Finding]:
     return findings
 
 
-SPEC = TemplateSpec("min_rest", 1, Params, encode=encode, check=check, explain=explain)
+SPEC = TemplateSpec("min_rest", 1, Params, encode=encode, check=check, explain=explain, relax=relax)

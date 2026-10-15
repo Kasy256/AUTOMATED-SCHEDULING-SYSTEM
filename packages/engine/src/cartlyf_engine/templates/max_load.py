@@ -42,6 +42,11 @@ def explain(instance: ConstraintInstance) -> str:
     return f"At most {describe_limits(p.max_count, p.max_minutes)} per {p.period}{where}"
 
 
+def relax(instance: ConstraintInstance) -> str:
+    p = _params(instance)
+    return f"Raise the limit of {describe_limits(p.max_count, p.max_minutes)} per {p.period}"
+
+
 def encode(rule: Rule, instance: ConstraintInstance) -> None:
     p = _params(instance)
     for load in encode_loads(rule, instance.scope, p.period, p.window, "over"):
@@ -77,4 +82,4 @@ def check(ctx: CheckContext, instance: ConstraintInstance) -> list[Finding]:
     return findings
 
 
-SPEC = TemplateSpec("max_load", 1, Params, encode=encode, check=check, explain=explain)
+SPEC = TemplateSpec("max_load", 1, Params, encode=encode, check=check, explain=explain, relax=relax)

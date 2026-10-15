@@ -42,6 +42,11 @@ def explain(instance: ConstraintInstance) -> str:
     return f"At least {describe_limits(p.min_count, p.min_minutes)} per {p.period}{where}"
 
 
+def relax(instance: ConstraintInstance) -> str:
+    p = _params(instance)
+    return f"Lower the minimum of {describe_limits(p.min_count, p.min_minutes)} per {p.period}"
+
+
 def encode(rule: Rule, instance: ConstraintInstance) -> None:
     p = _params(instance)
     for load in encode_loads(rule, instance.scope, p.period, p.window, "under"):
@@ -77,4 +82,4 @@ def check(ctx: CheckContext, instance: ConstraintInstance) -> list[Finding]:
     return findings
 
 
-SPEC = TemplateSpec("min_load", 1, Params, encode=encode, check=check, explain=explain)
+SPEC = TemplateSpec("min_load", 1, Params, encode=encode, check=check, explain=explain, relax=relax)

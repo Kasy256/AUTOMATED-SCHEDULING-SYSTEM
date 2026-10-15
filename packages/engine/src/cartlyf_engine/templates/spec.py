@@ -40,3 +40,5 @@ class TemplateSpec:
     encode: Encoder | None = None
     check: Checker | None = None
     explain: Explainer | None = None
+    # What to loosen when the rule is behind an infeasibility; None if only "make it soft" helps.
+    relax: Explainer | None = None

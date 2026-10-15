@@ -54,6 +54,10 @@ def explain(instance: ConstraintInstance) -> str:
     return "Linked series start at the same time"
 
 
+def relax(instance: ConstraintInstance) -> str:
+    return "Remove a series from a link group"
+
+
 def encode(rule: Rule, instance: ConstraintInstance) -> None:
     enc = rule.enc
     for first, other in linked_pairs(enc.problem, instance.scope, _params(instance).link_groups):
@@ -81,5 +85,12 @@ def check(ctx: CheckContext, instance: ConstraintInstance) -> list[Finding]:
 
 
 SPEC = TemplateSpec(
-    "same_time", 1, Params, references=_references, encode=encode, check=check, explain=explain
+    "same_time",
+    1,
+    Params,
+    references=_references,
+    encode=encode,
+    check=check,
+    explain=explain,
+    relax=relax,
 )
