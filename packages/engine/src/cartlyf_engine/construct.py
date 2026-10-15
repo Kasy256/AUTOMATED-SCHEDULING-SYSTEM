@@ -1,7 +1,7 @@
 """First-fit construction of a schedule so CP-SAT starts from a solution instead of searching for
 one. Hard rules are judged by the independent checker; this module holds no rule logic."""
 
-from collections.abc import Callable, Iterator
+from collections.abc import Callable, Iterator, Mapping
 from itertools import islice
 from math import prod
 from typing import NamedTuple
@@ -20,9 +20,11 @@ def construct(
     problem: Problem,
     keep_going: Callable[[], bool] = lambda: True,
     max_evaluations: int | None = None,
+    prefer: Mapping[str, Assignment] | None = None,
 ) -> tuple[Assignment, ...]:
     """Place pinned activities first, then the most constrained, each at the first option that
-    keeps the core rules and adds no hard-rule finding. Unplaceable activities are left out."""
+    keeps the core rules and adds no hard-rule finding. With `prefer` (a repair baseline), an
+    activity tries its preferred start and resources first. Unplaceable activities are left out."""
     index = ProblemIndex(problem)
     ctx = CheckContext(problem, index, {})
     timeline = _Timeline(problem)
@@ -33,7 +35,7 @@ def construct(
         if not keep_going():
             break
         placed = False
-        for forced, fills in _starts(index, timeline, activity):
+        for forced, fills in _starts(index, timeline, activity, (prefer or {}).get(activity.id)):
             for option in (forced, *islice(fills, _OPTIONS_PER_START)):
                 if max_evaluations is not None and evaluations >= max_evaluations:
                     return _in_order(ctx, position)
@@ -159,21 +161,31 @@ def _count(findings: list[Finding]) -> int:
 
 
 def _starts(
-    index: ProblemIndex, timeline: _Timeline, activity: Activity
+    index: ProblemIndex, timeline: _Timeline, activity: Activity, preferred: Assignment | None
 ) -> Iterator[tuple[Assignment, Iterator[Assignment]]]:
-    """Per feasible start: the option with only fixed/pinned resources, then full options."""
+    """Per feasible start: the option with only fixed/pinned resources, then full options.
+    A preferred placement's start comes first and its resources lead each role's pool."""
     pin = activity.pinned
-    starts = [pin.start] if pin is not None and pin.start is not None else activity.candidate_starts
+    pinned = pin.resources if pin is not None else {}
+    if pin is not None and pin.start is not None:
+        starts = [pin.start]
+    else:
+        starts = list(activity.candidate_starts)
+    if preferred is not None and preferred.start in starts:
+        starts.remove(preferred.start)
+        starts.insert(0, preferred.start)
     for start in starts:
         end = start + activity.duration
         pools: list[_Pool] = []
         for req in activity.requirements:
             eligible = index.eligible(activity.id, req.role)
-            pinned = pin.resources.get(req.role, ()) if pin is not None else ()
-            forced = tuple(dict.fromkeys((*req.fixed_resource_ids, *pinned)))
+            forced = tuple(dict.fromkeys((*req.fixed_resource_ids, *pinned.get(req.role, ()))))
             if any(r not in eligible or not timeline.free(r, start, end) for r in forced):
                 break
             free = [r for r in eligible if r not in forced and timeline.free(r, start, end)]
+            if preferred is not None:
+                liked = set(preferred.resources.get(req.role, ()))
+                free.sort(key=lambda r: r not in liked)
             need = max(req.count_min - len(forced), 0)
             if req.hard and len(free) < need:
                 break
