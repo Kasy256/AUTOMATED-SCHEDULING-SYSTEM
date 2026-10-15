@@ -9,7 +9,7 @@ from cartlyf_api.auth.dependencies import CurrentPrincipal
 from cartlyf_api.errors import problem_response
 from cartlyf_api.solves import service
 from cartlyf_api.solves.events import run_events
-from cartlyf_api.solves.schemas import SolveRequest, SolveRunResponse
+from cartlyf_api.solves.schemas import RepairRequest, SolveRequest, SolveRunResponse
 from cartlyf_api.tenancy import DbSession
 
 router = APIRouter(tags=["solves"])
@@ -38,6 +38,20 @@ async def request_solve(
     schedule_id: UUID, body: SolveRequest, request: Request, principal: CurrentPrincipal
 ) -> SolveRunResponse:
     return await service.request_solve(
+        engine_of(request), broker_of(request), settings_of(request), principal, schedule_id, body
+    )
+
+
+@router.post(
+    "/schedules/{schedule_id}/repairs",
+    status_code=202,
+    response_model=SolveRunResponse,
+    responses={**_REQUEST, 409: problem_response("Nothing published to repair")},
+)
+async def request_repair(
+    schedule_id: UUID, body: RepairRequest, request: Request, principal: CurrentPrincipal
+) -> SolveRunResponse:
+    return await service.request_repair(
         engine_of(request), broker_of(request), settings_of(request), principal, schedule_id, body
     )
 

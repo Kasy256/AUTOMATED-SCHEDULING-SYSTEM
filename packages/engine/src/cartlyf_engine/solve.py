@@ -107,6 +107,7 @@ def solve(
         problem,
         keep_going=lambda: cancel is None or not cancel.cancelled,
         max_evaluations=_EVALUATIONS_PER_ACTIVITY * max(1, len(problem.activities)),
+        prefer={b.activity_id: b for b in problem.baseline or ()},
     )
     built = check(problem, plan)
     verified = len(plan) == len(problem.activities) and built.hard_violations == 0

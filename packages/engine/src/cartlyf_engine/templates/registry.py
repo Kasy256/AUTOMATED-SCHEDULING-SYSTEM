@@ -1,6 +1,7 @@
 from collections.abc import Mapping
 from dataclasses import dataclass
 from types import MappingProxyType
+from typing import TYPE_CHECKING
 
 from pydantic import JsonValue, ValidationError
 
@@ -21,6 +22,9 @@ from cartlyf_engine.templates import (
     stability,
 )
 from cartlyf_engine.templates.spec import References, TemplateSpec
+
+if TYPE_CHECKING:
+    from cartlyf_engine.domain import ConstraintInstance
 
 _MODULES = (
     capacity_fit,
@@ -112,3 +116,9 @@ def params_references(key: str, version: int, params: Mapping[str, object]) -> R
     """Series and resource ids named by already-validated params."""
     spec = get_template(key, version)
     return spec.references(spec.params_model.model_validate(params))
+
+
+def describe(instance: "ConstraintInstance") -> str:
+    """The instance's rule in plain language, from its template."""
+    spec = get_template(instance.template_key, instance.version)
+    return spec.explain(instance) if spec.explain is not None else f"'{instance.template_key}' rule"

@@ -47,6 +47,10 @@ def explain(instance: ConstraintInstance) -> str:
     return f"At most {count(p.max, 'consecutive day', 'consecutive days')} worked{what}"
 
 
+def relax(instance: ConstraintInstance) -> str:
+    return f"Allow more than {count(_params(instance).max, 'consecutive day', 'consecutive days')}"
+
+
 def encode(rule: Rule, instance: ConstraintInstance) -> None:
     p, enc = _params(instance), rule.enc
     n_days = len(enc.problem.day_windows)
@@ -114,4 +118,5 @@ SPEC = TemplateSpec(
     encode=encode,
     check=check,
     explain=explain,
+    relax=relax,
 )

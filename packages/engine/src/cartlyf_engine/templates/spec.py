@@ -33,7 +33,12 @@ class TemplateSpec:
     params_model: type[BaseModel]
     # Objective-only rules (preferences, balance, stability…) cannot be hard.
     soft_only: bool = False
+    # Findings compare resources across the whole scope (balance, fairness), so a local check
+    # must see everything in scope.
+    whole_scope: bool = False
     references: Callable[[BaseModel], References] = field(default=_no_references)
     encode: Encoder | None = None
     check: Checker | None = None
     explain: Explainer | None = None
+    # What to loosen when the rule is behind an infeasibility; None if only "make it soft" helps.
+    relax: Explainer | None = None

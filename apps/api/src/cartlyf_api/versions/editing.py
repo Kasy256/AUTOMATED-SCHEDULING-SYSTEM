@@ -1,7 +1,6 @@
 """Planner actions that create or change version state: draft edits, publish, archive."""
 
 import asyncio
-from collections.abc import Iterable, Mapping
 from uuid import UUID
 
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -15,18 +14,14 @@ from cartlyf_api.orgs import repository as orgs_repo
 from cartlyf_api.schedules import repository as schedules_repo
 from cartlyf_api.schedules.time_grid import floor_minutes
 from cartlyf_api.settings import Settings
-from cartlyf_api.solves import repository as solves_repo
 from cartlyf_api.versions import repository
 from cartlyf_api.versions.notify import affected_users
 from cartlyf_api.versions.persist import lock_schedule, write_version
 from cartlyf_api.versions.schemas import DraftRequest, VersionDetail
 from cartlyf_api.versions.service import require_version, version_detail
+from cartlyf_api.versions.state import engine_resources, load_state
 from cartlyf_engine.checker import check
-from cartlyf_engine.domain import Assignment, Problem
-
-
-def _engine_resources(roles: Mapping[str, Iterable[UUID]]) -> dict[str, tuple[str, ...]]:
-    return {role: tuple(sorted({str(r) for r in ids})) for role, ids in roles.items()}
+from cartlyf_engine.domain import Assignment
 
 
 async def create_draft(
@@ -40,9 +35,8 @@ async def create_draft(
     principal.require(Permission.SOLVES_RUN)
     org = principal.organisation_id
     parent = await require_version(session, org, version_id)
-    run = await solves_repo.get_run(session, org, parent.solve_run_id)
-    assert run is not None, "a version always has its solve run"
-    problem = Problem.model_validate(run.problem)
+    state = await load_state(session, org, parent)
+    run, problem = state.run, state.problem
     activities = {a.id: a for a in problem.activities}
     resource_ids = {r.id for r in problem.resources}
     for change in body.changes:
@@ -73,21 +67,12 @@ async def create_draft(
         placed[activity_id] = Assignment(
             activity_id=activity_id,
             start=start,
-            resources=_engine_resources(change.resources),
+            resources=engine_resources(change.resources),
         )
     if errors:
         raise Unprocessable(errors)
 
-    current = await repository.assignments_of(session, org, parent.id)
-    merged = {
-        str(activity_id): Assignment(
-            activity_id=str(activity_id),
-            start=floor_minutes(run.horizon_origin, start_at),
-            resources=_engine_resources(roles),
-        )
-        for activity_id, (start_at, roles) in current.items()
-    } | placed
-    assignments = list(merged.values())
+    assignments = list((state.assignments | placed).values())
     score = await asyncio.to_thread(check, problem, assignments)
     if score.hard_violations > 0:
         raise Unprocessable(

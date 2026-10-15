@@ -1,4 +1,7 @@
 import asyncio
+from collections.abc import Awaitable, Callable
+from dataclasses import dataclass
+from datetime import datetime
 from uuid import UUID, uuid4
 
 import structlog
@@ -17,12 +20,13 @@ from cartlyf_api.errors import (
     field_error,
 )
 from cartlyf_api.jobs.broker import send_solve
-from cartlyf_api.problems.snapshot import build_snapshot
+from cartlyf_api.problems.snapshot import Snapshot, build_snapshot
 from cartlyf_api.schedules import repository as schedules_repo
 from cartlyf_api.settings import Settings
 from cartlyf_api.solves import repository
 from cartlyf_api.solves.models import SolveRun
-from cartlyf_api.solves.schemas import SolveRequest, SolveRunResponse
+from cartlyf_api.solves.repair import repair_snapshot
+from cartlyf_api.solves.schemas import RepairRequest, SolveRequest, SolveRunResponse
 from cartlyf_api.tenancy import scoped_transaction
 from cartlyf_engine.domain import SolveOptions
 
@@ -44,6 +48,15 @@ async def _require_schedule(session: AsyncSession, org: UUID, schedule_id: UUID)
         raise NotFound("Unknown schedule")
 
 
+@dataclass(frozen=True)
+class _Repair:
+    baseline_version_id: UUID
+    freeze_before: datetime
+
+
+Prepare = Callable[[AsyncSession], Awaitable[tuple[Snapshot, _Repair | None]]]
+
+
 async def request_solve(
     engine: AsyncEngine,
     broker: Broker,
@@ -51,6 +64,43 @@ async def request_solve(
     principal: Principal,
     schedule_id: UUID,
     body: SolveRequest,
+) -> SolveRunResponse:
+    async def prepare(session: AsyncSession) -> tuple[Snapshot, _Repair | None]:
+        return await build_snapshot(session, principal.organisation_id, schedule_id), None
+
+    return await _enqueue(
+        engine, broker, settings, principal, schedule_id, body, prepare, "solve.requested"
+    )
+
+
+async def request_repair(
+    engine: AsyncEngine,
+    broker: Broker,
+    settings: Settings,
+    principal: Principal,
+    schedule_id: UUID,
+    body: RepairRequest,
+) -> SolveRunResponse:
+    async def prepare(session: AsyncSession) -> tuple[Snapshot, _Repair | None]:
+        snapshot, baseline = await repair_snapshot(
+            session, principal.organisation_id, schedule_id, body.freeze_before
+        )
+        return snapshot, _Repair(baseline, body.freeze_before)
+
+    return await _enqueue(
+        engine, broker, settings, principal, schedule_id, body, prepare, "solve.repair_requested"
+    )
+
+
+async def _enqueue(
+    engine: AsyncEngine,
+    broker: Broker,
+    settings: Settings,
+    principal: Principal,
+    schedule_id: UUID,
+    body: SolveRequest,
+    prepare: Prepare,
+    action: str,
 ) -> SolveRunResponse:
     principal.require(Permission.SOLVES_RUN)
     org = principal.organisation_id
@@ -74,7 +124,7 @@ async def request_solve(
                 settings.solve_stale_after_seconds,
                 "Too many solves running for this organisation",
             )
-        snapshot = await build_snapshot(session, org, schedule_id)
+        snapshot, repair = await prepare(session)
         options = SolveOptions(
             time_limit_s=time_limit, seed=body.seed, num_workers=settings.solve_num_workers
         )
@@ -86,11 +136,14 @@ async def request_solve(
             user_id=principal.user_id,
             snapshot=snapshot,
             options=options,
+            kind="solve" if repair is None else "repair",
+            baseline_version_id=None if repair is None else repair.baseline_version_id,
+            freeze_before=None if repair is None else repair.freeze_before,
         )
         await record_change(
             session,
             principal,
-            "solve.requested",
+            action,
             "solve_run",
             run_id,
             {"schedule_id": str(schedule_id)},

@@ -16,4 +16,4 @@ def _references(params: BaseModel) -> References:
     return References(series_ids=frozenset(cast(Params, params).activity_filter.series_ids))
 
 
-SPEC = TemplateSpec("fairness", 1, Params, soft_only=True, references=_references)
+SPEC = TemplateSpec("fairness", 1, Params, soft_only=True, whole_scope=True, references=_references)

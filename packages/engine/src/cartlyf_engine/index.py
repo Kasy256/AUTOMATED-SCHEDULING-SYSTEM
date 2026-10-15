@@ -5,6 +5,7 @@ from collections.abc import Sequence
 from typing import Literal
 
 from cartlyf_engine.domain import (
+    CORE_REQUIREMENT,
     Activity,
     Problem,
     Resource,
@@ -74,3 +75,13 @@ class ProblemIndex:
         if window is not None and window_index(self.named(window), minute) is None:
             return None
         return window_index(self.periods(period), minute)
+
+
+def requirement_pools(problem: Problem) -> dict[tuple[str, ResourceFilter], str]:
+    """Hard minimum counts grouped by role and filter, so infeasibility can name a staffing pool."""
+    pools: dict[tuple[str, ResourceFilter], str] = {}
+    for activity in problem.activities:
+        for req in activity.requirements:
+            if req.hard and req.count_min > 0 and (req.role, req.filter) not in pools:
+                pools[req.role, req.filter] = f"{CORE_REQUIREMENT}:{len(pools) + 1}"
+    return pools

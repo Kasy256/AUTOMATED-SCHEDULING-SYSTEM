@@ -139,7 +139,7 @@ def test_DOM_05_templates_declare_the_ids_their_params_reference() -> None:
 
 
 def test_RUL_every_phase_03_template_is_wired() -> None:
-    later = {"fairness", "stability"}  # Phases 08 and 06
+    later = {"fairness"}  # Phase 08
     for spec in REGISTRY.values():
         wired = spec.encode is not None and spec.check is not None and spec.explain is not None
         assert wired == (spec.key not in later), spec.key

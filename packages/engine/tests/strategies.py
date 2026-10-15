@@ -11,6 +11,7 @@ from pydantic import JsonValue
 
 from cartlyf_engine.domain import (
     Activity,
+    Assignment,
     ConstraintInstance,
     Pin,
     Problem,
@@ -140,7 +141,22 @@ def tiny_problems(
         else []
     )
     constraints = [_instance(draw, n, key) for n, key in enumerate(chosen)]
-    return problem([*people, *rooms, *groups], activities, constraints)
+    baseline = None
+    if "stability" in chosen:
+        baseline = [_baseline(draw, a, people) for a in activities if draw(st.booleans())]
+    return problem([*people, *rooms, *groups], activities, constraints, baseline=baseline)
+
+
+def _baseline(draw: st.DrawFn, activity: Activity, people: list[Resource]) -> Assignment:
+    return Assignment(
+        activity_id=activity.id,
+        start=draw(st.sampled_from(activity.candidate_starts)),
+        resources={
+            "who": tuple(
+                draw(st.lists(st.sampled_from([p.id for p in people]), unique=True, max_size=1))
+            )
+        },
+    )
 
 
 def _capacity_fit(draw: st.DrawFn) -> dict[str, JsonValue]:
@@ -222,4 +238,10 @@ RULE_PARAMS["day_distribution"] = lambda draw: {}
 RULE_PARAMS["precedence"] = lambda draw: {
     "pairs": [{"before": "s1", "after": "s2"}],
     "min_gap": draw(st.sampled_from((0, 60))),
+}
+
+
+RULE_PARAMS["stability"] = lambda draw: {
+    "per_change": draw(st.integers(0, 3)),
+    "per_resource_change": draw(st.integers(0, 3)),
 }

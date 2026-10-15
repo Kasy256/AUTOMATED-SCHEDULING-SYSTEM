@@ -1,5 +1,6 @@
 from cartlyf_engine.checker import check
 from cartlyf_engine.domain import Pin
+from cartlyf_engine.index import ProblemIndex
 from kit import DAY, act, messages, needs, person, place, problem, room, win
 
 
@@ -95,3 +96,13 @@ def test_unavailable_and_pins() -> None:
         "a1 is pinned to start 60 but starts at 0",
     ]
     assert check(p, [place("a1", 60, who="p")]).hard_violations == 0
+
+
+def test_a_wider_problems_index_gives_the_same_score() -> None:
+    whole = problem(
+        [person("p"), person("q")],
+        [act("a1", 60, [0], needs()), act("a2", 60, [0], needs())],
+    )
+    part = whole.model_copy(update={"activities": whole.activities[:1]})
+    placed = [place("a1", 0, who="p")]
+    assert check(part, placed, index=ProblemIndex(whole)) == check(part, placed)

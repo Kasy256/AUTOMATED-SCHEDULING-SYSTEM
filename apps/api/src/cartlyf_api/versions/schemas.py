@@ -68,6 +68,65 @@ class AssignmentEdit(BaseModel):
     resources: dict[str, list[UUID]]
 
 
+class MoveRequest(AssignmentEdit):
+    """A proposed placement of one activity; nothing is saved."""
+
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "examples": [
+                {
+                    "activity_id": example_id("activity_id"),
+                    "start_at": "2027-01-12T09:00:00+03:00",
+                    "resources": {"lecturer": [example_id("resource_id")]},
+                }
+            ]
+        },
+    )
+
+
+class RuleBreak(BaseModel):
+    constraint_id: str
+    rule: str
+    message: str
+    activity_ids: list[UUID]
+    resource_ids: list[UUID]
+
+
+class PenaltyChangeOut(BaseModel):
+    constraint_id: str
+    rule: str
+    before: int
+    after: int
+
+
+class MoveCheckOut(BaseModel):
+    valid: bool
+    broken: list[RuleBreak]
+    penalties: list[PenaltyChangeOut]
+
+
+class AlternativeOut(BaseModel):
+    start_at: datetime
+    resources: dict[str, list[UUID]]
+    check: MoveCheckOut
+
+
+class BindingRule(BaseModel):
+    constraint_id: str
+    rule: str
+    hard: bool
+    blocks: int
+    penalises: int
+
+
+class ExplanationOut(BaseModel):
+    activity_id: UUID
+    binding: list[BindingRule]
+    alternatives: list[AlternativeOut]
+    truncated: bool
+
+
 class DraftRequest(BaseModel):
     model_config = ConfigDict(
         extra="forbid",

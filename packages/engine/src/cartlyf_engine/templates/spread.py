@@ -56,6 +56,16 @@ def explain(instance: ConstraintInstance) -> str:
     return "Activities of a series: " + ", ".join(parts)
 
 
+def relax(instance: ConstraintInstance) -> str:
+    p = _params(instance)
+    parts: list[str] = []
+    if p.max_per_day is not None:
+        parts.append(f"allow more than {p.max_per_day} per day")
+    if p.min_days_apart is not None:
+        parts.append(f"allow less than {count(p.min_days_apart, 'day', 'days')} apart")
+    return " or ".join(parts).capitalize()
+
+
 def encode(rule: Rule, instance: ConstraintInstance) -> None:
     p, enc = _params(instance), rule.enc
     n_days = len(enc.problem.day_windows)
@@ -113,4 +123,4 @@ def check(ctx: CheckContext, instance: ConstraintInstance) -> list[Finding]:
     return findings
 
 
-SPEC = TemplateSpec("spread", 1, Params, encode=encode, check=check, explain=explain)
+SPEC = TemplateSpec("spread", 1, Params, encode=encode, check=check, explain=explain, relax=relax)

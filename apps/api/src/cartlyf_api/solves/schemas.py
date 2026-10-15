@@ -2,9 +2,10 @@ from datetime import datetime
 from typing import Literal
 from uuid import UUID
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
 
 from cartlyf_api.db import JsonDict
+from cartlyf_engine.infeasibility import InfeasibilityReport
 
 RunStatus = Literal[
     "queued",
@@ -29,6 +30,18 @@ class SolveRequest(BaseModel):
     seed: int = Field(0, ge=0, le=2**31 - 1)
 
 
+class RepairRequest(SolveRequest):
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "examples": [{"freeze_before": "2027-01-13T00:00:00+03:00", "time_limit_s": 30}]
+        },
+    )
+
+    # Assignments of the published version starting before this instant are kept as they are.
+    freeze_before: AwareDatetime
+
+
 class SolveRunResponse(BaseModel):
     model_config = ConfigDict(from_attributes=True)
 
@@ -43,3 +56,7 @@ class SolveRunResponse(BaseModel):
     created_at: datetime
     started_at: datetime | None
     finished_at: datetime | None
+    kind: Literal["solve", "repair"]
+    baseline_version_id: UUID | None
+    freeze_before: datetime | None
+    infeasibility: InfeasibilityReport | None

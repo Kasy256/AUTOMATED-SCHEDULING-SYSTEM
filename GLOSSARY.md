@@ -113,8 +113,18 @@ One place where a hard rule, or a built-in rule such as no double-booking, is br
 _Avoid_: error, clash (for anything other than double-booking)
 
 **Conflict**:
-A hard rule named as part of the reason no schedule can satisfy all hard rules together.
+A hard rule, or a built-in staffing need, unavailability or pin, named as part of the reason no schedule can satisfy all hard rules together.
 _Avoid_: blocker
+
+**Relaxation**:
+A suggested way out of a conflict (make a rule soft, loosen it, add a resource, free a resource, unpin), marked when a solve proved it alone is enough.
+
+**Move check**:
+The verdict on one proposed placement: which rules it would break and which penalties it would change, against the rest of a version.
+_Avoid_: validation (alone)
+
+**Binding rule**:
+A rule that rules out or makes costlier some alternative placement of an assignment; the answer to "why is this here?".
 
 **Checker**:
 The part of Cartlyf that scores any set of placements without the solver, so every result can be verified.
@@ -123,6 +133,16 @@ _Avoid_: validator
 **Solve run**:
 One attempt to solve a schedule: it keeps the problem it was given and ends with a status, and a verified result becomes a version.
 _Avoid_: job (alone), solve
+
+**Baseline**:
+The published version a repair tries to stay close to.
+
+**Freeze instant**:
+The moment before which a repair keeps every published assignment exactly as it was (past and in-progress work).
+
+**Repair run**:
+A solve run that starts from the published version, keeps everything before the freeze instant and changes as little as it can; its result is a draft to review before publishing.
+_Avoid_: re-solve, reschedule
 
 **Calendar feed**:
 A private, revocable link to one resource's published assignments, which a calendar app can subscribe to.
