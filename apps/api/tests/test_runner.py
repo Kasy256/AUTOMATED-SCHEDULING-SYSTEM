@@ -73,13 +73,13 @@ def test_unsupported_template_fails_cleanly(client: TestClient, app: FastAPI) ->
         client,
         admin,
         built.schedule_id,
-        "stability",
-        {"per_change": 1, "per_resource_change": 1},
+        "fairness",
+        {"activity_filter": {}, "lookback_days": 0},
         weight=1,
     )
     run_id = request_run(client, admin, built.schedule_id)
     assert run_now(app, run_id, admin.organisation_id) == "failed"
-    assert _run(client, admin, run_id)["error"] == "Rule 'stability' is not supported yet"
+    assert _run(client, admin, run_id)["error"] == "Rule 'fairness' is not supported yet"
 
 
 def test_solver_crash_is_reported_without_internals(
