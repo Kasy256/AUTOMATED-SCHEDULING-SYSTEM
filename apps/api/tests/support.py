@@ -1,23 +1,40 @@
 import asyncio
+import importlib
+import json
 import re
-from collections.abc import Mapping
+import sys
+from collections.abc import Generator, Iterable, Mapping
+from contextlib import contextmanager
 from dataclasses import dataclass
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, cast
 from uuid import UUID, uuid4
+from zoneinfo import ZoneInfo
 
+import dramatiq
 import httpx2 as httpx
+import pytest
+import redis
 from alembic.config import Config
+from dramatiq import Broker, Worker
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from sentry_sdk.envelope import Envelope
+from sentry_sdk.transport import Transport
+from sentry_sdk.types import Event
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine
 from testcontainers.community.postgres import PostgresContainer
 
 from cartlyf_api.auth.cookies import REFRESH_COOKIE
+from cartlyf_api.db import create_db_engine
 from cartlyf_api.email.provider import ConsoleEmailProvider
 from cartlyf_api.examples import EXAMPLE_IDS
+from cartlyf_api.jobs.broker import SOLVE_QUEUE, setup_broker
 from cartlyf_api.settings import Settings
+from cartlyf_api.solves.runner import SolveFn, execute_run
+from cartlyf_engine.solve import solve
 
 API_DIR = Path(__file__).resolve().parents[1]
 OWNER = ("cartlyf_owner", "owner-test-password")
@@ -32,6 +49,7 @@ def make_settings(database_url: str, redis_url: str, **overrides: object) -> Set
             "redis_url": redis_url,
             "jwt_secret": TEST_JWT_SECRET,
             "web_base_url": "http://web.test",
+            "public_api_base_url": "http://api.test",
             "cookie_secure": False,
             "s3_endpoint": "127.0.0.1:1",
             "s3_access_key": "test-access-key",
@@ -341,6 +359,9 @@ def seed_config(client: TestClient, admin: Account) -> dict[str, str]:
         return response.json()["id"]
 
     ids: dict[str, str] = {}
+    me = client.get("/api/v1/auth/me", headers=admin.auth)
+    assert me.status_code == 200, me.text
+    ids["user_id"] = me.json()["user_id"]
     ids["resource_type_id"] = post(
         "/api/v1/resource-types",
         {
@@ -364,6 +385,14 @@ def seed_config(client: TestClient, admin: Account) -> dict[str, str]:
             "tags": ["math101"],
             "attributes": {"employment": "full_time"},
         },
+    )
+    # A distinct group resource: fixing the lecturer as the demand's group made the seed unsolvable.
+    group_type_id = post(
+        "/api/v1/resource-types", {"key": "cohort", "name": "Cohort", "kind": "group"}
+    )
+    ids["group_resource_id"] = post(
+        "/api/v1/resources",
+        {"resource_type_id": group_type_id, "code": "GRP-001", "name": "Seed cohort"},
     )
     resource_base = f"/api/v1/resources/{ids['resource_id']}"
     ids["availability_rule_id"] = post(
@@ -421,7 +450,7 @@ def seed_config(client: TestClient, admin: Account) -> dict[str, str]:
                 "sessions_per_week": 1,
                 "requirements": [
                     {"role": "lecturer", "resource_type_id": ids["resource_type_id"]},
-                    {"role": "group", "fixed_resource_ids": [ids["resource_id"]]},
+                    {"role": "group", "fixed_resource_ids": [ids["group_resource_id"]]},
                 ],
             },
         },
@@ -455,7 +484,28 @@ def seed_config(client: TestClient, admin: Account) -> dict[str, str]:
         content=b"Code,Name\nIMP-SEED,Imported seed\n",
     )
     assert uploaded.status_code == 200, uploaded.text
+    ids["run_id"], ids["version_id"] = solve_now(client, admin, ids["schedule_id"])
+    _, ids["other_version_id"] = solve_now(client, admin, ids["schedule_id"])
+    feed = client.post(f"{resource_base}/calendar-feeds", headers=admin.auth)
+    assert feed.status_code == 201, feed.text
+    ids["calendar_feed_id"] = feed.json()["id"]
+    ids["token"] = feed.json()["url"].rsplit("/", 1)[-1].removesuffix(".ics")
     return ids
+
+
+def post_accepted(client: TestClient, admin: Account, path: str) -> str:
+    response = client.post(path, headers=admin.auth, json={})
+    assert response.status_code == 202, f"{path}: {response.text}"
+    return response.json()["id"]
+
+
+def redis_queue_length(app: FastAPI, queue: str) -> int:
+    """Messages waiting on a Dramatiq queue (list `<namespace>:<queue>` in Redis)."""
+    client = redis.Redis.from_url(str(app.state.settings.redis_url))  # pyright: ignore[reportUnknownMemberType]
+    try:
+        return client.llen(f"dramatiq:{queue}")  # pyright: ignore[reportReturnType]
+    finally:
+        client.close()
 
 
 def missing_seeds(operation: Operation, ids: dict[str, str]) -> set[str]:
@@ -516,3 +566,305 @@ def signup_and_confirm(
         response.cookies[REFRESH_COOKIE],
         UUID(body["organisation_id"]),
     )
+
+
+@dataclass(frozen=True)
+class BuiltSchedule:
+    schedule_id: str
+    lecturer_type_id: str
+    lecturer_ids: list[str]
+    activities: int
+
+
+def build_schedule(
+    client: TestClient,
+    admin: Account,
+    *,
+    lecturers: int = 1,
+    rooms: int = 1,
+    groups: int = 1,
+    demands: int = 1,
+    sessions: int = 2,
+    periods: int = 4,
+    group_gaps: bool = False,
+) -> BuiltSchedule:
+    """A one-week Mon-Fri schedule: demand i needs any lecturer, any room and group i % groups."""
+
+    def post(path: str, body: object) -> str:
+        response = client.post(path, headers=admin.auth, json=body)
+        assert response.status_code == 201, f"{path}: {response.text}"
+        return response.json()["id"]
+
+    def resources(key: str, kind: str, count: int) -> tuple[str, list[str]]:
+        type_id = post(
+            "/api/v1/resource-types", {"key": f"{key}_{uuid4().hex[:8]}", "name": key, "kind": kind}
+        )
+        ids = [
+            post(
+                "/api/v1/resources",
+                {"resource_type_id": type_id, "code": f"{key.upper()}-{i}", "name": f"{key} {i}"},
+            )
+            for i in range(count)
+        ]
+        return type_id, ids
+
+    lecturer_type, lecturer_ids = resources("lecturer", "person", lecturers)
+    room_type, _ = resources("room", "space", rooms)
+    group_type, group_ids = resources("group", "group", groups)
+    schedule_id = post(
+        "/api/v1/schedules",
+        {
+            "name": "Solve term",
+            "timezone": "Africa/Kampala",
+            "start_date": "2027-01-11",
+            "end_date": "2027-01-15",
+        },
+    )
+    base = f"/api/v1/schedules/{schedule_id}"
+    slots = [
+        {
+            "label": f"P{p}",
+            "weekdays": [0, 1, 2, 3, 4],
+            "start_minute": 480 + 60 * p,
+            "duration_minutes": 60,
+        }
+        for p in range(periods)
+    ]
+    slot_template = post(
+        f"{base}/slot-templates", {"name": "Periods", "definition": {"version": 1, "slots": slots}}
+    )
+    for d in range(demands):
+        post(
+            f"{base}/demands",
+            {
+                "name": f"Course {d}",
+                "slot_template_id": slot_template,
+                "spec": {
+                    "kind": "session",
+                    "sessions_per_week": sessions,
+                    "requirements": [
+                        {"role": "lecturer", "resource_type_id": lecturer_type},
+                        {"role": "room", "resource_type_id": room_type},
+                        {"role": "group", "fixed_resource_ids": [group_ids[d % groups]]},
+                    ],
+                },
+            },
+        )
+    if group_gaps:
+        add_rule(
+            client,
+            admin,
+            schedule_id,
+            "minimize_gaps",
+            {"per_minutes": 60},
+            weight=1,
+            scope={"resource_type_ids": [group_type]},
+        )
+    return BuiltSchedule(schedule_id, lecturer_type, lecturer_ids, demands * sessions)
+
+
+def add_rule(
+    client: TestClient,
+    admin: Account,
+    schedule_id: str,
+    template_key: str,
+    params: dict[str, object],
+    *,
+    hard: bool = False,
+    weight: int = 0,
+    scope: dict[str, object] | None = None,
+) -> str:
+    response = client.post(
+        f"/api/v1/schedules/{schedule_id}/constraints",
+        headers=admin.auth,
+        json={
+            "name": f"{template_key} rule",
+            "template_key": template_key,
+            "template_version": 1,
+            "params": params,
+            "scope": scope or {},
+            "hard": hard,
+            "weight": weight,
+        },
+    )
+    assert response.status_code == 201, response.text
+    return response.json()["id"]
+
+
+def slow_schedule(client: TestClient, admin: Account) -> BuiltSchedule:
+    """CP-SAT runs to a 60 s limit on this, yet stops within a second of a cancel; gaps over
+    every resource instead made presolve slow to honour a stop (calibration in task-4 report)."""
+    return build_schedule(
+        client,
+        admin,
+        lecturers=30,
+        rooms=30,
+        groups=10,
+        demands=40,
+        sessions=5,
+        periods=8,
+        group_gaps=True,
+    )
+
+
+def request_run(client: TestClient, admin: Account, schedule_id: str, **body: object) -> str:
+    response = client.post(f"/api/v1/schedules/{schedule_id}/solves", headers=admin.auth, json=body)
+    assert response.status_code == 202, response.text
+    return response.json()["id"]
+
+
+def solve_now(client: TestClient, admin: Account, schedule_id: str) -> tuple[str, str]:
+    """POST a solve and execute it in this thread; returns (run_id, version_id)."""
+    run_id = request_run(client, admin, schedule_id)
+    status = run_now(cast(FastAPI, client.app), run_id, admin.organisation_id)
+    assert status == "succeeded", status
+    run = client.get(f"/api/v1/solves/{run_id}", headers=admin.auth).json()
+    return run_id, run["version_id"]
+
+
+def run_now(app: FastAPI, run_id: str, organisation_id: UUID, solve_fn: SolveFn = solve) -> str:
+    """Execute a queued run in this thread, as the worker would."""
+    settings: Settings = app.state.settings
+
+    async def go() -> str:
+        engine = create_db_engine(settings)
+        try:
+            return await execute_run(engine, settings, UUID(run_id), organisation_id, solve_fn)
+        finally:
+            await engine.dispose()
+
+    return asyncio.run(go())
+
+
+@dataclass(frozen=True)
+class SseEvent:
+    event: str
+    data: dict[str, Any]
+
+
+def parse_sse(lines: Iterable[str]) -> list[SseEvent]:
+    """Parse a finished event stream; comment lines (keep-alives) are dropped."""
+    events: list[SseEvent] = []
+    name, data = "message", ""
+    for line in lines:
+        if line.startswith(":"):
+            continue
+        if line == "":
+            if data:
+                events.append(SseEvent(name, json.loads(data)))
+            name, data = "message", ""
+        elif line.startswith("event: "):
+            name = line[len("event: ") :]
+        elif line.startswith("data: "):
+            data += line[len("data: ") :]
+    return events
+
+
+class CollectingTransport(Transport):
+    def __init__(self) -> None:
+        super().__init__()
+        self.events: list[Event] = []
+
+    def capture_envelope(self, envelope: Envelope) -> None:
+        event = envelope.get_event()
+        if event is not None:
+            self.events.append(event)
+
+    @property
+    def messages(self) -> list[str]:
+        return [str(e.get("message") or e.get("logentry", {}).get("message")) for e in self.events]
+
+    @property
+    def tags(self) -> list[dict[str, str]]:
+        return [dict(e.get("tags", {})) for e in self.events]
+
+
+def worker_env(monkeypatch: pytest.MonkeyPatch, settings: Settings) -> None:
+    """Make load_settings() inside an actor resolve to the test stack (env beats `.env`)."""
+    values: dict[str, str] = {
+        "DATABASE_URL": str(settings.database_url),
+        "REDIS_URL": str(settings.redis_url),
+        "JWT_SECRET": settings.jwt_secret.get_secret_value(),
+        "WEB_BASE_URL": str(settings.web_base_url),
+        "PUBLIC_API_BASE_URL": str(settings.public_api_base_url),
+        "S3_ENDPOINT": settings.s3_endpoint,
+        "S3_ACCESS_KEY": settings.s3_access_key.get_secret_value(),
+        "S3_SECRET_KEY": settings.s3_secret_key.get_secret_value(),
+        "S3_BUCKET": settings.s3_bucket,
+        "S3_SECURE": str(settings.s3_secure),
+        "COOKIE_SECURE": str(settings.cookie_secure),
+        "SOLVE_NUM_WORKERS": "1",
+        "SOLVE_HEARTBEAT_SECONDS": str(settings.solve_heartbeat_seconds),
+    }
+    for name, value in values.items():
+        monkeypatch.setenv(f"CARTLYF_{name}", value)
+
+
+@contextmanager
+def running_worker(redis_url: str, threads: int) -> Generator[Broker]:
+    """A real Dramatiq worker on the solves queue; restores the global broker afterwards."""
+    previous = dramatiq.broker.global_broker
+    broker = setup_broker(redis_url, timeout_seconds=5)
+    loaded = sys.modules.get("cartlyf_api.jobs.actors")
+    if loaded:
+        importlib.reload(loaded)
+    else:
+        importlib.import_module("cartlyf_api.jobs.actors")
+    worker = Worker(broker, worker_threads=threads, worker_timeout=100)
+    worker.start()
+    try:
+        yield broker
+    finally:
+        worker.stop()
+        broker.close()
+        if previous is not None:
+            dramatiq.set_broker(previous)
+
+
+def drain_solves(broker: Broker) -> None:
+    broker.join(SOLVE_QUEUE, timeout=60_000)
+
+
+KAMPALA = ZoneInfo("Africa/Kampala")
+
+
+def candidate_starts(periods: int = 4) -> list[datetime]:
+    """The build_schedule grid: Mon-Fri 2027-01-11..15, periods from 08:00 hourly."""
+    monday = datetime(2027, 1, 11, tzinfo=KAMPALA)
+    return [
+        monday + timedelta(days=d, minutes=480 + 60 * p) for d in range(5) for p in range(periods)
+    ]
+
+
+# Any: response JSON is untyped; tests assert on its values.
+def get_version(client: TestClient, admin: Account, version_id: str) -> dict[str, Any]:
+    response = client.get(f"/api/v1/solution-versions/{version_id}", headers=admin.auth)
+    assert response.status_code == 200, response.text
+    return response.json()
+
+
+def free_start(assignments: list[dict[str, Any]]) -> datetime:
+    taken = {datetime.fromisoformat(a["start_at"]) for a in assignments}
+    return next(s for s in candidate_starts() if s not in taken)
+
+
+def move(
+    client: TestClient, admin: Account, version_id: str, assignment: dict[str, Any], to: datetime
+) -> Any:
+    return client.post(
+        f"/api/v1/solution-versions/{version_id}/drafts",
+        headers=admin.auth,
+        json={
+            "changes": [
+                {
+                    "activity_id": assignment["activity_id"],
+                    "start_at": to.isoformat(),
+                    "resources": assignment["resources"],
+                }
+            ]
+        },
+    )
+
+
+def publish(client: TestClient, admin: Account, version_id: str) -> Any:
+    return client.post(f"/api/v1/solution-versions/{version_id}/publish", headers=admin.auth)

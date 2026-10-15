@@ -119,3 +119,11 @@ _Avoid_: blocker
 **Checker**:
 The part of Cartlyf that scores any set of placements without the solver, so every result can be verified.
 _Avoid_: validator
+
+**Solve run**:
+One attempt to solve a schedule: it keeps the problem it was given and ends with a status, and a verified result becomes a version.
+_Avoid_: job (alone), solve
+
+**Calendar feed**:
+A private, revocable link to one resource's published assignments, which a calendar app can subscribe to.
+_Avoid_: export (that is a one-off file)

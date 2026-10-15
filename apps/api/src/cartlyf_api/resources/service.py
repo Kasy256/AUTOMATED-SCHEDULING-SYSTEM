@@ -3,12 +3,14 @@ from typing import cast
 from uuid import UUID, uuid4
 
 from sqlalchemy import func
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from cartlyf_api.audit.service import record_change
 from cartlyf_api.auth.permissions import Permission, Principal
 from cartlyf_api.constraints.references import rules_referencing
 from cartlyf_api.errors import Conflict, FieldError, NotFound, Unprocessable, field_error
+from cartlyf_api.orgs import repository as orgs_repo
 from cartlyf_api.resources import repository as repo
 from cartlyf_api.resources.attribute_schema import AttributeSchema, validate_attributes
 from cartlyf_api.resources.models import Resource, ResourceType
@@ -68,6 +70,26 @@ async def _live_type(session: AsyncSession, principal: Principal, type_id: UUID)
     if rtype is None:
         raise NotFound("Unknown resource type")
     return rtype
+
+
+_ALREADY_LINKED = "This member is already linked to another resource"
+
+
+async def _check_link(
+    session: AsyncSession,
+    org: UUID,
+    rtype: ResourceType,
+    user_id: UUID,
+    resource_id: UUID | None,
+) -> None:
+    if not await orgs_repo.is_active_member(session, org, user_id):
+        raise NotFound("Unknown user")
+    if rtype.kind != "person":
+        raise Unprocessable(
+            [field_error(("body", "user_id"), "Only person resources link to a member")]
+        )
+    if any(r != resource_id for r in await repo.resource_ids_for_user(session, org, user_id)):
+        raise Conflict(_ALREADY_LINKED)
 
 
 async def create_type(
@@ -152,8 +174,13 @@ async def create_resource(
         raise Unprocessable(errors)
     if body.code in await repo.live_codes(session, org):
         raise Conflict(f"A resource with code '{body.code}' already exists")
+    if body.user_id is not None:
+        await _check_link(session, org, rtype, body.user_id, None)
     resource_id = uuid4()
-    await repo.insert_resources(session, [resource_row(resource_id, org, body)])
+    try:
+        await repo.insert_resources(session, [resource_row(resource_id, org, body)])
+    except IntegrityError as exc:
+        raise Conflict(_ALREADY_LINKED) from exc
     await record_change(session, principal, "resource.created", "resource", resource_id)
     return ResourceResponse(id=resource_id, **body.model_dump())
 
@@ -203,8 +230,13 @@ async def update_resource(
     codes = await repo.live_codes(session, org)
     if codes.get(merged.code, resource_id) != resource_id:
         raise Conflict(f"A resource with code '{merged.code}' already exists")
+    if changes.get("user_id") is not None:
+        await _check_link(session, org, rtype, changes["user_id"], resource_id)
     if changes:
-        await repo.update_resource(session, org, resource_id, changes)
+        try:
+            await repo.update_resource(session, org, resource_id, changes)
+        except IntegrityError as exc:
+            raise Conflict(_ALREADY_LINKED) from exc
         await record_change(
             session,
             principal,

@@ -112,6 +112,31 @@ async def live_codes(session: AsyncSession, org: UUID) -> dict[str, UUID]:
     return {row[0]: row[1] for row in rows}
 
 
+async def resource_ids_for_user(session: AsyncSession, org: UUID, user_id: UUID) -> list[UUID]:
+    rows = await session.scalars(
+        select(Resource.id).where(
+            Resource.organisation_id == org,
+            Resource.user_id == user_id,
+            Resource.deleted_at.is_(None),
+        )
+    )
+    return list(rows)
+
+
+async def users_for_resources(
+    session: AsyncSession, org: UUID, resource_ids: Collection[UUID]
+) -> dict[UUID, UUID]:
+    rows = await session.execute(
+        select(Resource.id, Resource.user_id).where(
+            Resource.organisation_id == org,
+            Resource.id.in_(resource_ids),
+            Resource.user_id.is_not(None),
+            Resource.deleted_at.is_(None),
+        )
+    )
+    return {rid: uid for rid, uid in rows if uid is not None}
+
+
 async def update_resource(
     session: AsyncSession, org: UUID, resource_id: UUID, values: Mapping[str, object]
 ) -> None:

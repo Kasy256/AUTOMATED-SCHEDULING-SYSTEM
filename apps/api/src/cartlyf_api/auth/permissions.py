@@ -18,15 +18,25 @@ class Permission(StrEnum):
     MEMBERS_MANAGE = "members.manage"
     CONFIG_READ = "config.read"
     CONFIG_MANAGE = "config.manage"
+    SOLVES_RUN = "solves.run"
+    VERSIONS_READ = "versions.read"
+    VERSIONS_PUBLISH = "versions.publish"
 
 
 _ROLE_PERMISSIONS: Mapping[Role, frozenset[Permission]] = {
     Role.ORG_ADMIN: frozenset(Permission),
     Role.PLANNER: frozenset(
-        {Permission.MEMBERS_READ, Permission.CONFIG_READ, Permission.CONFIG_MANAGE}
+        {
+            Permission.MEMBERS_READ,
+            Permission.CONFIG_READ,
+            Permission.CONFIG_MANAGE,
+            Permission.SOLVES_RUN,
+            Permission.VERSIONS_READ,
+            Permission.VERSIONS_PUBLISH,
+        }
     ),
     Role.MEMBER: frozenset(),
-    Role.VIEWER: frozenset({Permission.CONFIG_READ}),
+    Role.VIEWER: frozenset({Permission.CONFIG_READ, Permission.VERSIONS_READ}),
 }
 
 
@@ -43,6 +53,9 @@ class Principal:
     roles: frozenset[Role]
     via_platform_admin: bool = False
 
+    def has(self, permission: Permission) -> bool:
+        return permission in permissions_for(self.roles)
+
     def require(self, permission: Permission) -> None:
-        if permission not in permissions_for(self.roles):
+        if not self.has(permission):
             raise Forbidden()

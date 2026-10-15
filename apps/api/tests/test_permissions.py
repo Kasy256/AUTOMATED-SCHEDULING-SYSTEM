@@ -17,10 +17,17 @@ def test_AUTH_04_permissions_are_union_of_roles() -> None:
 
 def test_role_capabilities() -> None:
     assert permissions_for([Role.ORG_ADMIN]) == frozenset(Permission)
-    planner = {Permission.MEMBERS_READ, Permission.CONFIG_READ, Permission.CONFIG_MANAGE}
+    planner = {
+        Permission.MEMBERS_READ,
+        Permission.CONFIG_READ,
+        Permission.CONFIG_MANAGE,
+        Permission.SOLVES_RUN,
+        Permission.VERSIONS_READ,
+        Permission.VERSIONS_PUBLISH,
+    }
     assert permissions_for([Role.PLANNER]) == planner
     assert permissions_for([Role.MEMBER]) == frozenset()
-    assert permissions_for([Role.VIEWER]) == {Permission.CONFIG_READ}
+    assert permissions_for([Role.VIEWER]) == {Permission.CONFIG_READ, Permission.VERSIONS_READ}
     assert permissions_for([Role.MEMBER, Role.PLANNER]) == planner
 
 
@@ -29,3 +36,9 @@ def test_principal_require() -> None:
     planner.require(Permission.MEMBERS_READ)
     with pytest.raises(Forbidden):
         planner.require(Permission.MEMBERS_MANAGE)
+
+
+def test_principal_has() -> None:
+    viewer = Principal(uuid4(), uuid4(), frozenset({Role.VIEWER}))
+    assert viewer.has(Permission.VERSIONS_READ)
+    assert not viewer.has(Permission.SOLVES_RUN)

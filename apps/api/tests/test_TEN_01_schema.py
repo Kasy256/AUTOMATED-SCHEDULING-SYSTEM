@@ -14,7 +14,13 @@ NON_TENANT_TABLES = {
     "email_outbox",
     "industry_template",
 }
-EXPECTED_DEFINER_FUNCTIONS = {"user_id_by_email", "refresh_token_user_id"}
+EXPECTED_DEFINER_FUNCTIONS = {
+    "user_id_by_email",
+    "refresh_token_user_id",
+    "calendar_feed_org",
+}
+# Capability-URL lookup by hash cannot lead with the organisation: the org is what it resolves.
+TOKEN_LOOKUP_INDEXES = {"calendar_feed_token_hash_key"}
 
 _TABLES_SQL = """
 SELECT c.relname, c.relrowsecurity, c.relforcerowsecurity,
@@ -49,7 +55,9 @@ def tenancy_violations(url: str) -> list[str]:
         indexes = fetch(url, _INDEX_LEADS_SQL.format(table=name))
         # A single-column `id` primary key is exempt; every other index leads with the org.
         bad = [
-            index for index, first, primary in indexes if first != "organisation_id" and not primary
+            index
+            for index, first, primary in indexes
+            if first != "organisation_id" and not primary and index not in TOKEN_LOOKUP_INDEXES
         ]
         if bad:
             problems.append(f"{name}: indexes must lead with organisation_id: {bad}")

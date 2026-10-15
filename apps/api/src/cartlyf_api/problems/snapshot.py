@@ -52,6 +52,8 @@ from cartlyf_engine.domain import (
 class Snapshot:
     problem: Problem
     hash: str
+    origin: datetime
+    timezone: str
 
 
 Minutes = Callable[[datetime], int]
@@ -212,4 +214,4 @@ async def build_snapshot(
             _constraint(c, types) for c in sorted(constraints, key=lambda c: str(c.id))
         ),
     )
-    return Snapshot(problem, problem_hash(problem))
+    return Snapshot(problem, problem_hash(problem), origin, schedule.timezone)

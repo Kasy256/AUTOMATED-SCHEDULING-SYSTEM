@@ -35,6 +35,7 @@ class Resource(Base):
     capacity: Mapped[int | None]
     size: Mapped[int | None]
     concurrency: Mapped[int]
+    user_id: Mapped[UUID | None]
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now())
     deleted_at: Mapped[datetime | None]

@@ -16,6 +16,7 @@ EXAMPLE_IDS: Mapping[str, UUID] = MappingProxyType(
                 "slot_template_id",
                 "demand_id",
                 "activity_id",
+                "user_id",
             ),
             start=1,
         )
