@@ -9,9 +9,12 @@ from cartlyf_api.auth.dependencies import CurrentPrincipal
 from cartlyf_api.email.outbox import deliver_all
 from cartlyf_api.errors import problem_response
 from cartlyf_api.tenancy import DbSession
-from cartlyf_api.versions import editing, service
+from cartlyf_api.versions import editing, explain, service
 from cartlyf_api.versions.schemas import (
     DraftRequest,
+    ExplanationOut,
+    MoveCheckOut,
+    MoveRequest,
     MyAssignment,
     VersionDetail,
     VersionDiff,
@@ -28,6 +31,7 @@ _READ: dict[int | str, dict[str, Any]] = {
 _DIFF = {**_READ, 422: problem_response("Versions belong to different schedules")}
 _DRAFT = {**_READ, 422: problem_response("The edit is invalid or breaks hard rules")}
 _STATE = {**_READ, 409: problem_response("Not allowed in the version's current status")}
+_MOVE = {**_READ, 422: problem_response("The move is malformed")}
 
 
 @router.get(
@@ -113,3 +117,23 @@ async def archive(
     version_id: UUID, session: DbSession, principal: CurrentPrincipal
 ) -> VersionDetail:
     return await editing.archive(session, principal, version_id)
+
+
+@router.post(
+    "/solution-versions/{version_id}/validate-move", response_model=MoveCheckOut, responses=_MOVE
+)
+async def validate_move(
+    version_id: UUID, body: MoveRequest, session: DbSession, principal: CurrentPrincipal
+) -> MoveCheckOut:
+    return await explain.validate_move(session, principal, version_id, body)
+
+
+@router.get(
+    "/solution-versions/{version_id}/assignments/{activity_id}/explanation",
+    response_model=ExplanationOut,
+    responses=_READ,
+)
+async def explain_assignment(
+    version_id: UUID, activity_id: UUID, session: DbSession, principal: CurrentPrincipal
+) -> ExplanationOut:
+    return await explain.explain(session, principal, version_id, activity_id)
