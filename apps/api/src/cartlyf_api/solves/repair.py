@@ -16,8 +16,8 @@ from cartlyf_engine.domain import Assignment, Pin, Problem, problem_hash
 async def repair_snapshot(
     session: AsyncSession, org: UUID, schedule_id: UUID, freeze_before: datetime
 ) -> tuple[Snapshot, UUID]:
-    """The schedule's snapshot with the published version as baseline and every assignment
-    starting before `freeze_before` pinned; also returns the baseline version id."""
+    """The schedule's snapshot with the published version as baseline, every assignment starting
+    before `freeze_before` pinned and no other start before it; also returns the baseline id."""
     snapshot = await build_snapshot(session, org, schedule_id)
     problem = snapshot.problem
     if not any(c.template_key == "stability" for c in problem.constraints):
@@ -41,9 +41,17 @@ async def repair_snapshot(
             frozen[str(activity_id)] = Pin(start=start, resources=resources)
     data = problem.model_dump(mode="json")
     data["baseline"] = [b.model_dump(mode="json") for b in baseline]
+    cutoff = floor_minutes(snapshot.origin, freeze_before)
     for activity in data["activities"]:
         if activity["id"] in frozen:
             activity["pinned"] = frozen[activity["id"]].model_dump(mode="json")
+            continue
+        # Nothing new may be placed in time that has already passed.
+        activity["candidate_starts"] = [s for s in activity["candidate_starts"] if s >= cutoff]
+        if not activity["candidate_starts"]:
+            raise Unprocessable(
+                [field_error(("body", "freeze_before"), "some activities have no start after it")]
+            )
     try:
         repaired = Problem.model_validate(data)
     except ValidationError:

@@ -5,16 +5,19 @@ from zoneinfo import ZoneInfo
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from testcontainers.community.postgres import PostgresContainer
 
 from support import (
     Account,
     add_rule,
     build_schedule,
+    fetch,
     get_version,
     publish,
     run_now,
     signup_and_confirm,
     solve_now,
+    superuser_url,
 )
 
 pytestmark = pytest.mark.integration
@@ -91,6 +94,7 @@ def test_EXP_04_repair_changes_little_and_keeps_the_past(client: TestClient, app
     assert (diff["added"], diff["removed"]) == ([], [])
     assert 1 <= len(changed) <= len(hit)  # P9: the documented bound
     assert all(_at(c["before"]["start_at"]) >= freeze for c in changed)
+    assert all(_at(c["after"]["start_at"]) >= freeze for c in changed)
     assert not [
         a
         for a in draft["assignments"]
@@ -141,3 +145,19 @@ def test_repair_rejects_a_frozen_assignment_that_no_longer_fits(
     response = _repair(client, admin, schedule_id, freeze)
     assert response.status_code == 422
     assert room not in response.text
+
+
+def test_repair_never_offers_a_start_before_the_freeze(
+    client: TestClient, app: FastAPI, migrated_pg: PostgresContainer
+) -> None:
+    admin, schedule_id, published_id = _published(client, app)
+    freeze = _freeze(get_version(client, admin, published_id)["assignments"])
+    run = _repair(client, admin, schedule_id, freeze).json()
+    ((problem, origin),) = fetch(
+        superuser_url(migrated_pg),
+        f"SELECT problem, horizon_origin FROM solve_run WHERE id = '{run['id']}'",
+    )
+    cutoff = (freeze - origin).total_seconds() // 60
+    for activity in problem["activities"]:
+        if activity["pinned"] is None:
+            assert min(activity["candidate_starts"]) >= cutoff, activity["id"]
