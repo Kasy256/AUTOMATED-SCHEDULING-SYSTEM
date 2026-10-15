@@ -120,6 +120,29 @@ def test_EXP_02_neighbourhood_matches_the_whole_schedule(data: st.DataObject, p:
     assert sorted((b.constraint_id, b.message) for b in report.broken) == expected
 
     penalty = {t.constraint_id: t.penalty for t in before.terms}
-    full = {t.constraint_id: t.penalty - penalty[t.constraint_id] for t in after.terms}
-    local = {c.constraint_id: c.after - c.before for c in report.penalties}
-    assert local == {k: v for k, v in full.items() if v != 0}
+    full = {t.constraint_id: (penalty[t.constraint_id], t.penalty) for t in after.terms}
+    local = {c.constraint_id: (c.before, c.after) for c in report.penalties}
+    assert local == {k: v for k, v in full.items() if v[0] != v[1]}
+
+
+def test_EXP_02_penalties_are_whole_schedule_totals() -> None:
+    p = problem(
+        [person("p"), person("q")],
+        [
+            act("a1", 60, [0], needs()),
+            act("a2", 60, [60, 180], needs()),
+            act("b1", 60, [0], needs()),
+            act("b2", 60, [180], needs()),
+        ],
+        [rule("gaps", "minimize_gaps", hard=False, weight=1, per_minutes=60)],
+    )
+    now = [
+        place("a1", 0, who="p"),
+        place("a2", 60, who="p"),
+        place("b1", 0, who="q"),
+        place("b2", 180, who="q"),
+    ]
+    (change,) = MoveChecker(p, now).check(place("a2", 180, who="p")).penalties
+    total = check(p, now).soft_total
+    assert total > 0  # q's gap, outside p's neighbourhood
+    assert (change.before, change.after) == (total, 2 * total)

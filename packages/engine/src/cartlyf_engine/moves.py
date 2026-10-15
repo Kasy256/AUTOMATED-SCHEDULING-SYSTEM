@@ -53,6 +53,10 @@ class MoveChecker:
         self._ctx = CheckContext(problem, self.index, placed)
         self._hood = Neighbourhood(problem, problem.constraints)
         self._rules = {c.id: c for c in problem.constraints}
+        # Neighbourhood checks give only the change; totals come from the whole schedule.
+        self._totals = {
+            t.constraint_id: t.penalty for t in check(problem, assignments, self.index).terms
+        }
 
     def placed(self, activity_id: str) -> Assignment | None:
         return self._ctx.placed.get(activity_id)
@@ -108,16 +112,20 @@ class MoveChecker:
 
     def _changes(self, before: Score, after: Score) -> tuple[PenaltyChange, ...]:
         old = {t.constraint_id: t.penalty for t in before.terms}
-        return tuple(
-            PenaltyChange(
-                constraint_id=t.constraint_id,
-                rule=self.rule_text(t.constraint_id),
-                before=old.get(t.constraint_id, 0),
-                after=t.penalty,
-            )
-            for t in after.terms
-            if t.penalty != old.get(t.constraint_id, 0)
-        )
+        changes: list[PenaltyChange] = []
+        for term in after.terms:
+            delta = term.penalty - old.get(term.constraint_id, 0)
+            if delta:
+                total = self._totals.get(term.constraint_id, 0)
+                changes.append(
+                    PenaltyChange(
+                        constraint_id=term.constraint_id,
+                        rule=self.rule_text(term.constraint_id),
+                        before=total,
+                        after=total + delta,
+                    )
+                )
+        return tuple(changes)
 
 
 def _merged(core: Score, wide: Score, ids: set[str]) -> Score:
