@@ -10,6 +10,14 @@ CORE_OVERLAP = "core:overlap"
 CORE_UNAVAILABLE = "core:unavailable"
 CORE_PIN = "core:pin"
 REQUIREMENTS_TERM = "core:requirements"
+CORE_RULES = {
+    CORE_PLACEMENT: "Every activity is placed once, at one of its candidate starts",
+    CORE_REQUIREMENT: "Every role is filled by enough matching resources",
+    CORE_OVERLAP: "A resource is never in more activities at once than it can handle",
+    CORE_UNAVAILABLE: "Resources are never scheduled while unavailable",
+    CORE_PIN: "Pinned assignments stay where they are pinned",
+    REQUIREMENTS_TERM: "Soft staffing requirements are filled",
+}
 
 
 class Assignment(Frozen):

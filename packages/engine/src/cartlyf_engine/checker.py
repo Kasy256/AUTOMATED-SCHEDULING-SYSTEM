@@ -27,8 +27,12 @@ from cartlyf_engine.templates.registry import UnsupportedTemplate, get_template
 _DETAILS_SHOWN = 5
 
 
-def check(problem: Problem, assignments: Sequence[Assignment]) -> Score:
-    index = ProblemIndex(problem)
+def check(
+    problem: Problem, assignments: Sequence[Assignment], index: ProblemIndex | None = None
+) -> Score:
+    """`index` may come from a problem this one was cut from (lookups are by id), so repeated
+    checks of a neighbourhood skip rebuilding it."""
+    index = index or ProblemIndex(problem)
     violations: list[Violation] = []
     placed = _placement(problem, index, assignments, violations)
     shortfalls = _requirements(index, placed, violations)
