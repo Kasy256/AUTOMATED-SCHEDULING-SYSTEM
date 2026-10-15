@@ -2965,6 +2965,24 @@
    "weight": 0
   },
   {
+   "hard": false,
+   "id": "Repairs keep the published timetable",
+   "params": {
+    "per_change": 1,
+    "per_resource_change": 1
+   },
+   "scope": {
+    "attrs": [],
+    "resource_ids": [],
+    "resource_type_keys": [],
+    "series_ids": [],
+    "tags": []
+   },
+   "template_key": "stability",
+   "version": 1,
+   "weight": 100
+  },
+  {
    "hard": true,
    "id": "Room seats every student",
    "params": {

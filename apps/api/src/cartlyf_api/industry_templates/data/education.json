@@ -1,6 +1,6 @@
 {
   "key": "education",
-  "version": 1,
+  "version": 2,
   "name": "Education",
   "description": "Weekly class timetabling for lecturers, rooms and student groups (ISBAT-equivalent).",
   "resource_types": [
@@ -114,6 +114,8 @@
     {"name": "Few wasted seats", "template_key": "capacity_fit", "version": 1,
      "params": {"headcount_from": "group_sizes"}, "hard": false, "weight": 20},
     {"name": "Classes spread over the week", "template_key": "day_distribution", "version": 1,
-     "scope": {"resource_type_keys": ["student_group"]}, "hard": false, "weight": 15}
+     "scope": {"resource_type_keys": ["student_group"]}, "hard": false, "weight": 15},
+    {"name": "Repairs keep the published timetable", "template_key": "stability", "version": 1,
+     "params": {"per_change": 1, "per_resource_change": 1}, "hard": false, "weight": 100}
   ]
 }

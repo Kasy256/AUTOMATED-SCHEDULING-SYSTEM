@@ -62,7 +62,15 @@ def test_EDU_02_soft_rules_and_weights() -> None:
         (c.template_key, c.weight) for c in load_packaged("education").constraints if not c.hard
     }
     expected = {("minimize_gaps", 35), ("balance", 30), ("capacity_fit", 20)}
-    assert soft == expected | {("day_distribution", 15)}
+    assert soft == expected | {("day_distribution", 15), ("stability", 100)}
+
+
+def test_education_v2_repairs_stay_close_to_the_published_plan() -> None:
+    template = load_packaged("education")
+    (stability,) = [c for c in template.constraints if c.template_key == "stability"]
+    assert template.version == 2
+    assert stability.params == {"per_change": 1, "per_resource_change": 1}
+    assert stability.scope.resource_type_keys == []
 
 
 def test_EDU_02_periods_come_from_legacy_config() -> None:
@@ -112,15 +120,16 @@ def test_EDU_02_migration_seeds_the_packaged_template(migrated_pg: PostgresConta
         superuser_url(migrated_pg),
         "SELECT key, version, definition FROM industry_template ORDER BY key",
     )
+    rows = sorted(rows, key=lambda row: row[1])
     packaged = load_packaged("education").model_dump(mode="json")
-    assert [(k, v) for k, v, _ in rows] == [("education", 1)]
-    assert rows[0][2] == packaged
+    assert [(k, v) for k, v, _ in rows] == [("education", 1), ("education", 2)]
+    assert rows[-1][2] == packaged
 
 
 @pytest.mark.integration
 def test_app_role_can_only_read_templates(migrated_pg: PostgresContainer) -> None:
     app_url = db_url(migrated_pg, *APP)
-    assert fetch(app_url, "SELECT count(*) FROM industry_template") == [(1,)]
+    assert fetch(app_url, "SELECT count(*) FROM industry_template") == [(2,)]
     with pytest.raises(Exception, match="permission denied"):
         fetch(app_url, "DELETE FROM industry_template RETURNING key")
 
@@ -131,17 +140,18 @@ def test_members_list_templates(client: TestClient, app: FastAPI) -> None:
     response = client.get("/api/v1/industry-templates", headers=admin.auth)
     assert response.status_code == 200, response.text
     [education] = response.json()
-    assert education["key"] == "education"
-    assert len(education["constraints"]) == 11
+    assert (education["key"], education["version"]) == ("education", 2)
+    assert len(education["constraints"]) == 12
     assert client.get("/api/v1/industry-templates").status_code == 401
 
 
-MIGRATION = Path(__file__).resolve().parents[1] / "migrations/versions/0005_industry_template.py"
+VERSIONS = Path(__file__).resolve().parents[1] / "migrations/versions"
 
 
-def test_template_migration_is_frozen() -> None:
-    # Migrations never change: 0005 seeds a frozen copy, never the live file or models.
-    tree = ast.parse(MIGRATION.read_text(encoding="utf-8"))
+@pytest.mark.parametrize("migration", ["0005_industry_template.py", "0008_education_v2.py"])
+def test_template_migrations_are_frozen(migration: str) -> None:
+    # Migrations never change: they seed frozen copies, never the live file or models.
+    tree = ast.parse((VERSIONS / migration).read_text(encoding="utf-8"))
     imported = {
         name
         for node in ast.walk(tree)
@@ -153,6 +163,15 @@ def test_template_migration_is_frozen() -> None:
         )
     }
     assert not any(n.startswith(("cartlyf_api", "cartlyf_engine")) for n in imported), imported
-    frozen = json.loads(MIGRATION.with_name("0005_education_v1.json").read_text(encoding="utf-8"))
-    # Editing education v1 in place would fork fresh and existing databases: bump the version.
+
+
+def test_latest_frozen_copy_is_the_packaged_template() -> None:
+    frozen = json.loads((VERSIONS / "0008_education_v2.json").read_text(encoding="utf-8"))
+    # Editing a seeded version in place would fork fresh and existing databases: bump it.
     assert frozen == load_packaged("education").model_dump(mode="json")
+
+
+def test_education_v1_copy_is_unchanged() -> None:
+    v1 = json.loads((VERSIONS / "0005_education_v1.json").read_text(encoding="utf-8"))
+    assert v1["version"] == 1
+    assert len(v1["constraints"]) == 11

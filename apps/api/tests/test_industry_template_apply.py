@@ -47,7 +47,9 @@ def test_apply_creates_types_schedule_slots_and_rules(client: TestClient, app: F
     assert created["slot_template_ids"] == {"Teaching periods": slot_template["id"]}
 
     rules = client.get(f"/api/v1/schedules/{schedule_id}/constraints", headers=admin.auth).json()
-    assert len(rules) == 11 and all(r["enabled"] for r in rules)
+    assert len(rules) == 12 and all(r["enabled"] for r in rules)
+    (stability,) = [r for r in rules if r["template_key"] == "stability"]
+    assert (stability["hard"], stability["weight"]) == (False, 100)  # repairs work out of the box
     daily = next(r for r in rules if r["name"] == "Lecturer: at most 2 sessions a day")
     assert daily["scope"]["resource_type_ids"] == [created["resource_type_ids"]["lecturer"]]
 
@@ -61,7 +63,7 @@ def test_apply_is_audited(client: TestClient, app: FastAPI, migrated_pg: Postgre
         f"WHERE organisation_id = '{admin.organisation_id}' "
         "AND action = 'schedule.created_from_template'",
     )
-    assert rows == [(created["schedule"]["id"], "education@v1")]
+    assert rows == [(created["schedule"]["id"], "education@v2")]
 
 
 def test_apply_twice_reuses_types(client: TestClient, app: FastAPI) -> None:
