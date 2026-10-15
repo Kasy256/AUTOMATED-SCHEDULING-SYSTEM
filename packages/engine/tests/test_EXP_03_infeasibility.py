@@ -51,3 +51,8 @@ def test_EXP_03_feasible_problem_gives_an_empty_report() -> None:
     p = problem([person("p")], [act("a1", 60, [0], needs())])
     report = diagnose(p, time_limit_s=10)
     assert (report.conflicts, report.relaxations) == ((), ())
+
+
+def test_EXP_03_optional_roles_need_no_pool() -> None:
+    p = problem([person("p")], [act("a1", 60, [0], needs(count=0))])
+    assert diagnose(p, time_limit_s=10).conflicts == ()

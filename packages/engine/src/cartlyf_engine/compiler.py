@@ -171,7 +171,7 @@ def _staff(
                 core.forbid(pin)
         count = sum(role.values())
         model.add(count <= req.count_max)
-        if req.hard:
+        if req.hard and req.count_min > 0:
             core.require(count >= req.count_min, pools[req.role, req.filter])
         elif req.count_min > 0:
             short = model.new_int_var(0, req.count_min, "")
