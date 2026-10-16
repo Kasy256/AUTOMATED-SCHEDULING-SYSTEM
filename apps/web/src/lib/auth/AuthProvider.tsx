@@ -5,9 +5,11 @@ import {
   useContext,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type ReactNode,
 } from "react";
+import { useNavigate } from "react-router";
 
 import {
   loginRoute,
@@ -19,7 +21,14 @@ import type { MeResponse } from "@/api/generated/model";
 import { onSignedOut } from "@/api/client";
 import { can as canWith, type Action } from "@/lib/permissions";
 
-import { refreshAccessToken, setAccessToken } from "./session";
+import {
+  getTokenOrganisation,
+  refreshAccessToken,
+  setAccessToken,
+  setSession,
+  subscribeToken,
+  withSessionLock,
+} from "./session";
 
 interface AuthState {
   status: "loading" | "signedOut" | "signedIn";
@@ -34,18 +43,23 @@ const AuthContext = createContext<AuthState | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
+  const navigate = useNavigate();
   const [me, setMe] = useState<MeResponse | null>(null);
   const [status, setStatus] = useState<AuthState["status"]>("loading");
+  const meRef = useRef<MeResponse | null>(null);
 
   const signedOut = useCallback(() => {
     setAccessToken(null);
+    meRef.current = null;
     setMe(null);
     setStatus("signedOut");
     queryClient.clear();
   }, [queryClient]);
 
   const loadMe = useCallback(async () => {
-    setMe(await fetchMe());
+    const next = await fetchMe();
+    meRef.current = next;
+    setMe(next);
     setStatus("signedIn");
   }, []);
 
@@ -58,13 +72,31 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return onSignedOut(signedOut);
   }, [loadMe, signedOut]);
 
+  // The active organisation lives with the shared refresh cookie: a switch in this tab, a switch or
+  // accepted invitation in another tab, or a new login can all hand this tab a token for a different
+  // organisation. Nothing from the previous organisation may stay on screen or receive writes.
+  useEffect(
+    () =>
+      subscribeToken(() => {
+        const org = getTokenOrganisation();
+        const current = meRef.current;
+        if (!current || org === null || org === current.organisation_id) return;
+        queryClient.clear();
+        void loadMe().then(() => navigate("/", { replace: true }), signedOut);
+      }),
+    [loadMe, navigate, queryClient, signedOut],
+  );
+
   const value = useMemo<AuthState>(
     () => ({
       status,
       me,
       async login(email, password) {
+        // A previous user's cached data must never render under the new identity.
+        queryClient.clear();
         const token = await loginRoute({ email, password });
-        setAccessToken(token.access_token);
+        meRef.current = null;
+        setSession(token);
         await loadMe();
       },
       async logout() {
@@ -72,13 +104,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         signedOut();
       },
       async switchOrganisation(organisationId) {
-        const token = await switchOrganisationRequest({
-          organisation_id: organisationId,
-        });
-        setAccessToken(token.access_token);
-        // Nothing cached for the previous organisation may render after the switch.
-        queryClient.clear();
-        await loadMe();
+        const token = await withSessionLock(() =>
+          switchOrganisationRequest({ organisation_id: organisationId }),
+        );
+        setSession(token);
       },
       can: (action) => (me ? canWith(me.roles, action) : false),
     }),

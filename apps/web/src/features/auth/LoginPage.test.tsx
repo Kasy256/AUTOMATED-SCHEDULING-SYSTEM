@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import * as auth from "@/lib/auth/AuthProvider";
 import { ApiError } from "@/lib/problem";
 import { renderWithProviders } from "@/test/render";
+import { Route, Routes } from "react-router";
 
 import { LoginPage } from "./LoginPage";
 
@@ -53,5 +54,23 @@ describe("LoginPage", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Confirm your email address first",
     );
+  });
+  it("sends an already signed-in visitor home", async () => {
+    vi.spyOn(auth, "useAuth").mockReturnValue({
+      status: "signedIn",
+      me: null,
+      login: vi.fn(),
+      logout: vi.fn(),
+      switchOrganisation: vi.fn(),
+      can: () => true,
+    });
+    renderWithProviders(
+      <Routes>
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/" element={<p>home page</p>} />
+      </Routes>,
+      { route: "/login" },
+    );
+    expect(await screen.findByText("home page")).toBeInTheDocument();
   });
 });
