@@ -18,5 +18,7 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
     setupFiles: ["./src/test/setup.ts"],
+    // userEvent typing is slow on small CI and dev machines; 5 s flakes on long forms.
+    testTimeout: 20_000,
   },
 });

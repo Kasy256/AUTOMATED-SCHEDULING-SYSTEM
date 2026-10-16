@@ -26,6 +26,13 @@ export default defineConfig([
         tsconfigRootDir: import.meta.dirname,
       },
     },
+    rules: {
+      // react-hook-form field paths are template literals with array indexes.
+      "@typescript-eslint/restrict-template-expressions": [
+        "error",
+        { allowNumber: true },
+      ],
+    },
   },
   {
     // shadcn components are generated and export variants next to components.
