@@ -56,6 +56,51 @@ jobs:
       - run: pnpm test
       - run: pnpm build
 
+  e2e:
+    runs-on: ubuntu-24.04
+    defaults:
+      run:
+        working-directory: apps/web
+    steps:
+      - uses: actions/checkout@v7
+      - uses: astral-sh/setup-uv@v10.3.0
+        with:
+          enable-cache: true
+      - run: uv sync --frozen --no-dev
+        working-directory: .
+      # The example values are throwaway local credentials, fine for an isolated CI stack.
+      - run: cp .env.example .env
+        working-directory: .
+      - run: docker compose up -d --wait postgres redis minio
+        working-directory: .
+      # One-shot container that creates the bucket and exits.
+      - run: docker compose up minio-init
+        working-directory: .
+      - run: uv run alembic -c apps/api/alembic.ini upgrade head
+        working-directory: .
+        env:
+          CARTLYF_MIGRATION_DATABASE_URL: postgresql+asyncpg://cartlyf_owner:change-me-owner@127.0.0.1:5432/cartlyf
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: apps/web/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm api:generate
+      - run: pnpm exec playwright install --with-deps chromium
+      - run: pnpm e2e
+      - if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            apps/web/playwright-report
+            apps/web/test-results
+          retention-days: 7
+
   security:
     runs-on: ubuntu-24.04
     steps:
