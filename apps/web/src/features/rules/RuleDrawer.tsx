@@ -3,6 +3,7 @@ import { useMemo, useState } from "react";
 import { Controller, FormProvider, useForm } from "react-hook-form";
 import { toast } from "sonner";
 
+import { getListDemandsQueryKey } from "@/api/generated/activities/activities";
 import {
   createConstraint,
   deleteConstraint,
@@ -14,6 +15,10 @@ import type {
   ConstraintWrite,
   TemplateResponse,
 } from "@/api/generated/model";
+import {
+  getListResourcesQueryKey,
+  getListResourceTypesQueryKey,
+} from "@/api/generated/resources/resources";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { FieldError } from "@/components/FieldError";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -36,6 +41,7 @@ import { useRefOptions } from "./schema-form/RefOptions";
 import {
   initialValues,
   parseSchema,
+  renderedField,
   toParams,
   type FormParams,
   type JsonSchema,
@@ -129,17 +135,28 @@ export function RuleDrawer({
       onOpenChange(false);
     } catch (error) {
       if (isApiError(error) && error.status === 404) {
+        // A demand, resource or type this rule names was deleted elsewhere; refresh the pickers so
+        // the stale chips show as unknown, and say which kind is missing.
+        await Promise.all(
+          [
+            getListDemandsQueryKey(scheduleId),
+            getListResourcesQueryKey(),
+            getListResourceTypesQueryKey(),
+          ].map((queryKey) => queryClient.invalidateQueries({ queryKey })),
+        );
         setMessage(
-          "Something this rule refers to no longer exists — check the pickers.",
+          error.detail === "Unknown constraint instance"
+            ? "This rule was deleted elsewhere. Close the drawer to see the current rules."
+            : `${error.detail ?? error.title}: something this rule refers to no longer exists — check the pickers.`,
         );
         return;
       }
+      const onField = renderedField(nodes);
       setMessage(
         applyApiError(
           error,
           form.setError,
-          (n) =>
-            ["name", "weight", "hard"].includes(n) || n.startsWith("params."),
+          (n) => ["name", "weight", "hard"].includes(n) || onField(n),
         ),
       );
     }

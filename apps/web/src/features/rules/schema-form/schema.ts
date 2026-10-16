@@ -340,3 +340,19 @@ export function toParams(
   const errors: Issue[] = [];
   return { params: convertAll(nodes, values, "", errors), errors };
 }
+
+function fieldPatterns(nodes: FieldNode[], prefix: string): string[] {
+  return nodes.flatMap((n) => {
+    const path = `${prefix}${n.name}`;
+    if (n.kind === "object")
+      return [path, ...fieldPatterns(n.fields, `${path}.`)];
+    if (n.kind === "objectList") return fieldPatterns(n.fields, `${path}.*.`);
+    return [path];
+  });
+}
+
+/** True when an API error path (e.g. `params.pairs.0.before`) lands on a control the form renders. */
+export function renderedField(nodes: FieldNode[]): (name: string) => boolean {
+  const patterns = new Set(fieldPatterns(nodes, "params."));
+  return (name) => patterns.has(name.replace(/\.\d+(?=\.)/g, ".*"));
+}

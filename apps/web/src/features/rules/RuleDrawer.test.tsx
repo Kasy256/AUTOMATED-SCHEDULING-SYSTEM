@@ -162,4 +162,91 @@ describe("RuleDrawer", () => {
     expect(await screen.findByText("Required")).toBeInTheDocument();
     expect(onPost).not.toHaveBeenCalled();
   });
+  it("shows a 422 on a nested params location that no field renders", async () => {
+    api(
+      () =>
+        new Response(
+          JSON.stringify({
+            title: "Unprocessable Content",
+            status: 422,
+            errors: [
+              {
+                loc: ["body", "params", "pairs", 0],
+                msg: "before and after must differ",
+                type: "value_error",
+              },
+            ],
+          }),
+          {
+            status: 422,
+            headers: { "Content-Type": "application/problem+json" },
+          },
+        ),
+    );
+    renderWithProviders(
+      <RuleDrawer
+        scheduleId="s1"
+        template={maxLoad}
+        rule={null}
+        open
+        onOpenChange={vi.fn()}
+      />,
+    );
+    await userEvent.selectOptions(
+      await screen.findByLabelText("Period"),
+      "day",
+    );
+    await userEvent.type(screen.getByLabelText("Max activities"), "2");
+    await userEvent.click(screen.getByRole("button", { name: "Save rule" }));
+    expect(
+      await screen.findByText("before and after must differ"),
+    ).toBeInTheDocument();
+  });
+
+  it("names what is missing on 404 and refreshes the pickers", async () => {
+    let demandFetches = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string, init?: RequestInit) => {
+        if (init?.method === "POST")
+          return Promise.resolve(
+            new Response(
+              JSON.stringify({
+                title: "Not Found",
+                status: 404,
+                detail: "Unknown demand",
+              }),
+              {
+                status: 404,
+                headers: { "Content-Type": "application/problem+json" },
+              },
+            ),
+          );
+        if (url.endsWith("/schedules/s1"))
+          return Promise.resolve(jsonResponse(schedule));
+        if (url.includes("/demands")) demandFetches += 1;
+        return Promise.resolve(jsonResponse([]));
+      }),
+    );
+    renderWithProviders(
+      <RuleDrawer
+        scheduleId="s1"
+        template={maxLoad}
+        rule={null}
+        open
+        onOpenChange={vi.fn()}
+      />,
+    );
+    await userEvent.selectOptions(
+      await screen.findByLabelText("Period"),
+      "day",
+    );
+    await userEvent.type(screen.getByLabelText("Max activities"), "2");
+    const before = demandFetches;
+    await userEvent.click(screen.getByRole("button", { name: "Save rule" }));
+    expect(await screen.findByText(/Unknown demand/)).toBeInTheDocument();
+    await vi.waitFor(() => {
+      expect(demandFetches).toBeGreaterThan(before);
+    });
+  });
 });
