@@ -246,8 +246,8 @@ export function AvailabilityGrid({
         </Button>
         <p className="text-xs text-muted-foreground">
           Empty means always available. Once any Available block exists, only
-          Available blocks count. Keyboard: arrows move, Shift+arrows select,
-          1–4 or 0 pick, Enter applies.
+          Available, Preferred and Avoid blocks can be booked. Keyboard: arrows
+          move, Shift+arrows select, 1–4 or 0 pick, Enter applies.
         </p>
       </div>
     </div>
