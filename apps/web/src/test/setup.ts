@@ -16,3 +16,8 @@ globalThis.ResizeObserver = class {
     // nothing to measure in jsdom
   }
 };
+
+// jsdom lacks scrollIntoView; cmdk scrolls the highlighted option into view.
+Element.prototype.scrollIntoView = function scrollIntoView() {
+  // nothing to scroll in jsdom
+};
