@@ -53,7 +53,7 @@ One thing to place in time: a duration, the starts it may take, and what it need
 _Avoid_: event, lesson, shift (as the generic word), job
 
 **Series**:
-All activities produced by one demand.
+All activities produced by one demand. The engine and its rule texts say "series"; the product UI says "demand" for the same thing (a series id is the demand's id).
 
 **Candidate start**:
 A start time an activity is allowed to take.
