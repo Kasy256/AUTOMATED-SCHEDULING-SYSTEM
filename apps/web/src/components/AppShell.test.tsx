@@ -1,4 +1,5 @@
-import { screen } from "@testing-library/react";
+import { screen, within } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 
 import * as auth from "@/lib/auth/AuthProvider";
 import { jsonResponse, renderWithProviders } from "@/test/render";
@@ -73,5 +74,19 @@ describe("AppShell", () => {
       await screen.findByRole("link", { name: "Resources" }),
     ).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: "Members" })).toBeNull();
+  });
+  it("keeps the phone navigation open while its menus are used", async () => {
+    mockAuth(["org_admin"]);
+    renderWithProviders(<AppShell />, { route: "/resources" });
+    await userEvent.click(
+      screen.getByRole("button", { name: "Open navigation" }),
+    );
+    const sheet = await screen.findByRole("dialog");
+    await userEvent.click(within(sheet).getByRole("button", { name: /ISBAT/ }));
+    // The open menu hides everything else from assistive tech, so look past aria-hidden.
+    expect(screen.getByRole("dialog", { hidden: true })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("menuitem", { name: "Sign out" }),
+    ).toBeInTheDocument();
   });
 });

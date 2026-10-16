@@ -1,6 +1,6 @@
 import { Menu } from "lucide-react";
 import { useState } from "react";
-import { NavLink, Outlet, useParams } from "react-router";
+import { NavLink, Outlet, useLocation, useParams } from "react-router";
 
 import {
   Sheet,
@@ -38,7 +38,7 @@ function NavGroup({
   );
 }
 
-function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
+function Sidebar() {
   const { scheduleId } = useParams();
   const { can } = useAuth();
   const base = scheduleId ? `/schedules/${scheduleId}` : null;
@@ -46,7 +46,6 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
     <nav
       aria-label="Main"
       className="flex h-full flex-col gap-2 bg-sidebar p-3 text-sidebar-foreground"
-      onClick={onNavigate}
     >
       <div className="flex items-center gap-2 px-2 py-1 font-semibold text-sidebar-accent-foreground">
         <span className="size-4 rounded bg-sidebar-primary" aria-hidden />{" "}
@@ -92,7 +91,12 @@ function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
 }
 
 export function AppShell() {
-  const [open, setOpen] = useState(false);
+  const { pathname } = useLocation();
+  // The phone navigation sheet closes when the route changes, not on any click inside it:
+  // its menus (schedule switcher, organisation) open from inside the sheet.
+  const [openOn, setOpenOn] = useState<string | null>(null);
+  const open = openOn === pathname;
+  const setOpen = (next: boolean) => setOpenOn(next ? pathname : null);
   return (
     <div className="flex min-h-svh">
       <aside className="hidden w-60 shrink-0 md:block">
@@ -111,11 +115,7 @@ export function AppShell() {
             </SheetTrigger>
             <SheetContent side="left" className="w-64 p-0">
               <SheetTitle className="sr-only">Navigation</SheetTitle>
-              <Sidebar
-                onNavigate={() => {
-                  setOpen(false);
-                }}
-              />
+              <Sidebar />
             </SheetContent>
           </Sheet>
           <span className="font-semibold">Cartlyf</span>
