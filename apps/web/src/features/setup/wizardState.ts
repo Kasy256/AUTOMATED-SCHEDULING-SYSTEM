@@ -25,7 +25,7 @@ export function importRows(
     return {
       key: tt.key,
       label: tt.name,
-      target: type ? { kind: "resources", resourceType: type } : null,
+      target: type ? { kind: "resources" as const, resourceType: type } : null,
       done:
         committed.find(
           (i) => i.kind === "resources" && i.resource_type_id === type?.id,
