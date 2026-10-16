@@ -44,6 +44,11 @@ export default defineConfig([
     },
   },
   {
+    files: ["e2e/**/*.ts", "playwright.config.ts"],
+    languageOptions: { globals: globals.node },
+    rules: { "react-hooks/rules-of-hooks": "off" },
+  },
+  {
     // shadcn components are generated and export variants next to components.
     files: ["src/components/ui/**"],
     rules: { "react-refresh/only-export-components": "off" },

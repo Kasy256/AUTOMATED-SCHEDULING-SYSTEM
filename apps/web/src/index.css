@@ -58,10 +58,12 @@
   --secondary: oklch(0.968 0.007 247.9);
   --secondary-foreground: oklch(0.208 0.042 265.8);
   --muted: oklch(0.968 0.007 247.9);
-  --muted-foreground: oklch(0.554 0.046 257.4); /* slate-500 */
+  --muted-foreground: oklch(
+    0.446 0.043 257.3
+  ); /* slate-600: 4.5:1 on slate-100 */
   --accent: oklch(0.953 0.051 180.8); /* teal-50 */
   --accent-foreground: oklch(0.386 0.063 188.4);
-  --destructive: oklch(0.577 0.245 27.3);
+  --destructive: oklch(0.505 0.213 27.5); /* red-700: 4.5:1 as text on white */
   --border: oklch(0.929 0.013 255.5); /* slate-200 */
   --input: oklch(0.869 0.022 252.9); /* slate-300 */
   --ring: oklch(0.704 0.14 182.5); /* teal-500 */

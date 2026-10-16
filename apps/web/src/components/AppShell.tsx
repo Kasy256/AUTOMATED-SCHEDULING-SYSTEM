@@ -30,7 +30,7 @@ function NavGroup({
 }) {
   return (
     <div className="flex flex-col gap-0.5">
-      <p className="px-3 pt-4 pb-1 text-[10px] font-medium tracking-wider text-sidebar-foreground/70 uppercase">
+      <p className="px-3 pt-4 pb-1 text-[10px] font-medium tracking-wider text-sidebar-foreground uppercase">
         {label}
       </p>
       {children}
