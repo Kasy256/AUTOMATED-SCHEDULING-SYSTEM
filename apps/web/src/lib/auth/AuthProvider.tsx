@@ -24,10 +24,10 @@ import { refreshAccessToken, setAccessToken } from "./session";
 interface AuthState {
   status: "loading" | "signedOut" | "signedIn";
   me: MeResponse | null;
-  login(email: string, password: string): Promise<void>;
-  logout(): Promise<void>;
-  switchOrganisation(organisationId: string): Promise<void>;
-  can(action: Action): boolean;
+  login: (email: string, password: string) => Promise<void>;
+  logout: () => Promise<void>;
+  switchOrganisation: (organisationId: string) => Promise<void>;
+  can: (action: Action) => boolean;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
