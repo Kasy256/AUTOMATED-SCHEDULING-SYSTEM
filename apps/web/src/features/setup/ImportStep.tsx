@@ -85,7 +85,13 @@ export function ImportStep({
               )}
             </div>
             {open === row.key && target && (
-              <ImportFlow target={target} onCommitted={() => setOpen(null)} />
+              <ImportFlow
+                target={target}
+                onCommitted={() => {
+                  // Only close this row: the user may already have opened the next one.
+                  setOpen((current) => (current === row.key ? null : current));
+                }}
+              />
             )}
           </section>
         );
