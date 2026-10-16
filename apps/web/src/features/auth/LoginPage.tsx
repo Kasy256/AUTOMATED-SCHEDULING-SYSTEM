@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useRef, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link, Navigate, useNavigate, useSearchParams } from "react-router";
 import { z } from "zod";
@@ -33,7 +33,7 @@ function loginMessage(error: unknown): string {
 export function LoginPage() {
   const { login, status } = useAuth();
   // Set once this page starts a sign-in, so its own success navigates to `next` instead.
-  const signingIn = useRef(false);
+  const [signingIn, setSigningIn] = useState(false);
   const navigate = useNavigate();
   const [params] = useSearchParams();
   const [message, setMessage] = useState<string | null>(null);
@@ -42,7 +42,7 @@ export function LoginPage() {
 
   const onSubmit = form.handleSubmit(async ({ email, password }) => {
     setMessage(null);
-    signingIn.current = true;
+    setSigningIn(true);
     try {
       await login(email, password);
       const next = params.get("next");
@@ -56,9 +56,7 @@ export function LoginPage() {
     }
   });
 
-  // eslint-disable-next-line react-hooks/refs -- read once per render to tell a visit from a submit
-  if (status === "signedIn" && !signingIn.current)
-    return <Navigate to="/" replace />;
+  if (status === "signedIn" && !signingIn) return <Navigate to="/" replace />;
 
   return (
     <AuthLayout title="Sign in" subtitle="Welcome back.">

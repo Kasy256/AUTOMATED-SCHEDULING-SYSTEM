@@ -63,6 +63,9 @@ async function switchTo(page: Page, organisation: string) {
   if ((await menu.textContent())?.includes(organisation)) return;
   await menu.click();
   await page.getByRole("menuitem", { name: organisation }).click();
+  // A switch lands on the new organisation's home (the wizard when it has no schedules).
+  await page.waitForURL((url) => url.pathname !== "/resources");
+  await page.goto("/resources");
   await expect(menu).toContainText(organisation);
 }
 
