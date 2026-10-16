@@ -10,6 +10,12 @@ export default defineConfig({
       client: "react-query",
       httpClient: "fetch",
       clean: true,
+      override: {
+        mutator: { path: "./src/api/client.ts", name: "apiFetch" },
+        // Generated functions return the success body; errors arrive as thrown ApiError.
+        fetch: { includeHttpResponseReturnType: false },
+        query: { version: 5 },
+      },
     },
   },
 });

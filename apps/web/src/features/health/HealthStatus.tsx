@@ -1,5 +1,4 @@
 import { useHealth } from "@/api/generated/health/health";
-import type { Health503 } from "@/api/generated/model";
 import {
   Card,
   CardContent,
@@ -7,21 +6,25 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { GENERIC_TITLE, isApiError } from "@/lib/problem";
 
 const yesNo = (value: boolean) => (value ? "yes" : "no");
 
+function errorText(error: Error): string {
+  if (!isApiError(error)) return "API unreachable";
+  // Proxies and crashes can answer without a problem body; the status is all there is.
+  return error.title === GENERIC_TITLE
+    ? `API error (HTTP ${String(error.status)})`
+    : error.title;
+}
+
 function HealthBody() {
-  const { data: response, isPending, isError } = useHealth();
+  const { data, isPending, error } = useHealth();
 
   if (isPending) return <p>Checking API…</p>;
-  if (isError) return <p>API unreachable</p>;
-  if (response.status !== 200) {
-    // Types only know the documented 503; proxies and crashes can return any status and body.
-    const { title } = response.data as Partial<Health503>;
-    return <p>{title ?? `API error (HTTP ${String(response.status)})`}</p>;
-  }
+  if (error) return <p>{errorText(error)}</p>;
 
-  const { current_user, rolsuper, rolbypassrls } = response.data.database;
+  const { current_user, rolsuper, rolbypassrls } = data.database;
   return (
     <div className="flex flex-col gap-1">
       <p>API ok — connected as {current_user}</p>
