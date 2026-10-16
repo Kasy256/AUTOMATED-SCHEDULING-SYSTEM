@@ -42,3 +42,6 @@ class TemplateSpec:
     explain: Explainer | None = None
     # What to loosen when the rule is behind an infeasibility; None if only "make it soft" helps.
     relax: Explainer | None = None
+    # Shown by the rule builder; test_template_display requires both non-empty.
+    title: str = ""
+    description: str = ""

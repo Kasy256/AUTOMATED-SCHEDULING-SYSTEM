@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal
 
+from pydantic import Field
+
 from cartlyf_engine.checking import CheckContext, Finding
 from cartlyf_engine.domain import Activity, ConstraintInstance, Problem, Resource, Scope
 from cartlyf_engine.domain.base import Frozen
@@ -14,7 +16,7 @@ if TYPE_CHECKING:
 
 
 class Params(Frozen):
-    measure: Literal["count", "minutes"]
+    measure: Literal["count", "minutes"] = Field(title="Measure")
 
 
 def _params(instance: ConstraintInstance) -> Params:
@@ -95,4 +97,6 @@ SPEC = TemplateSpec(
     encode=encode,
     check=check,
     explain=explain,
+    title="Balance workload",
+    description="Evens out workload across the resources in scope.",
 )

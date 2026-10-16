@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal, Self
 
-from pydantic import NonNegativeInt, model_validator
+from pydantic import Field, JsonValue, NonNegativeInt, model_validator
 
 from cartlyf_engine.checking import CheckContext, Finding
 from cartlyf_engine.domain import ConstraintInstance
-from cartlyf_engine.domain.base import Frozen, Key
+from cartlyf_engine.domain.base import Frozen, WindowKey
 from cartlyf_engine.templates._load import (
     checked_loads,
     describe_limits,
@@ -19,11 +19,20 @@ if TYPE_CHECKING:
     from cartlyf_engine.encoding import Rule
 
 
+MINUTES: dict[str, JsonValue] = {"x-unit": "minutes"}
+
+
 class Params(Frozen):
-    period: Literal["day", "week", "horizon"]
-    window: Key | None = None
-    min_count: NonNegativeInt | None = None
-    min_minutes: NonNegativeInt | None = None
+    period: Literal["day", "week", "horizon"] = Field(title="Period")
+    window: WindowKey | None = Field(
+        default=None,
+        title="Part of day",
+        description="Only count activities in this part of the day",
+    )
+    min_count: NonNegativeInt | None = Field(default=None, title="Min activities")
+    min_minutes: NonNegativeInt | None = Field(
+        default=None, title="Min time", json_schema_extra=MINUTES
+    )
 
     @model_validator(mode="after")
     def _has_a_limit(self) -> Self:
@@ -82,4 +91,14 @@ def check(ctx: CheckContext, instance: ConstraintInstance) -> list[Finding]:
     return findings
 
 
-SPEC = TemplateSpec("min_load", 1, Params, encode=encode, check=check, explain=explain, relax=relax)
+SPEC = TemplateSpec(
+    "min_load",
+    1,
+    Params,
+    encode=encode,
+    check=check,
+    explain=explain,
+    relax=relax,
+    title="Minimum workload",
+    description="Ensures each resource does at least this much per period.",
+)

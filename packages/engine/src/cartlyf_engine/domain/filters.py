@@ -1,9 +1,9 @@
 from collections.abc import Mapping
 from typing import Literal, Self
 
-from pydantic import StrictBool, StrictFloat, StrictInt, StrictStr, model_validator
+from pydantic import Field, StrictBool, StrictFloat, StrictInt, StrictStr, model_validator
 
-from cartlyf_engine.domain.base import Frozen, Id, Key, Tag
+from cartlyf_engine.domain.base import Frozen, Key, SeriesId, Tag
 
 AttrScalar = StrictStr | StrictInt | StrictFloat | StrictBool
 AttrValue = AttrScalar | tuple[StrictStr, ...]
@@ -71,5 +71,5 @@ class ResourceFilter(Frozen):
 
 
 class ActivityFilter(Frozen):
-    series_ids: tuple[Id, ...] = ()
-    attrs: tuple[AttributePredicate, ...] = ()
+    series_ids: tuple[SeriesId, ...] = Field(default=(), title="Demands")
+    attrs: tuple[AttributePredicate, ...] = Field(default=(), title="Conditions")

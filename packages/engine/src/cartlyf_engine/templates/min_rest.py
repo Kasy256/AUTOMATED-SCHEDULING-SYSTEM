@@ -3,7 +3,7 @@ from __future__ import annotations
 from itertools import combinations
 from typing import TYPE_CHECKING
 
-from pydantic import PositiveInt
+from pydantic import Field, JsonValue, PositiveInt
 
 from cartlyf_engine.checking import CheckContext, Finding
 from cartlyf_engine.domain import Activity, ConstraintInstance
@@ -17,8 +17,11 @@ if TYPE_CHECKING:
     from cartlyf_engine.encoding import Encoding, Rule
 
 
+MINUTES: dict[str, JsonValue] = {"x-unit": "minutes"}
+
+
 class Params(Frozen):
-    minutes: PositiveInt
+    minutes: PositiveInt = Field(title="Rest", json_schema_extra=MINUTES)
 
 
 def _params(instance: ConstraintInstance) -> Params:
@@ -95,4 +98,14 @@ def check(ctx: CheckContext, instance: ConstraintInstance) -> list[Finding]:
     return findings
 
 
-SPEC = TemplateSpec("min_rest", 1, Params, encode=encode, check=check, explain=explain, relax=relax)
+SPEC = TemplateSpec(
+    "min_rest",
+    1,
+    Params,
+    encode=encode,
+    check=check,
+    explain=explain,
+    relax=relax,
+    title="Minimum rest",
+    description="Leaves time between two activities of the same resource.",
+)

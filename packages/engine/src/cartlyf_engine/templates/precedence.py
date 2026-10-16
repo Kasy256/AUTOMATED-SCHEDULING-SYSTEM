@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Self, cast
 
-from pydantic import BaseModel, Field, NonNegativeInt, model_validator
+from pydantic import BaseModel, Field, JsonValue, NonNegativeInt, model_validator
 
 from cartlyf_engine.checking import CheckContext, Finding
 from cartlyf_engine.domain import Activity, ConstraintInstance, Problem, Scope
-from cartlyf_engine.domain.base import Frozen, Id
+from cartlyf_engine.domain.base import Frozen, SeriesId
 from cartlyf_engine.templates.scope import scoped_activities, series_of
 from cartlyf_engine.templates.spec import References, TemplateSpec
 
@@ -14,9 +14,12 @@ if TYPE_CHECKING:
     from cartlyf_engine.encoding import Rule
 
 
+MINUTES: dict[str, JsonValue] = {"x-unit": "minutes"}
+
+
 class Pair(Frozen):
-    before: Id
-    after: Id
+    before: SeriesId = Field(title="Before")
+    after: SeriesId = Field(title="After")
 
     @model_validator(mode="after")
     def _different(self) -> Self:
@@ -27,8 +30,8 @@ class Pair(Frozen):
 
 class Params(Frozen):
     # Series ids: every activity of `before` ends min_gap minutes before any of `after` starts.
-    pairs: tuple[Pair, ...] = Field(min_length=1)
-    min_gap: NonNegativeInt = 0
+    pairs: tuple[Pair, ...] = Field(min_length=1, title="Pairs")
+    min_gap: NonNegativeInt = Field(default=0, title="Min gap", json_schema_extra=MINUTES)
 
 
 def _references(params: BaseModel) -> References:
@@ -100,4 +103,6 @@ SPEC = TemplateSpec(
     check=check,
     explain=explain,
     relax=relax,
+    title="Order",
+    description="One demand's sessions all end before another demand's sessions start.",
 )
