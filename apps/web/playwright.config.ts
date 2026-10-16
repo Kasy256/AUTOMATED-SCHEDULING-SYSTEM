@@ -12,7 +12,8 @@ export default defineConfig({
   use: {
     baseURL: "http://localhost:5173",
     trace: "retain-on-failure",
-    video: "retain-on-failure",
+    // E2E_VIDEO=1 records every test, e.g. for a demo of WEB-01.
+    video: process.env.E2E_VIDEO === "1" ? "on" : "retain-on-failure",
   },
   projects: [
     { name: "desktop", use: { ...devices["Desktop Chrome"] } },
