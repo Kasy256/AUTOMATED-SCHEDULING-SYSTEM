@@ -76,10 +76,25 @@ export function planSave(
   grid: Grid,
   touchedDays: ReadonlySet<number>,
 ): { create: Omit<RuleLike, "id">[]; remove: string[] } {
+  // In the API, once any `available` rule exists only available windows count, and preferred or
+  // avoided windows are not themselves available. A painted preference means "available, with a
+  // preference", so the save adds an available layer underneath it.
+  const layered = grid.some((row) => row.includes("available"));
   const create: Omit<RuleLike, "id">[] = [];
   const remove: string[] = [];
   for (const day of [...touchedDays].sort((a, b) => a - b)) {
-    const target = runs(grid[day] ?? [], day);
+    const row = grid[day] ?? [];
+    const target = layered
+      ? [
+          ...runs(row, day).filter((r) => r.kind !== "available"),
+          ...runs(
+            row.map((cell) =>
+              cell === null || cell === "unavailable" ? null : "available",
+            ),
+            day,
+          ),
+        ]
+      : runs(row, day);
     const existing = rules.filter((r) => r.weekday === day);
     const same = (a: Omit<RuleLike, "id">, b: RuleLike) =>
       a.kind === b.kind &&
