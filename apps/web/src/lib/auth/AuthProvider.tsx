@@ -17,7 +17,7 @@ import {
   me as fetchMe,
   switchOrganisation as switchOrganisationRequest,
 } from "@/api/generated/auth/auth";
-import type { MeResponse } from "@/api/generated/model";
+import type { MeResponse, TokenResponse } from "@/api/generated/model";
 import { onSignedOut } from "@/api/client";
 import { can as canWith, type Action } from "@/lib/permissions";
 
@@ -36,6 +36,8 @@ interface AuthState {
   login: (email: string, password: string) => Promise<void>;
   logout: () => Promise<void>;
   switchOrganisation: (organisationId: string) => Promise<void>;
+  /** Start a session from a token another flow issued (email confirmation, invitation). */
+  adoptSession: (token: TokenResponse) => Promise<void>;
   can: (action: Action) => boolean;
 }
 
@@ -87,18 +89,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     [loadMe, navigate, queryClient, signedOut],
   );
 
+  const adopt = useCallback(
+    async (token: TokenResponse) => {
+      // A previous user's cached data must never render under the new identity.
+      queryClient.clear();
+      meRef.current = null;
+      setSession(token);
+      await loadMe();
+    },
+    [loadMe, queryClient],
+  );
+
   const value = useMemo<AuthState>(
     () => ({
       status,
       me,
       async login(email, password) {
-        // A previous user's cached data must never render under the new identity.
-        queryClient.clear();
-        const token = await loginRoute({ email, password });
-        meRef.current = null;
-        setSession(token);
-        await loadMe();
+        await adopt(await loginRoute({ email, password }));
       },
+      adoptSession: adopt,
       async logout() {
         await logoutRoute().catch(() => undefined);
         signedOut();
@@ -111,7 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
       can: (action) => (me ? canWith(me.roles, action) : false),
     }),
-    [status, me, loadMe, signedOut, queryClient],
+    [status, me, adopt, signedOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

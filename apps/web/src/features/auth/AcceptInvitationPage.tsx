@@ -11,6 +11,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { applyApiError } from "@/lib/forms";
+import { useAuth } from "@/lib/auth/AuthProvider";
 import { isApiError } from "@/lib/problem";
 
 import { AuthLayout } from "./AuthLayout";
@@ -24,6 +25,7 @@ export function AcceptInvitationPage() {
   const [params] = useSearchParams();
   const token = params.get("token");
   const [accepted, setAccepted] = useState(false);
+  const { adoptSession } = useAuth();
   const [message, setMessage] = useState<string | null>(null);
   const form = useForm<Values>({ resolver: zodResolver(schema) });
   const { errors, isSubmitting } = form.formState;
@@ -32,7 +34,8 @@ export function AcceptInvitationPage() {
     if (!token) return;
     setMessage(null);
     try {
-      await acceptInvitationRoute({ token, password });
+      // Accepting signs the person in to the organisation they just joined.
+      await adoptSession(await acceptInvitationRoute({ token, password }));
       setAccepted(true);
     } catch (error) {
       if (isApiError(error) && error.status === 401) {
@@ -64,7 +67,7 @@ export function AcceptInvitationPage() {
         subtitle="Your invitation has been accepted."
       >
         <Button asChild>
-          <Link to="/login">Sign in</Link>
+          <Link to="/">Continue</Link>
         </Button>
       </AuthLayout>
     );

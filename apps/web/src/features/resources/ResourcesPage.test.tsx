@@ -81,6 +81,7 @@ describe("ResourcesPage", () => {
       login: vi.fn(),
       logout: vi.fn(),
       switchOrganisation: vi.fn(),
+      adoptSession: vi.fn(),
       can: () => true,
     });
     vi.stubGlobal(
@@ -105,6 +106,7 @@ describe("ResourcesPage", () => {
       login: vi.fn(),
       logout: vi.fn(),
       switchOrganisation: vi.fn(),
+      adoptSession: vi.fn(),
       can: () => true,
     });
     vi.stubGlobal(

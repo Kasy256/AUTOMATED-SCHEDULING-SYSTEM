@@ -21,6 +21,7 @@ function mockAuth(roles: ("org_admin" | "planner" | "viewer")[]) {
     login: vi.fn(),
     logout: vi.fn(),
     switchOrganisation: vi.fn(),
+    adoptSession: vi.fn(),
     can: (action) =>
       action === "members.manage" ? roles.includes("org_admin") : true,
   });

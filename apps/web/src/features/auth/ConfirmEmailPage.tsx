@@ -3,6 +3,7 @@ import { Link, useSearchParams } from "react-router";
 
 import { confirmEmailRoute } from "@/api/generated/auth/auth";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/lib/auth/AuthProvider";
 
 import { AuthLayout } from "./AuthLayout";
 
@@ -13,20 +14,24 @@ export function ConfirmEmailPage() {
     token ? "working" : "failed",
   );
   const sent = useRef(false);
+  const { adoptSession } = useAuth();
 
   useEffect(() => {
     // StrictMode runs effects twice in development; the link must be used once.
     if (!token || sent.current) return;
     sent.current = true;
-    confirmEmailRoute({ token }).then(
-      () => {
-        setState("done");
-      },
-      () => {
-        setState("failed");
-      },
-    );
-  }, [token]);
+    // Confirming signs the new admin in: the API answers with a session.
+    confirmEmailRoute({ token })
+      .then(adoptSession)
+      .then(
+        () => {
+          setState("done");
+        },
+        () => {
+          setState("failed");
+        },
+      );
+  }, [token, adoptSession]);
 
   if (state === "working") return <AuthLayout title="Confirming…" />;
   if (state === "failed")
@@ -41,9 +46,12 @@ export function ConfirmEmailPage() {
       </AuthLayout>
     );
   return (
-    <AuthLayout title="Email confirmed" subtitle="Your organisation is ready.">
+    <AuthLayout
+      title="Email confirmed"
+      subtitle="Your organisation is ready. Let's set it up."
+    >
       <Button asChild>
-        <Link to="/login">Sign in</Link>
+        <Link to="/">Continue</Link>
       </Button>
     </AuthLayout>
   );

@@ -7,7 +7,8 @@ export async function expectNoA11yViolations(page: Page): Promise<void> {
     .analyze();
   expect(
     results.violations.map(
-      (v) => `${v.id}: ${v.nodes.map((n) => n.target.join(" ")).join(", ")}`,
+      (v) =>
+        `${v.id}: ${v.nodes.map((n) => `${n.target.join(" ")} ${n.html.slice(0, 160)} — ${n.failureSummary ?? ""}`).join(" | ")}`,
     ),
   ).toEqual([]);
 }

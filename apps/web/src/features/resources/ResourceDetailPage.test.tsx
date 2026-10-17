@@ -57,6 +57,7 @@ describe("ResourceDetailPage", () => {
       login: vi.fn(),
       logout: vi.fn(),
       switchOrganisation: vi.fn(),
+      adoptSession: vi.fn(),
       can: () => true,
     });
     const patches: unknown[] = [];

@@ -32,6 +32,7 @@ function signedInAs(manage: boolean) {
     login: vi.fn(),
     logout: vi.fn(),
     switchOrganisation: vi.fn(),
+    adoptSession: vi.fn(),
     can: (a) => (a === "config.manage" ? manage : true),
   });
 }

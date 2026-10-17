@@ -16,6 +16,7 @@ function mockLogin(impl: () => Promise<void>) {
     login,
     logout: vi.fn(),
     switchOrganisation: vi.fn(),
+    adoptSession: vi.fn(),
     can: () => false,
   });
   return login;
@@ -62,6 +63,7 @@ describe("LoginPage", () => {
       login: vi.fn(),
       logout: vi.fn(),
       switchOrganisation: vi.fn(),
+      adoptSession: vi.fn(),
       can: () => true,
     });
     renderWithProviders(
