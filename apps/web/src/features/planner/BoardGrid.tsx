@@ -1,10 +1,8 @@
 import {
   DndContext,
   PointerSensor,
-  pointerWithin,
   useSensor,
   useSensors,
-  type DragEndEvent,
   type DragStartEvent,
 } from "@dnd-kit/core";
 import { useVirtualizer } from "@tanstack/react-virtual";
@@ -12,23 +10,31 @@ import { useEffect, useRef, useState } from "react";
 
 import type { ResourceResponse } from "@/api/generated/model";
 
-import { BoardItemView } from "./BoardItemView";
-import { DraggableItem } from "./DraggableItem";
-import { DroppableCell } from "./DroppableCell";
+import { BoardRow, ROW_HEIGHT } from "./BoardRow";
 import type { Column } from "./model/columns";
 import type { CellCheck } from "./model/highlight";
 import { cellKey, type BoardItem } from "./model/items";
 import { useBoardKeyboard } from "./useBoardKeyboard";
 
-const ROW = 56;
+const HOVER_CHECK_MS = 300;
 
 interface DragData {
   item: BoardItem;
   rowId: string;
 }
-interface DropData {
-  rowId: string;
-  start: string;
+
+// The drop target is the cell under the pointer. Cells are found by hit-testing rather than as
+// dnd-kit droppables: registering a droppable per cell re-renders the whole board on every scroll.
+// The pointer is tracked directly because dnd-kit's drag delta also absorbs scrolling.
+function cellAtPoint(point: { x: number; y: number } | null): string | null {
+  if (!point) return null;
+  const el = document.elementFromPoint(point.x, point.y);
+  return el?.closest<HTMLElement>("[data-cell]")?.dataset.cell ?? null;
+}
+
+function splitKey(key: string): { rowId: string; start: string } {
+  const at = key.indexOf("|");
+  return { rowId: key.slice(0, at), start: key.slice(at + 1) };
 }
 
 export function BoardGrid({
@@ -62,7 +68,7 @@ export function BoardGrid({
   const virtual = useVirtualizer({
     count: rows.length,
     getScrollElement: () => scroller.current,
-    estimateSize: () => ROW,
+    estimateSize: () => ROW_HEIGHT,
     overscan: 8,
     initialRect: { width: 1200, height: 800 },
   });
@@ -71,16 +77,36 @@ export function BoardGrid({
     useSensor(PointerSensor, { activationConstraint: { distance: 6 } }),
   );
   const template = `14rem repeat(${String(columns.length)}, minmax(7.5rem, 1fr))`;
+  const [overKey, setOverKey] = useState<string | null>(null);
+
+  const pointer = useRef<{ x: number; y: number } | null>(null);
+  useEffect(() => {
+    const track = (e: PointerEvent) => {
+      pointer.current = { x: e.clientX, y: e.clientY };
+    };
+    window.addEventListener("pointermove", track);
+    return () => window.removeEventListener("pointermove", track);
+  }, []);
 
   function dragStart(e: DragStartEvent) {
     const data = e.active.data.current as DragData | undefined;
     if (data) onPickUp(data.item, data.rowId);
   }
-  function dragEnd(e: DragEndEvent) {
-    const data = e.over?.data.current as DropData | undefined;
-    if (data) void onDrop(data.rowId, data.start);
-    else onCancel();
+  function dragEnd() {
+    const key = cellAtPoint(pointer.current);
+    setOverKey(null);
+    if (key) {
+      const { rowId, start } = splitKey(key);
+      void onDrop(rowId, start);
+    } else onCancel();
   }
+
+  useEffect(() => {
+    if (!overKey || highlight?.get(overKey)) return;
+    const { rowId, start } = splitKey(overKey);
+    const timer = setTimeout(() => onHoverCheck(rowId, start), HOVER_CHECK_MS);
+    return () => clearTimeout(timer);
+  }, [overKey, highlight, onHoverCheck]);
 
   const [carrying, setCarrying] = useState<BoardItem | null>(null);
   const [announcement, setAnnouncement] = useState("");
@@ -149,7 +175,7 @@ export function BoardGrid({
       setAnnouncement("Move cancelled");
     },
   });
-  const { focus } = keyboard;
+  const { focus, setFocus } = keyboard;
 
   // Roving focus follows the keyboard position, but only while focus is already in the grid.
   useEffect(() => {
@@ -166,11 +192,13 @@ export function BoardGrid({
   return (
     <DndContext
       sensors={sensors}
-      // The target is the cell under the pointer, not whichever cell the dragged card overlaps most.
-      collisionDetection={pointerWithin}
       onDragStart={dragStart}
+      onDragMove={() => setOverKey(cellAtPoint(pointer.current))}
       onDragEnd={dragEnd}
-      onDragCancel={onCancel}
+      onDragCancel={() => {
+        setOverKey(null);
+        onCancel();
+      }}
     >
       <div
         ref={scroller}
@@ -211,71 +239,22 @@ export function BoardGrid({
               const row = rows[v.index];
               if (!row) return null;
               return (
-                <div
+                <BoardRow
                   key={row.id}
-                  role="row"
-                  aria-rowindex={v.index + 2}
-                  className="absolute inset-x-0 grid border-b"
-                  style={{
-                    gridTemplateColumns: template,
-                    height: ROW,
-                    transform: `translateY(${String(v.start)}px)`,
-                  }}
-                >
-                  <div
-                    role="rowheader"
-                    className="sticky left-0 z-[1] flex flex-col justify-center bg-card px-3"
-                  >
-                    <span className="truncate text-sm font-medium">
-                      {row.name}
-                    </span>
-                    <span className="text-xs text-muted-foreground">
-                      {row.code}
-                    </span>
-                  </div>
-                  {columns.map((c, ci) => {
-                    const key = cellKey(row.id, c.start);
-                    const items = index.get(key) ?? [];
-                    return (
-                      <DroppableCell
-                        key={c.start}
-                        cellId={key}
-                        rowId={row.id}
-                        start={c.start}
-                        label={`${row.name}, ${c.label}: ${items.map((i) => i.name).join(", ") || "empty"}`}
-                        check={highlight?.get(key)}
-                        highlighting={highlight !== null}
-                        onHoverCheck={onHoverCheck}
-                        pos={`${String(v.index)}:${String(ci)}`}
-                        focused={focus.r === v.index && focus.c === ci}
-                        onFocusCell={() =>
-                          keyboard.setFocus({ r: v.index, c: ci })
-                        }
-                      >
-                        {items.map((item) =>
-                          canDrag && !item.pinned ? (
-                            <DraggableItem
-                              key={item.activityId}
-                              item={item}
-                              rowId={row.id}
-                              codeOf={codeOf}
-                              onOpen={onOpenItem}
-                            />
-                          ) : (
-                            <BoardItemView
-                              key={item.activityId}
-                              item={item}
-                              rowId={row.id}
-                              codeOf={codeOf}
-                              draggable={false}
-                              onOpen={onOpenItem}
-                            />
-                          ),
-                        )}
-                      </DroppableCell>
-                    );
-                  })}
-                </div>
+                  row={row}
+                  rowIndex={v.index}
+                  top={v.start}
+                  template={template}
+                  columns={columns}
+                  index={index}
+                  codeOf={codeOf}
+                  highlight={highlight}
+                  canDrag={canDrag}
+                  focusCol={focus.r === v.index ? focus.c : -1}
+                  overKey={overKey?.startsWith(`${row.id}|`) ? overKey : null}
+                  onOpenItem={onOpenItem}
+                  setFocus={setFocus}
+                />
               );
             })}
           </div>

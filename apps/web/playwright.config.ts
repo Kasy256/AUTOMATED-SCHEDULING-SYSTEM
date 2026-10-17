@@ -43,5 +43,13 @@ export default defineConfig({
       reuseExistingServer: !process.env.CI,
       timeout: 120_000,
     },
+    {
+      // WEB-06 measures a production build; dev-mode React is several times slower.
+      command:
+        "pnpm exec vite build && pnpm exec vite preview --port 4173 --strictPort",
+      url: "http://localhost:4173",
+      reuseExistingServer: !process.env.CI,
+      timeout: 300_000,
+    },
   ],
 });

@@ -29,7 +29,11 @@ export function DraggableItem({
       onOpen={onOpen}
       {...attributes}
       {...listeners}
-      className={isDragging ? "relative z-30 opacity-90 shadow-lg" : undefined}
+      className={
+        isDragging
+          ? "pointer-events-none relative z-30 opacity-90 shadow-lg"
+          : undefined
+      }
       style={
         transform
           ? {

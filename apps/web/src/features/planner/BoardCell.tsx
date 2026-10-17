@@ -1,52 +1,33 @@
-import { useDroppable } from "@dnd-kit/core";
-import { useEffect, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import { cn } from "@/lib/utils";
 
 import type { CellCheck } from "./model/highlight";
 
-const HOVER_CHECK_MS = 300;
-
-export function DroppableCell({
+export function BoardCell({
   cellId,
-  rowId,
-  start,
   label,
   check,
   highlighting,
-  onHoverCheck,
+  over,
   pos,
   focused,
   onFocusCell,
   children,
 }: {
   cellId: string;
-  rowId: string;
-  start: string;
   label: string;
   check: CellCheck | undefined;
   highlighting: boolean;
-  onHoverCheck: (rowId: string, start: string) => void;
+  over: boolean;
   pos: string;
   focused: boolean;
   onFocusCell: () => void;
   children: ReactNode;
 }) {
-  const { setNodeRef, isOver } = useDroppable({
-    id: cellId,
-    data: { rowId, start },
-  });
-
-  useEffect(() => {
-    if (!isOver || check) return;
-    const timer = setTimeout(() => onHoverCheck(rowId, start), HOVER_CHECK_MS);
-    return () => clearTimeout(timer);
-  }, [isOver, check, onHoverCheck, rowId, start]);
-
   const reasons = check?.state === "invalid" ? check.reasons.join("; ") : "";
   return (
     <div
-      ref={setNodeRef}
       role="gridcell"
       data-cell={cellId}
       data-pos={pos}
@@ -66,7 +47,7 @@ export function DroppableCell({
           "bg-[#dcfce7] shadow-[inset_0_0_0_2px_#16a34a]",
         check?.state === "invalid" &&
           "bg-[#fee2e2] shadow-[inset_0_0_0_2px_#dc2626]",
-        isOver && "ring-2 ring-ring ring-inset",
+        over && "ring-2 ring-ring ring-inset",
         "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset",
       )}
     >

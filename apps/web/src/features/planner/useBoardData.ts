@@ -1,3 +1,5 @@
+import { useMemo } from "react";
+
 import {
   useListActivities,
   useListPins,
@@ -15,6 +17,8 @@ import {
   useGetVersion,
   useListVersions,
 } from "@/api/generated/versions/versions";
+
+const NONE: never[] = [];
 
 function pickVersion(
   versions: VersionSummary[],
@@ -40,6 +44,15 @@ export function useBoardData(scheduleId: string, versionParam: string | null) {
   const activities = useListActivities(scheduleId);
   const slotTemplates = useListSlotTemplates(scheduleId);
   const pins = useListPins(scheduleId);
+  // Stable identities, so the board's memoised rows don't re-render on unrelated state.
+  const slots = useMemo(
+    () => (slotTemplates.data ?? []).flatMap((t) => t.definition.slots),
+    [slotTemplates.data],
+  );
+  const pinned = useMemo(
+    () => new Set((pins.data ?? []).map((p) => p.activity_id)),
+    [pins.data],
+  );
   const newestNumber = Math.max(
     0,
     ...(versions.data ?? []).map((v) => v.number),
@@ -56,10 +69,10 @@ export function useBoardData(scheduleId: string, versionParam: string | null) {
     versions: versions.data ?? [],
     version: chosen ? (version.data ?? null) : null,
     editable: chosen?.number === newestNumber && chosen.status !== "archived",
-    types: types.data ?? [],
-    resources: resources.data ?? [],
-    activities: activities.data ?? [],
-    slots: (slotTemplates.data ?? []).flatMap((t) => t.definition.slots),
-    pinned: new Set((pins.data ?? []).map((p) => p.activity_id)),
+    types: types.data ?? NONE,
+    resources: resources.data ?? NONE,
+    activities: activities.data ?? NONE,
+    slots,
+    pinned,
   };
 }

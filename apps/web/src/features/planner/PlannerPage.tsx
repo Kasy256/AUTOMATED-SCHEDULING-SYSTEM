@@ -1,5 +1,12 @@
 import { useQueryClient } from "@tanstack/react-query";
-import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useReducer,
+  useRef,
+  useState,
+} from "react";
 import { useBlocker, useParams, useSearchParams } from "react-router";
 import { toast } from "sonner";
 
@@ -91,33 +98,51 @@ export function PlannerPage() {
     (firstStart ? mondayOf(zonedParts(firstStart, tz).date) : (weeks[0] ?? ""));
   const weekAt = weeks.indexOf(week);
 
-  const assignments = applyPending(version?.assignments ?? [], pending);
-  const columns = !week
-    ? []
-    : weekColumns(
-        [
-          ...data.activities.flatMap((a) => a.candidate_starts),
-          ...assignments.map((a) => a.start_at),
-        ],
-        week,
-        tz,
-        data.slots,
-      );
+  // Memoised: the board's rows only skip re-rendering while these keep their identity.
+  const { activities, slots, pinned } = data;
+  const assignments = useMemo(
+    () => applyPending(version?.assignments ?? [], pending),
+    [version, pending],
+  );
+  const columns = useMemo(
+    () =>
+      !week
+        ? []
+        : weekColumns(
+            [
+              ...activities.flatMap((a) => a.candidate_starts),
+              ...assignments.map((a) => a.start_at),
+            ],
+            week,
+            tz,
+            slots,
+          ),
+    [week, activities, assignments, tz, slots],
+  );
   const needle = query.trim().toLowerCase();
-  const rows = resources.filter(
-    (r) =>
-      r.resource_type_id === typeId &&
-      (!needle ||
-        r.name.toLowerCase().includes(needle) ||
-        r.code.toLowerCase().includes(needle)),
+  const rows = useMemo(
+    () =>
+      resources.filter(
+        (r) =>
+          r.resource_type_id === typeId &&
+          (!needle ||
+            r.name.toLowerCase().includes(needle) ||
+            r.code.toLowerCase().includes(needle)),
+      ),
+    [resources, typeId, needle],
   );
-  const index = cellIndex(
-    assignments,
-    new Set(rows.map((r) => r.id)),
-    data.pinned,
+  const index = useMemo(
+    () => cellIndex(assignments, new Set(rows.map((r) => r.id)), pinned),
+    [assignments, rows, pinned],
   );
-  const codes = new Map(resources.map((r) => [r.id, r.code]));
-  const codeOf = (id: string) => codes.get(id) ?? "";
+  const codeOf = useMemo(() => {
+    const codes = new Map(resources.map((r) => [r.id, r.code]));
+    return (id: string) => codes.get(id) ?? "";
+  }, [resources]);
+  const openItem = useCallback(
+    (item: BoardItem, rowId: string) => setSelected({ item, rowId }),
+    [],
+  );
   const names = new Map(
     (version?.assignments ?? []).map((a) => [
       a.activity_id,
@@ -260,7 +285,7 @@ export function PlannerPage() {
               codeOf={codeOf}
               highlight={drag.highlight}
               canDrag={data.editable && canEdit}
-              onOpenItem={(item, rowId) => setSelected({ item, rowId })}
+              onOpenItem={openItem}
               onPickUp={(item, rowId) => void drag.pickUp(item, rowId)}
               onDrop={dropAt}
               onCheck={check}
