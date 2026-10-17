@@ -12,6 +12,8 @@ import { ResourceTypesPage } from "@/features/resource-types/ResourceTypesPage";
 import { ResourceDetailPage } from "@/features/resources/ResourceDetailPage";
 import { ResourcesPage } from "@/features/resources/ResourcesPage";
 import { RulesPage } from "@/features/rules/RulesPage";
+import { RunPage } from "@/features/solves/RunPage";
+import { SolvesPage } from "@/features/solves/SolvesPage";
 import { OverviewPage } from "@/features/schedules/OverviewPage";
 import { SetupWizard } from "@/features/setup/SetupWizard";
 import { HomeRedirect } from "@/features/schedules/HomeRedirect";
@@ -45,6 +47,8 @@ export function App() {
           <Route path="overview" element={<OverviewPage />} />
           <Route path="demands" element={<DemandsPage />} />
           <Route path="rules" element={<RulesPage />} />
+          <Route path="solves" element={<SolvesPage />} />
+          <Route path="solves/:runId" element={<RunPage />} />
         </Route>
         <Route path="resources" element={<ResourcesPage />} />
         <Route path="resources/:resourceId" element={<ResourceDetailPage />} />

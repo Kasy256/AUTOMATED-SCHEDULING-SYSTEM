@@ -1,6 +1,7 @@
 import {
   Boxes,
   CalendarRange,
+  Cpu,
   FileUp,
   LayoutDashboard,
   ListChecks,
@@ -81,6 +82,9 @@ function Sidebar() {
           </Item>
           <Item to={`${base}/rules`} icon={ListChecks}>
             Rules
+          </Item>
+          <Item to={`${base}/solves`} icon={Cpu}>
+            Solves
           </Item>
         </NavGroup>
       )}

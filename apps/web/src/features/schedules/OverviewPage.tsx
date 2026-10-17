@@ -42,6 +42,8 @@ import { LAST_SCHEDULE_KEY } from "@/lib/landing";
 import { writeStored } from "@/lib/storage";
 import { formatMinuteOfDay } from "@/lib/time";
 
+import { SolveButton } from "@/features/solves/SolveDialog";
+
 import { FeasibilityPanel } from "./FeasibilityPanel";
 import { ScheduleForm } from "./ScheduleForm";
 
@@ -152,6 +154,7 @@ export function OverviewPage() {
         actions={
           can("config.manage") && (
             <>
+              <SolveButton scheduleId={scheduleId} />
               <Button variant="outline" onClick={() => setEditing(true)}>
                 Edit schedule
               </Button>
