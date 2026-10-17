@@ -30,7 +30,8 @@ import { BoardGrid } from "./BoardGrid";
 import { BoardToolbar } from "./BoardToolbar";
 import { versionLabel } from "./labels";
 import { weekColumns } from "./model/columns";
-import { applyPending, cellIndex } from "./model/items";
+import { ExplanationPanel } from "./ExplanationPanel";
+import { applyPending, cellIndex, type BoardItem } from "./model/items";
 import { pendingReducer } from "./model/pending";
 import { PendingTray } from "./PendingTray";
 import { useBoardData } from "./useBoardData";
@@ -63,6 +64,10 @@ export function PlannerPage() {
   const [pending, dispatch] = useReducer(pendingReducer, []);
   const [saving, setSaving] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
+  const [selected, setSelected] = useState<{
+    item: BoardItem;
+    rowId: string;
+  } | null>(null);
   const { can } = useAuth();
   const queryClient = useQueryClient();
   const text = useEngineText(scheduleId);
@@ -118,10 +123,12 @@ export function PlannerPage() {
       a.activity_name ?? "Activity",
     ]),
   );
-  const describe = (c: AssignmentEdit) => {
-    const column = columns.find((col) => col.start === isoInstant(c.start_at));
-    return `${names.get(c.activity_id) ?? "Activity"} → ${column?.label ?? formatInZone(c.start_at, tz)}`;
-  };
+  const labelAt = (start: string) =>
+    columns.find((col) => col.start === isoInstant(start))?.label ??
+    formatInZone(start, tz);
+  const describe = (c: AssignmentEdit) =>
+    `${names.get(c.activity_id) ?? "Activity"} → ${labelAt(c.start_at)}`;
+  const canEdit = can("config.manage");
 
   const drag = useDragChecks(version?.id ?? "");
   const { check } = drag;
@@ -241,8 +248,8 @@ export function PlannerPage() {
             index={index}
             codeOf={codeOf}
             highlight={drag.highlight}
-            canDrag={data.editable && can("config.manage")}
-            onOpenItem={() => undefined}
+            canDrag={data.editable && canEdit}
+            onOpenItem={(item, rowId) => setSelected({ item, rowId })}
             onPickUp={(item, rowId) => void drag.pickUp(item, rowId)}
             onDrop={(rowId, start) => void dropAt(rowId, start)}
             onCancel={drag.cancel}
@@ -262,6 +269,24 @@ export function PlannerPage() {
           error={saveError}
         />
       </div>
+      {version && (
+        <ExplanationPanel
+          scheduleId={scheduleId}
+          versionId={version.id}
+          item={selected?.item ?? null}
+          rowId={selected?.rowId ?? ""}
+          editable={data.editable}
+          canEdit={canEdit}
+          columnLabel={labelAt}
+          codeOf={codeOf}
+          onClose={() => setSelected(null)}
+          onMoveHere={(change) => {
+            setSelected(null);
+            setSaveError(null);
+            dispatch({ type: "add", change });
+          }}
+        />
+      )}
       <ConfirmDialog
         open={blocker.state === "blocked"}
         onOpenChange={(open) => {
