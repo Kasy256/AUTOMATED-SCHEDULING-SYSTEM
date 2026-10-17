@@ -21,3 +21,10 @@ globalThis.ResizeObserver = class {
 Element.prototype.scrollIntoView = function scrollIntoView() {
   // nothing to scroll in jsdom
 };
+
+// jsdom has no layout, so every element measures 0×0; the planner's virtualised grid
+// would then render no rows. Give elements a desktop-sized box instead.
+Object.defineProperties(HTMLElement.prototype, {
+  clientWidth: { configurable: true, get: () => 1200 },
+  clientHeight: { configurable: true, get: () => 800 },
+});

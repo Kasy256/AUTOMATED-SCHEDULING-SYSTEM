@@ -11,6 +11,7 @@ import { MembersPage } from "@/features/members/MembersPage";
 import { ResourceTypesPage } from "@/features/resource-types/ResourceTypesPage";
 import { ResourceDetailPage } from "@/features/resources/ResourceDetailPage";
 import { ResourcesPage } from "@/features/resources/ResourcesPage";
+import { PlannerPage } from "@/features/planner/PlannerPage";
 import { RulesPage } from "@/features/rules/RulesPage";
 import { RunPage } from "@/features/solves/RunPage";
 import { SolvesPage } from "@/features/solves/SolvesPage";
@@ -45,6 +46,7 @@ export function App() {
         <Route path="schedules/:scheduleId">
           <Route index element={<Navigate to="overview" replace />} />
           <Route path="overview" element={<OverviewPage />} />
+          <Route path="planner" element={<PlannerPage />} />
           <Route path="demands" element={<DemandsPage />} />
           <Route path="rules" element={<RulesPage />} />
           <Route path="solves" element={<SolvesPage />} />

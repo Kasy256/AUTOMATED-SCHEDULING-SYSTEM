@@ -1,5 +1,6 @@
 import {
   Boxes,
+  CalendarDays,
   CalendarRange,
   Cpu,
   FileUp,
@@ -74,6 +75,9 @@ function Sidebar() {
       <ScheduleSwitcher activeId={scheduleId} />
       {base && (
         <NavGroup label="Schedule">
+          <Item to={`${base}/planner`} icon={CalendarDays}>
+            Planner
+          </Item>
           <Item to={`${base}/overview`} icon={LayoutDashboard}>
             Overview
           </Item>
