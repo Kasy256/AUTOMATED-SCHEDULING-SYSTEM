@@ -10,7 +10,7 @@ import {
   type PredicateOp,
   type PredicateValue,
 } from "@/lib/predicates";
-import { SELECT_CLASS } from "@/lib/styles";
+import { NativeSelect } from "@/components/NativeSelect";
 
 const OPS: { op: PredicateOp; label: string }[] = [
   { op: "eq", label: "is" },
@@ -52,9 +52,8 @@ function Row({
       </div>
       <div className="flex flex-col gap-1">
         <Label htmlFor={`${id}-op`}>{`Condition ${n} operator`}</Label>
-        <select
+        <NativeSelect
           id={`${id}-op`}
-          className={SELECT_CLASS}
           disabled={disabled}
           value={value.op}
           onChange={(e) => {
@@ -67,7 +66,7 @@ function Row({
               {o.label}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </div>
       <div className="flex flex-col gap-1">
         <Label htmlFor={`${id}-value`}>{`Condition ${n} value`}</Label>

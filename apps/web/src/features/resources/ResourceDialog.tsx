@@ -24,7 +24,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { applyApiError } from "@/lib/forms";
-import { SELECT_CLASS } from "@/lib/styles";
+import { NativeSelect } from "@/components/NativeSelect";
 
 const optionalCount = z.preprocess(
   (v) => (v === "" || v === undefined ? undefined : Number(v)),
@@ -121,17 +121,13 @@ export function ResourceDialog({
           )}
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="res-type">Type</Label>
-            <select
-              id="res-type"
-              className={SELECT_CLASS}
-              {...form.register("resource_type_id")}
-            >
+            <NativeSelect id="res-type" {...form.register("resource_type_id")}>
               {types.map((t) => (
                 <option key={t.id} value={t.id}>
                   {t.name}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
             <FieldError message={errors.resource_type_id?.message} />
           </div>
           <div className="grid gap-4 sm:grid-cols-2">

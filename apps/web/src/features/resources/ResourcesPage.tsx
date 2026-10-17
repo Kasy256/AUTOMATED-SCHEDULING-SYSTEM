@@ -6,6 +6,7 @@ import {
   useListResourceTypes,
 } from "@/api/generated/resources/resources";
 import { EmptyState } from "@/components/EmptyState";
+import { TableSkeleton } from "@/components/TableSkeleton";
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -52,7 +53,7 @@ export function ResourcesPage() {
           )
         }
       />
-      <div className="flex flex-col gap-4 p-6">
+      <div className="flex flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8">
         <div className="flex flex-wrap items-center justify-between gap-3">
           <Tabs value={typeId} onValueChange={setTypeId}>
             <TabsList>
@@ -74,13 +75,16 @@ export function ResourcesPage() {
             }}
           />
         </div>
-        {!isPending && resources.length === 0 ? (
+        {isPending ? (
+          <TableSkeleton label="Loading resources" />
+        ) : resources.length === 0 ? (
           <EmptyState
+            illustration="import"
             title="No resources yet"
             description="Import a CSV from Imports, or add resources one by one."
           />
         ) : (
-          <div className="rounded-lg border bg-card">
+          <div className="rounded-xl border bg-card shadow-sm">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -108,12 +112,14 @@ export function ResourcesPage() {
                     <TableCell>
                       {typeName.get(r.resource_type_id) ?? "—"}
                     </TableCell>
-                    <TableCell className="flex flex-wrap gap-1">
-                      {r.tags.map((t) => (
-                        <Badge key={t} variant="secondary">
-                          {t}
-                        </Badge>
-                      ))}
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {r.tags.map((t) => (
+                          <Badge key={t} variant="secondary">
+                            {t}
+                          </Badge>
+                        ))}
+                      </div>
                     </TableCell>
                     <TableCell className="text-right tabular-nums">
                       {r.capacity ?? r.size ?? "—"}

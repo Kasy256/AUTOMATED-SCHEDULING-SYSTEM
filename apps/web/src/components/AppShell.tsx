@@ -1,5 +1,15 @@
-import { Menu } from "lucide-react";
-import { useState } from "react";
+import {
+  Boxes,
+  CalendarRange,
+  FileUp,
+  LayoutDashboard,
+  ListChecks,
+  Menu,
+  Shapes,
+  Users,
+  type LucideIcon,
+} from "lucide-react";
+import { useState, type ReactNode } from "react";
 import { NavLink, Outlet, useLocation, useParams } from "react-router";
 
 import {
@@ -11,26 +21,38 @@ import {
 import { useAuth } from "@/lib/auth/AuthProvider";
 import { cn } from "@/lib/utils";
 
+import { BrandMark } from "./BrandMark";
 import { OrgMenu } from "./OrgMenu";
 import { ScheduleSwitcher } from "./ScheduleSwitcher";
 
 const linkClass = ({ isActive }: { isActive: boolean }) =>
   cn(
-    "block rounded-md px-3 py-1.5 text-sm hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:outline-none",
+    "flex items-center gap-3 rounded-lg px-3 py-2.5 text-sm font-medium transition-colors hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-2 focus-visible:ring-sidebar-ring focus-visible:outline-none",
     isActive &&
-      "bg-sidebar-accent font-medium text-sidebar-accent-foreground shadow-[inset_2px_0_0_var(--sidebar-primary)]",
+      "bg-sidebar-accent text-sidebar-accent-foreground shadow-[inset_3px_0_0_var(--sidebar-primary)]",
   );
 
-function NavGroup({
-  label,
+function Item({
+  to,
+  icon: Icon,
   children,
 }: {
-  label: string;
-  children: React.ReactNode;
+  to: string;
+  icon: LucideIcon;
+  children: ReactNode;
 }) {
   return (
-    <div className="flex flex-col gap-0.5">
-      <p className="px-3 pt-4 pb-1 text-[10px] font-medium tracking-wider text-sidebar-foreground uppercase">
+    <NavLink className={linkClass} to={to}>
+      <Icon className="size-[18px] shrink-0" aria-hidden />
+      {children}
+    </NavLink>
+  );
+}
+
+function NavGroup({ label, children }: { label: string; children: ReactNode }) {
+  return (
+    <div className="flex flex-col gap-1">
+      <p className="px-3 pt-3 pb-1.5 text-[11px] font-medium tracking-wider text-sidebar-foreground uppercase">
         {label}
       </p>
       {children}
@@ -45,45 +67,42 @@ function Sidebar() {
   return (
     <nav
       aria-label="Main"
-      className="flex h-full flex-col gap-2 bg-sidebar p-3 text-sidebar-foreground"
+      className="flex h-full flex-col gap-3 overflow-y-auto bg-sidebar p-4 text-sidebar-foreground"
     >
-      <div className="flex items-center gap-2 px-2 py-1 font-semibold text-sidebar-accent-foreground">
-        <span className="size-4 rounded bg-sidebar-primary" aria-hidden />{" "}
-        Cartlyf
-      </div>
+      <BrandMark className="px-2 py-2 text-lg" />
       <ScheduleSwitcher activeId={scheduleId} />
       {base && (
         <NavGroup label="Schedule">
-          <NavLink className={linkClass} to={`${base}/overview`}>
+          <Item to={`${base}/overview`} icon={LayoutDashboard}>
             Overview
-          </NavLink>
-          <NavLink className={linkClass} to={`${base}/demands`}>
+          </Item>
+          <Item to={`${base}/demands`} icon={CalendarRange}>
             Demands &amp; slots
-          </NavLink>
-          <NavLink className={linkClass} to={`${base}/rules`}>
+          </Item>
+          <Item to={`${base}/rules`} icon={ListChecks}>
             Rules
-          </NavLink>
+          </Item>
         </NavGroup>
       )}
       <NavGroup label="Organisation">
-        <NavLink className={linkClass} to="/resources">
+        <Item to="/resources" icon={Boxes}>
           Resources
-        </NavLink>
-        <NavLink className={linkClass} to="/resource-types">
+        </Item>
+        <Item to="/resource-types" icon={Shapes}>
           Resource types
-        </NavLink>
+        </Item>
         {can("config.manage") && (
-          <NavLink className={linkClass} to="/imports">
+          <Item to="/imports" icon={FileUp}>
             Imports
-          </NavLink>
+          </Item>
         )}
         {can("members.manage") && (
-          <NavLink className={linkClass} to="/members">
+          <Item to="/members" icon={Users}>
             Members
-          </NavLink>
+          </Item>
         )}
       </NavGroup>
-      <div className="mt-auto">
+      <div className="mt-auto border-t border-sidebar-border pt-3">
         <OrgMenu />
       </div>
     </nav>
@@ -99,13 +118,13 @@ export function AppShell() {
   const setOpen = (next: boolean) => setOpenOn(next ? pathname : null);
   return (
     <div className="flex min-h-svh">
-      <aside className="hidden w-60 shrink-0 md:block">
+      <aside className="hidden w-64 shrink-0 md:block">
         <div className="sticky top-0 h-svh">
           <Sidebar />
         </div>
       </aside>
       <div className="flex min-w-0 flex-1 flex-col">
-        <div className="flex items-center gap-2 border-b bg-card px-4 py-2 md:hidden">
+        <div className="sticky top-0 z-10 flex h-14 items-center gap-2 border-b bg-card px-4 md:hidden">
           <Sheet open={open} onOpenChange={setOpen}>
             <SheetTrigger
               aria-label="Open navigation"
@@ -113,12 +132,12 @@ export function AppShell() {
             >
               <Menu className="size-5" aria-hidden />
             </SheetTrigger>
-            <SheetContent side="left" className="w-64 p-0">
+            <SheetContent side="left" className="w-72 p-0">
               <SheetTitle className="sr-only">Navigation</SheetTitle>
               <Sidebar />
             </SheetContent>
           </Sheet>
-          <span className="font-semibold">Cartlyf</span>
+          <BrandMark tone="dark" />
         </div>
         <main className="flex-1">
           <Outlet />

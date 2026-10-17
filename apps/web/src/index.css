@@ -69,7 +69,7 @@
   --border: oklch(0.929 0.013 255.5); /* slate-200 */
   --input: oklch(0.869 0.022 252.9); /* slate-300 */
   --ring: oklch(0.704 0.14 182.5); /* teal-500 */
-  --radius: 0.5rem;
+  --radius: 0.75rem;
   --sidebar: oklch(0.208 0.042 265.8); /* navy rail */
   --sidebar-foreground: oklch(0.704 0.04 256.8); /* slate-400 */
   --sidebar-primary: oklch(0.704 0.14 182.5);
@@ -121,6 +121,11 @@
     @apply bg-background text-foreground;
   }
   html {
-    @apply font-sans;
+    @apply font-sans antialiased;
+  }
+  /* Thin, quiet scrollbars (from the legacy ISBAT frontend). */
+  * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--input) transparent;
   }
 }

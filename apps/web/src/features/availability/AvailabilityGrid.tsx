@@ -133,7 +133,7 @@ export function AvailabilityGrid({
         role="grid"
         aria-label="Weekly availability"
         aria-readonly={readOnly}
-        className="grid flex-1 touch-none grid-cols-[3.5rem_repeat(7,minmax(2.25rem,1fr))] gap-px overflow-hidden rounded-lg border bg-border text-xs select-none"
+        className="grid flex-1 touch-none grid-cols-[3.5rem_repeat(7,minmax(2.25rem,1fr))] gap-px overflow-hidden rounded-xl border bg-border shadow-sm text-xs select-none"
         onKeyDown={onKeyDown}
         onPointerUp={() => {
           if (drag) apply(drag.from, drag.to);
@@ -176,7 +176,7 @@ export function AvailabilityGrid({
                   aria-selected={inSelection(pos)}
                   tabIndex={focus.day === day && focus.cell === cell ? 0 : -1}
                   className={cn(
-                    "h-4 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring",
+                    "h-5 focus-visible:outline-2 focus-visible:outline-offset-[-2px] focus-visible:outline-ring",
                     style(kind),
                     inSelection(pos) && "ring-2 ring-ring ring-inset",
                   )}
@@ -203,7 +203,7 @@ export function AvailabilityGrid({
       <div className="flex flex-col gap-3 lg:w-56">
         {!readOnly && (
           <div
-            className="flex flex-col gap-1 rounded-lg border bg-card p-3"
+            className="flex flex-col gap-1 rounded-xl border bg-card p-3 shadow-sm"
             role="toolbar"
             aria-label="Paint with"
           >

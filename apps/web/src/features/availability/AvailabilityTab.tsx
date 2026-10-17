@@ -10,6 +10,7 @@ import {
 } from "@/api/generated/resources/resources";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import { describeFailure } from "@/lib/conflict";
 
 import { AvailabilityGrid } from "./AvailabilityGrid";
@@ -32,8 +33,8 @@ export function AvailabilityTab({
   const [failure, setFailure] = useState<string | null>(null);
   if (isPending)
     return (
-      <div role="status" className="py-8 text-muted-foreground">
-        Loading…
+      <div role="status" aria-label="Loading availability" className="pt-4">
+        <Skeleton className="h-[26rem] w-full rounded-xl" />
       </div>
     );
   const grid = draft?.grid ?? rulesToGrid(rules);
@@ -64,7 +65,7 @@ export function AvailabilityTab({
   }
 
   return (
-    <div className="flex flex-col gap-3 pt-2">
+    <div className="flex flex-col gap-4 pt-4">
       {failure && (
         <Alert variant="destructive" role="alert">
           <AlertDescription>{failure}</AlertDescription>

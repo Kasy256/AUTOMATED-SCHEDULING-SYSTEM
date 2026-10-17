@@ -12,7 +12,7 @@ import { FieldError } from "@/components/FieldError";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { SELECT_CLASS } from "@/lib/styles";
+import { NativeSelect } from "@/components/NativeSelect";
 
 import { demandMappingFromTemplate } from "./mapping";
 
@@ -38,9 +38,8 @@ function Column({
   return (
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={id}>{label}</Label>
-      <select
+      <NativeSelect
         id={id}
-        className={SELECT_CLASS}
         value={value ?? ""}
         onChange={(e) =>
           onChange(e.target.value === "" ? null : e.target.value)
@@ -52,7 +51,7 @@ function Column({
             {c}
           </option>
         ))}
-      </select>
+      </NativeSelect>
     </div>
   );
 }
@@ -193,21 +192,19 @@ function ManualForm({
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="map-kind">Demand kind</Label>
-          <select
+          <NativeSelect
             id="map-kind"
-            className={SELECT_CLASS}
             value={kind}
             onChange={(e) => setKind(e.target.value as "session" | "coverage")}
           >
             <option value="session">Weekly sessions</option>
             <option value="coverage">Cover every slot</option>
-          </select>
+          </NativeSelect>
         </div>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="map-slot-template">Slot template</Label>
-          <select
+          <NativeSelect
             id="map-slot-template"
-            className={SELECT_CLASS}
             value={chosenTemplate}
             onChange={(e) => setSlotTemplateId(e.target.value)}
           >
@@ -216,7 +213,7 @@ function ManualForm({
                 {t.name}
               </option>
             ))}
-          </select>
+          </NativeSelect>
         </div>
         <Column
           id="map-name"
@@ -279,9 +276,8 @@ function ManualForm({
               <Label
                 htmlFor={`map-req-${i}-type`}
               >{`Requirement ${i + 1} resource type`}</Label>
-              <select
+              <NativeSelect
                 id={`map-req-${i}-type`}
-                className={SELECT_CLASS}
                 value={r.resource_type_id ?? ""}
                 onChange={(e) =>
                   patch(i, { resource_type_id: e.target.value || null })
@@ -293,7 +289,7 @@ function ManualForm({
                     {t.name}
                   </option>
                 ))}
-              </select>
+              </NativeSelect>
             </div>
             <Column
               id={`map-req-${i}-tags`}

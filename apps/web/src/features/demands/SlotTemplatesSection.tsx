@@ -10,6 +10,7 @@ import {
 } from "@/api/generated/schedules/schedules";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
+import { TableSkeleton } from "@/components/TableSkeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { describeFailure } from "@/lib/conflict";
@@ -114,8 +115,11 @@ export function SlotTemplatesSection({
           <AlertDescription>{failure}</AlertDescription>
         </Alert>
       )}
-      {!isPending && templates.length === 0 ? (
+      {isPending ? (
+        <TableSkeleton label="Loading slot templates" />
+      ) : templates.length === 0 ? (
         <EmptyState
+          illustration="empty"
           title="No slot templates yet"
           description="Add the periods or shifts activities can use."
         />

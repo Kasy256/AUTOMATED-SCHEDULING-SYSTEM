@@ -25,7 +25,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { describeFailure } from "@/lib/conflict";
-import { SELECT_CLASS } from "@/lib/styles";
+import { NativeSelect } from "@/components/NativeSelect";
 import { browserTimezone, formatInZone, toUtcIso } from "@/lib/time";
 
 import type { Kind } from "./grid";
@@ -119,9 +119,8 @@ export function ExceptionsTab({
         >
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="exc-kind">Kind</Label>
-            <select
+            <NativeSelect
               id="exc-kind"
-              className={SELECT_CLASS}
               value={kind}
               onChange={(e) => {
                 setKind(e.target.value as Kind);
@@ -132,7 +131,7 @@ export function ExceptionsTab({
                   {label}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
           </div>
           <div className="flex flex-col gap-1.5">
             <Label htmlFor="exc-from">From</Label>

@@ -12,6 +12,7 @@ import {
 } from "@/api/generated/resources/resources";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { FieldError } from "@/components/FieldError";
+import { FormSection } from "@/components/FormSection";
 import { TagInput } from "@/components/TagInput";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
@@ -20,7 +21,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { describeFailure } from "@/lib/conflict";
 import { isApiError } from "@/lib/problem";
-import { SELECT_CLASS } from "@/lib/styles";
+import { NativeSelect } from "@/components/NativeSelect";
 
 import { fromFormValues, toFormValues, type FormValue } from "./attributes";
 
@@ -68,9 +69,8 @@ function AttributeField({
           onChange={onChange}
         />
       ) : def.type === "enum" ? (
-        <select
+        <NativeSelect
           id={id}
-          className={SELECT_CLASS}
           disabled={disabled}
           value={typeof value === "string" ? value : ""}
           onChange={(e) => {
@@ -83,7 +83,7 @@ function AttributeField({
               {v}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       ) : (
         <Input
           id={id}
@@ -204,7 +204,7 @@ export function AttributeForm({
 
   return (
     <form
-      className="flex max-w-3xl flex-col gap-5 pt-2"
+      className="flex max-w-3xl flex-col gap-6 pt-4"
       noValidate
       onSubmit={(e) => {
         e.preventDefault();
@@ -216,11 +216,11 @@ export function AttributeForm({
           <AlertDescription>{message}</AlertDescription>
         </Alert>
       )}
-      <fieldset
+      <FormSection
+        title="Resource"
+        description="How planners find and identify this resource."
         disabled={!canEdit || saving}
-        className="grid gap-4 rounded-lg border bg-card p-4 sm:grid-cols-2"
       >
-        <legend className="px-1 text-sm font-medium">Resource</legend>
         <div className="flex flex-col gap-1.5">
           <Label htmlFor="res-name">Name</Label>
           <Input
@@ -261,13 +261,13 @@ export function AttributeForm({
             <FieldError message={errors.count} />
           </div>
         )}
-      </fieldset>
+      </FormSection>
       {defs.length > 0 && (
-        <fieldset
+        <FormSection
+          title="Attributes"
+          description="Values rules can filter on, defined by the resource type."
           disabled={!canEdit || saving}
-          className="grid gap-4 rounded-lg border bg-card p-4 sm:grid-cols-2"
         >
-          <legend className="px-1 text-sm font-medium">Attributes</legend>
           {defs.map((def) => (
             <AttributeField
               key={def.key}
@@ -280,7 +280,7 @@ export function AttributeForm({
               }}
             />
           ))}
-        </fieldset>
+        </FormSection>
       )}
       {canEdit && (
         <div className="flex justify-between gap-2">

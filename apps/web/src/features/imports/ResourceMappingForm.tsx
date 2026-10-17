@@ -6,7 +6,7 @@ import type {
 } from "@/api/generated/model";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { SELECT_CLASS } from "@/lib/styles";
+import { NativeSelect } from "@/components/NativeSelect";
 
 import { autoResourceMapping } from "./mapping";
 
@@ -30,9 +30,8 @@ function ColumnSelect({
   return (
     <div className="flex flex-col gap-1.5">
       <Label htmlFor={id}>{label}</Label>
-      <select
+      <NativeSelect
         id={id}
-        className={SELECT_CLASS}
         value={value ?? NONE}
         aria-required={required}
         onChange={(e) =>
@@ -45,7 +44,7 @@ function ColumnSelect({
             {c}
           </option>
         ))}
-      </select>
+      </NativeSelect>
     </div>
   );
 }

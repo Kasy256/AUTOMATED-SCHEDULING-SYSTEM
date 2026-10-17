@@ -1,3 +1,10 @@
+import {
+  Boxes,
+  CalendarRange,
+  Clock,
+  ListChecks,
+  type LucideIcon,
+} from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router";
@@ -43,24 +50,35 @@ function Stat({
   value,
   detail,
   to,
+  icon: Icon,
 }: {
   label: string;
   value: number;
   detail?: string;
   to: string;
+  icon: LucideIcon;
 }) {
   return (
     <Link
       to={to}
-      className="flex flex-col gap-1 rounded-lg border bg-card p-4 hover:border-primary focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
+      className="flex items-start justify-between gap-4 rounded-xl border bg-card p-5 shadow-sm transition-shadow hover:shadow-md focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none"
     >
-      <span className="text-xs font-medium tracking-wide text-muted-foreground uppercase">
-        {label}
+      <span className="flex min-w-0 flex-col gap-1.5">
+        <span className="text-sm font-medium text-muted-foreground">
+          {label}
+        </span>
+        <span className="text-3xl font-semibold tracking-tight tabular-nums">
+          {value}
+        </span>
+        {detail && (
+          <span className="truncate text-xs text-muted-foreground">
+            {detail}
+          </span>
+        )}
       </span>
-      <span className="text-2xl font-semibold tabular-nums">{value}</span>
-      {detail && (
-        <span className="truncate text-xs text-muted-foreground">{detail}</span>
-      )}
+      <span className="rounded-lg bg-primary/10 p-2.5 text-primary">
+        <Icon className="size-5" aria-hidden />
+      </span>
     </Link>
   );
 }
@@ -148,7 +166,7 @@ export function OverviewPage() {
           )
         }
       />
-      <div className="flex flex-col gap-6 p-6">
+      <div className="flex flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
         {failure && (
           <Alert variant="destructive" role="alert">
             <AlertDescription>{failure}</AlertDescription>
@@ -157,22 +175,26 @@ export function OverviewPage() {
         <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
           <Stat
             label="Resources"
+            icon={Boxes}
             value={resources.length}
             detail={byType}
             to="/resources"
           />
           <Stat
             label="Demands"
+            icon={CalendarRange}
             value={demands.length}
             to={`/schedules/${scheduleId}/demands`}
           />
           <Stat
             label="Activities"
+            icon={Clock}
             value={activities.length}
             to={`/schedules/${scheduleId}/demands`}
           />
           <Stat
             label="Rules"
+            icon={ListChecks}
             value={rules.length}
             detail={`${hard} hard · ${rules.length - hard} soft`}
             to={`/schedules/${scheduleId}/rules`}

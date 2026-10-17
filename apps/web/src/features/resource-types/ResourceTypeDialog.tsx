@@ -24,7 +24,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { applyApiError } from "@/lib/forms";
-import { SELECT_CLASS } from "@/lib/styles";
+import { NativeSelect } from "@/components/NativeSelect";
 
 const KEY = /^[a-z][a-z0-9_]{0,62}$/;
 const attribute = z.object({
@@ -178,9 +178,8 @@ export function ResourceTypeDialog({
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="rt-kind">Kind</Label>
-              <select
+              <NativeSelect
                 id="rt-kind"
-                className={SELECT_CLASS}
                 disabled={editing !== null}
                 {...form.register("kind")}
               >
@@ -188,7 +187,7 @@ export function ResourceTypeDialog({
                 <option value="space">Space</option>
                 <option value="asset">Asset</option>
                 <option value="group">Group</option>
-              </select>
+              </NativeSelect>
             </div>
           </div>
           <fieldset className="flex flex-col gap-2">
@@ -217,9 +216,8 @@ export function ResourceTypeDialog({
                 </div>
                 <div className="flex flex-col gap-1">
                   <Label htmlFor={`attr-${String(i)}-type`}>Type</Label>
-                  <select
+                  <NativeSelect
                     id={`attr-${String(i)}-type`}
-                    className={SELECT_CLASS}
                     {...form.register(`attributes.${i}.type`)}
                   >
                     {[
@@ -234,7 +232,7 @@ export function ResourceTypeDialog({
                         {t}
                       </option>
                     ))}
-                  </select>
+                  </NativeSelect>
                 </div>
                 <label className="flex items-center gap-1.5 pb-2 text-sm">
                   <input

@@ -13,7 +13,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
-import { SELECT_CLASS } from "@/lib/styles";
+import { NativeSelect } from "@/components/NativeSelect";
 
 import { emptyRequirement, type DemandDraft } from "./demandBody";
 
@@ -46,11 +46,14 @@ export function RequirementsEditor({
             key={field.id}
             className="flex flex-col gap-3 rounded-lg border p-3"
           >
-            <div className="grid gap-3 sm:grid-cols-[1fr_1fr_6rem_6rem_auto] sm:items-end">
+            <div className="grid gap-3 sm:grid-cols-[1fr_1fr_5.5rem_5.5rem_auto] sm:items-end">
               <div className="flex flex-col gap-1">
-                <Label
-                  htmlFor={`req-${i}-role`}
-                >{`Requirement ${n} role`}</Label>
+                <Label htmlFor={`req-${i}-role`}>
+                  <span className="sr-only">{`Requirement ${n} `}</span>
+                  <span className="inline-block first-letter:uppercase">
+                    role
+                  </span>
+                </Label>
                 <Input
                   id={`req-${i}-role`}
                   placeholder="e.g. lecturer"
@@ -59,12 +62,14 @@ export function RequirementsEditor({
                 <FieldError message={errors?.[i]?.role?.message} />
               </div>
               <div className="flex flex-col gap-1">
-                <Label
-                  htmlFor={`req-${i}-type`}
-                >{`Requirement ${n} resource type`}</Label>
-                <select
+                <Label htmlFor={`req-${i}-type`}>
+                  <span className="sr-only">{`Requirement ${n} `}</span>
+                  <span className="inline-block first-letter:uppercase">
+                    resource type
+                  </span>
+                </Label>
+                <NativeSelect
                   id={`req-${i}-type`}
-                  className={SELECT_CLASS}
                   {...form.register(`requirements.${i}.resource_type_id`, {
                     setValueAs: (v: string) => (v === "" ? null : v),
                   })}
@@ -75,10 +80,15 @@ export function RequirementsEditor({
                       {t.name}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </div>
               <div className="flex flex-col gap-1">
-                <Label htmlFor={`req-${i}-min`}>{`Requirement ${n} min`}</Label>
+                <Label htmlFor={`req-${i}-min`}>
+                  <span className="sr-only">{`Requirement ${n} `}</span>
+                  <span className="inline-block first-letter:uppercase">
+                    min
+                  </span>
+                </Label>
                 <Input
                   id={`req-${i}-min`}
                   type="number"
@@ -89,7 +99,12 @@ export function RequirementsEditor({
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <Label htmlFor={`req-${i}-max`}>{`Requirement ${n} max`}</Label>
+                <Label htmlFor={`req-${i}-max`}>
+                  <span className="sr-only">{`Requirement ${n} `}</span>
+                  <span className="inline-block first-letter:uppercase">
+                    max
+                  </span>
+                </Label>
                 <Input
                   id={`req-${i}-max`}
                   type="number"
@@ -111,9 +126,12 @@ export function RequirementsEditor({
             </div>
             <div className="grid gap-3 sm:grid-cols-2">
               <div className="flex flex-col gap-1">
-                <Label
-                  htmlFor={`req-${i}-tags`}
-                >{`Requirement ${n} tags`}</Label>
+                <Label htmlFor={`req-${i}-tags`}>
+                  <span className="sr-only">{`Requirement ${n} `}</span>
+                  <span className="inline-block first-letter:uppercase">
+                    tags
+                  </span>
+                </Label>
                 <Controller
                   control={form.control}
                   name={`requirements.${i}.tags`}
@@ -127,9 +145,12 @@ export function RequirementsEditor({
                 />
               </div>
               <div className="flex flex-col gap-1">
-                <Label
-                  htmlFor={`req-${i}-fixed`}
-                >{`Requirement ${n} fixed resources`}</Label>
+                <Label htmlFor={`req-${i}-fixed`}>
+                  <span className="sr-only">{`Requirement ${n} `}</span>
+                  <span className="inline-block first-letter:uppercase">
+                    fixed resources
+                  </span>
+                </Label>
                 <Controller
                   control={form.control}
                   name={`requirements.${i}.fixed_resource_ids`}
@@ -168,17 +189,23 @@ export function RequirementsEditor({
                       checked={h.value}
                       onCheckedChange={h.onChange}
                     />
-                    <Label
-                      htmlFor={`req-${i}-hard`}
-                    >{`Requirement ${n} must be met`}</Label>
+                    <Label htmlFor={`req-${i}-hard`}>
+                      <span className="sr-only">{`Requirement ${n} `}</span>
+                      <span className="inline-block first-letter:uppercase">
+                        must be met
+                      </span>
+                    </Label>
                   </div>
                 )}
               />
               {!hard && (
                 <div className="flex items-center gap-2">
-                  <Label
-                    htmlFor={`req-${i}-weight`}
-                  >{`Requirement ${n} weight`}</Label>
+                  <Label htmlFor={`req-${i}-weight`}>
+                    <span className="sr-only">{`Requirement ${n} `}</span>
+                    <span className="inline-block first-letter:uppercase">
+                      weight
+                    </span>
+                  </Label>
                   <Input
                     id={`req-${i}-weight`}
                     type="number"

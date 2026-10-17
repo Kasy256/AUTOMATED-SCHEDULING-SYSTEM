@@ -11,6 +11,7 @@ import {
 import type { ResourceTypeResponse } from "@/api/generated/model";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
+import { TableSkeleton } from "@/components/TableSkeleton";
 import { PageHeader } from "@/components/PageHeader";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -71,19 +72,22 @@ export function ResourceTypesPage() {
           )
         }
       />
-      <div className="flex flex-col gap-4 p-6">
+      <div className="flex flex-col gap-4 px-4 py-6 sm:px-6 lg:px-8">
         {failure && (
           <Alert variant="destructive" role="alert">
             <AlertDescription>{failure}</AlertDescription>
           </Alert>
         )}
-        {!isPending && types.length === 0 ? (
+        {isPending ? (
+          <TableSkeleton label="Loading resource types" />
+        ) : types.length === 0 ? (
           <EmptyState
+            illustration="empty"
             title="No resource types yet"
             description="Pick an industry template in the setup wizard, or create types such as Lecturer, Room or Nurse."
           />
         ) : (
-          <div className="rounded-lg border bg-card">
+          <div className="rounded-xl border bg-card shadow-sm">
             <Table>
               <TableHeader>
                 <TableRow>

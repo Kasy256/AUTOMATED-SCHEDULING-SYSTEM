@@ -12,6 +12,7 @@ import type { DemandResponse } from "@/api/generated/model";
 import { useListSlotTemplates } from "@/api/generated/schedules/schedules";
 import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
+import { TableSkeleton } from "@/components/TableSkeleton";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -89,13 +90,16 @@ export function DemandsSection({
           <AlertDescription>{failure}</AlertDescription>
         </Alert>
       )}
-      {!isPending && demands.length === 0 ? (
+      {isPending ? (
+        <TableSkeleton label="Loading demands" />
+      ) : demands.length === 0 ? (
         <EmptyState
+          illustration="empty"
           title="No demands yet"
           description="Import them from a CSV on the Imports page, or add one here once a slot template exists."
         />
       ) : (
-        <div className="rounded-lg border bg-card">
+        <div className="rounded-xl border bg-card shadow-sm">
           <Table>
             <TableHeader>
               <TableRow>

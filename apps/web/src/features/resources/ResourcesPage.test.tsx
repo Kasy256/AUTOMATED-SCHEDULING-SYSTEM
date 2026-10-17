@@ -98,4 +98,23 @@ describe("ResourcesPage", () => {
     ).toHaveAttribute("href", "/resources/r2");
     expect(screen.queryByText("Dr. Okello")).toBeNull();
   });
+  it("shows a loading skeleton instead of an empty table", async () => {
+    vi.spyOn(auth, "useAuth").mockReturnValue({
+      status: "signedIn",
+      me: null,
+      login: vi.fn(),
+      logout: vi.fn(),
+      switchOrganisation: vi.fn(),
+      can: () => true,
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => new Promise<Response>(() => undefined)),
+    );
+    renderWithProviders(<ResourcesPage />);
+    expect(
+      await screen.findByRole("status", { name: "Loading resources" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("columnheader", { name: "Name" })).toBeNull();
+  });
 });

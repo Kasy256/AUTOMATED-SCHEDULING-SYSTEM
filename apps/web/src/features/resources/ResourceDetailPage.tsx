@@ -49,7 +49,7 @@ export function ResourceDetailPage() {
           </div>
         }
       />
-      <Tabs defaultValue="details" className="p-6">
+      <Tabs defaultValue="details" className="px-4 py-6 sm:px-6 lg:px-8">
         <TabsList>
           <TabsTrigger value="details">Details</TabsTrigger>
           <TabsTrigger value="availability">Weekly availability</TabsTrigger>

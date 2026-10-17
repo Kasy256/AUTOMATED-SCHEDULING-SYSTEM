@@ -5,6 +5,7 @@ import { useListImports } from "@/api/generated/imports/imports";
 import { useListResourceTypes } from "@/api/generated/resources/resources";
 import { useListSchedules } from "@/api/generated/schedules/schedules";
 import { EmptyState } from "@/components/EmptyState";
+import { TableSkeleton } from "@/components/TableSkeleton";
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -24,7 +25,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useAuth } from "@/lib/auth/AuthProvider";
-import { SELECT_CLASS } from "@/lib/styles";
+import { NativeSelect } from "@/components/NativeSelect";
 
 import { ImportFlow, type ImportTarget } from "./ImportFlow";
 
@@ -86,9 +87,8 @@ function NewImportDialog({
         ) : (
           <div className="flex flex-col gap-3">
             <Label htmlFor="import-target">What are you importing?</Label>
-            <select
+            <NativeSelect
               id="import-target"
-              className={SELECT_CLASS}
               value={choice}
               onChange={(e) => setChoice(e.target.value)}
             >
@@ -98,7 +98,7 @@ function NewImportDialog({
                   {o.label}
                 </option>
               ))}
-            </select>
+            </NativeSelect>
             <Button className="self-start" disabled={!choice} onClick={start}>
               Continue
             </Button>
@@ -125,14 +125,17 @@ export function ImportsPage() {
           )
         }
       />
-      <div className="p-6">
-        {!isPending && imports.length === 0 ? (
+      <div className="px-4 py-6 sm:px-6 lg:px-8">
+        {isPending ? (
+          <TableSkeleton label="Loading imports" />
+        ) : imports.length === 0 ? (
           <EmptyState
+            illustration="import"
             title="No imports yet"
             description="Start one to bring in lecturers, rooms, staff or demands."
           />
         ) : (
-          <div className="rounded-lg border bg-card">
+          <div className="rounded-xl border bg-card shadow-sm">
             <Table>
               <TableHeader>
                 <TableRow>

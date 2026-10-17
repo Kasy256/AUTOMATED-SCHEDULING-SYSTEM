@@ -10,6 +10,7 @@ import {
 } from "@/api/generated/members/members";
 import type { MemberResponse, Role } from "@/api/generated/model";
 import { EmptyState } from "@/components/EmptyState";
+import { TableSkeleton } from "@/components/TableSkeleton";
 import { FieldError } from "@/components/FieldError";
 import { PageHeader } from "@/components/PageHeader";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -218,14 +219,17 @@ export function MembersPage() {
           )
         }
       />
-      <div className="p-6">
-        {!isPending && members.length === 0 ? (
+      <div className="px-4 py-6 sm:px-6 lg:px-8">
+        {isPending ? (
+          <TableSkeleton label="Loading members" />
+        ) : members.length === 0 ? (
           <EmptyState
+            illustration="team"
             title="No members yet"
             description="Invite planners, viewers and the people you schedule."
           />
         ) : (
-          <div className="rounded-lg border bg-card">
+          <div className="rounded-xl border bg-card shadow-sm">
             <Table>
               <TableHeader>
                 <TableRow>
@@ -245,12 +249,14 @@ export function MembersPage() {
                   <TableRow key={m.membership_id}>
                     <TableCell className="font-medium">{m.name}</TableCell>
                     <TableCell>{m.email}</TableCell>
-                    <TableCell className="flex flex-wrap gap-1">
-                      {m.roles.map((r) => (
-                        <Badge key={r} variant="secondary">
-                          {ROLE_LABELS[r]}
-                        </Badge>
-                      ))}
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {m.roles.map((r) => (
+                          <Badge key={r} variant="secondary">
+                            {ROLE_LABELS[r]}
+                          </Badge>
+                        ))}
+                      </div>
                     </TableCell>
                     <TableCell>{STATUS[m.status] ?? m.status}</TableCell>
                     {manage && (

@@ -3,6 +3,7 @@ import { useSearchParams } from "react-router";
 
 import { useListIndustryTemplates } from "@/api/generated/industry-templates/industry-templates";
 import { useGetSchedule } from "@/api/generated/schedules/schedules";
+import { BrandMark } from "@/components/BrandMark";
 import { cn } from "@/lib/utils";
 
 import { FinishStep } from "./FinishStep";
@@ -23,7 +24,8 @@ export function SetupWizard() {
   const step = wizardStep(params);
   const templateKey = params.get("template");
   const scheduleId = params.get("schedule");
-  const { data: templates = [] } = useListIndustryTemplates();
+  const { data: templates = [], isPending: templatesLoading } =
+    useListIndustryTemplates();
   const { data: schedule } = useGetSchedule(scheduleId ?? "", {
     query: { enabled: scheduleId !== null },
   });
@@ -39,12 +41,9 @@ export function SetupWizard() {
   ];
 
   return (
-    <div className="grid min-h-svh md:grid-cols-[16rem_minmax(0,1fr)]">
-      <aside className="bg-sidebar p-6 text-sidebar-foreground">
-        <div className="mb-8 flex items-center gap-2 font-semibold text-sidebar-accent-foreground">
-          <span className="size-4 rounded bg-sidebar-primary" aria-hidden />{" "}
-          Cartlyf
-        </div>
+    <div className="grid min-h-svh md:grid-cols-[18rem_minmax(0,1fr)]">
+      <aside className="bg-sidebar p-8 text-sidebar-foreground">
+        <BrandMark className="mb-10 text-lg" />
         <ol className="flex flex-col gap-5">
           {STEPS.map((label, i) => {
             const n = i + 1;
@@ -91,6 +90,7 @@ export function SetupWizard() {
         <div className="w-full max-w-3xl">
           {step === 1 && (
             <TemplateStep
+              loading={templatesLoading}
               templates={templates}
               onPick={(key) => go({ template: key })}
             />

@@ -15,6 +15,7 @@ import type {
 } from "@/api/generated/model";
 import { useListResourceTypes } from "@/api/generated/resources/resources";
 import { EmptyState } from "@/components/EmptyState";
+import { TableSkeleton } from "@/components/TableSkeleton";
 import { PageHeader } from "@/components/PageHeader";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -100,9 +101,13 @@ export function RulesPage() {
           canEdit && <Button onClick={() => setPicking(true)}>Add rule</Button>
         }
       />
-      <div className="flex flex-col gap-6 p-6">
+      <div className="flex flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
+        {isPending && (
+          <TableSkeleton rows={5} columns={2} label="Loading rules" />
+        )}
         {!isPending && rules.length === 0 && (
           <EmptyState
+            illustration="empty"
             title="No rules yet"
             description="Rules come with an industry template, or add your own."
           />
@@ -124,7 +129,7 @@ export function RulesPage() {
                     <li
                       key={rule.id}
                       className={cn(
-                        "flex items-center gap-3 rounded-lg border bg-card p-3",
+                        "flex items-center gap-4 rounded-xl border bg-card px-4 py-3 shadow-sm transition-shadow hover:shadow-md",
                         !rule.enabled && "opacity-60",
                       )}
                     >

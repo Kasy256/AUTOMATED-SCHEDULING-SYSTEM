@@ -18,7 +18,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import type { PredicateValue } from "@/lib/predicates";
-import { SELECT_CLASS } from "@/lib/styles";
+import { NativeSelect } from "@/components/NativeSelect";
 
 import { initialValues, type FieldNode, type RefKind } from "./schema";
 
@@ -66,9 +66,8 @@ function Field({
       return (
         <div className="flex flex-col gap-1.5">
           <Label htmlFor={id}>{node.title}</Label>
-          <select
+          <NativeSelect
             id={id}
-            className={SELECT_CLASS}
             disabled={readOnly}
             aria-describedby={describedBy}
             {...form.register(name)}
@@ -81,7 +80,7 @@ function Field({
                 {optionLabel(o)}
               </option>
             ))}
-          </select>
+          </NativeSelect>
           <Hint id={id} text={node.description} />
           <FieldError message={error} />
         </div>

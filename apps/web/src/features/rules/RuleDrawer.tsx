@@ -178,24 +178,28 @@ export function RuleDrawer({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-lg">
+      <SheetContent side="right" className="w-full overflow-y-auto sm:max-w-xl">
         <SheetHeader>
           <SheetTitle>{template.title}</SheetTitle>
           <SheetDescription>{template.description}</SheetDescription>
         </SheetHeader>
         <FormProvider {...form}>
           <form
-            className="flex flex-col gap-5 px-4 pb-4"
+            className="flex flex-1 flex-col"
             onSubmit={(e) => void onSubmit(e)}
             noValidate
           >
             {message && (
-              <Alert variant="destructive" role="alert">
+              <Alert
+                variant="destructive"
+                role="alert"
+                className="mx-6 mt-6 w-auto"
+              >
                 <AlertDescription>{message}</AlertDescription>
               </Alert>
             )}
             <fieldset
-              className="flex flex-col gap-5"
+              className="flex flex-col gap-6 px-6 py-6"
               disabled={readOnly || isSubmitting}
             >
               <div className="flex flex-col gap-1.5">
@@ -265,7 +269,7 @@ export function RuleDrawer({
                 aria-labelledby="rule-settings"
                 className="flex flex-col gap-3"
               >
-                <h3 id="rule-settings" className="text-sm font-medium">
+                <h3 id="rule-settings" className="text-sm font-semibold">
                   Settings
                 </h3>
                 <SchemaForm nodes={nodes} refs={refs} readOnly={readOnly} />
@@ -284,7 +288,7 @@ export function RuleDrawer({
               />
             </fieldset>
             {!readOnly && (
-              <SheetFooter className="flex-row justify-between p-0">
+              <SheetFooter className="flex-row justify-between">
                 {rule ? (
                   <Button
                     type="button"

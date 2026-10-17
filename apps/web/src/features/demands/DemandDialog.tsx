@@ -34,7 +34,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { isApiError } from "@/lib/problem";
-import { SELECT_CLASS } from "@/lib/styles";
+import { NativeSelect } from "@/components/NativeSelect";
 
 import {
   emptyRequirement,
@@ -194,9 +194,8 @@ export function DemandDialog({
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="dem-slots">Slot template</Label>
-                <select
+                <NativeSelect
                   id="dem-slots"
-                  className={SELECT_CLASS}
                   {...form.register("slot_template_id")}
                 >
                   {slotTemplates.map((t) => (
@@ -204,7 +203,7 @@ export function DemandDialog({
                       {t.name}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
                 <FieldError message={errors.slot_template_id?.message} />
               </div>
             </div>

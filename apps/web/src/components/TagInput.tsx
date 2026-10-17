@@ -21,7 +21,7 @@ export function TagInput({
     setDraft("");
   };
   return (
-    <div className="flex min-h-9 flex-wrap items-center gap-1 rounded-md border border-input bg-card px-2 py-1 focus-within:ring-2 focus-within:ring-ring">
+    <div className="flex min-h-10 flex-wrap items-center gap-1 rounded-md border border-input bg-card px-2.5 py-1.5 shadow-xs focus-within:ring-2 focus-within:ring-ring">
       {value.map((tag) => (
         <Badge key={tag} variant="secondary" className="gap-1">
           {tag}
