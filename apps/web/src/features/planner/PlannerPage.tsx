@@ -34,6 +34,7 @@ import { ExplanationPanel } from "./ExplanationPanel";
 import { applyPending, cellIndex, type BoardItem } from "./model/items";
 import { pendingReducer } from "./model/pending";
 import { PendingTray } from "./PendingTray";
+import { ScorePanel } from "./ScorePanel";
 import { useBoardData } from "./useBoardData";
 import { useDragChecks } from "./useDragChecks";
 
@@ -227,7 +228,14 @@ export function PlannerPage() {
           versions={data.versions}
           versionId={version?.id ?? ""}
           onVersion={(id) => setParams({ version: id })}
-          actions={<SolveButton scheduleId={scheduleId} variant="outline" />}
+          actions={
+            <>
+              {version && (
+                <ScorePanel scheduleId={scheduleId} score={version.score} />
+              )}
+              <SolveButton scheduleId={scheduleId} variant="outline" />
+            </>
+          }
         />
         {data.loading ? (
           <TableSkeleton label="Loading the board" />
