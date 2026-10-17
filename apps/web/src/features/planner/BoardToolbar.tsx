@@ -10,7 +10,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-import { versionLabel } from "./labels";
+import { BOARD_ID, versionLabel } from "./labels";
 
 export function BoardToolbar({
   types,
@@ -45,7 +45,7 @@ export function BoardToolbar({
       <Tabs value={typeId} onValueChange={onType}>
         <TabsList>
           {types.map((t) => (
-            <TabsTrigger key={t.id} value={t.id}>
+            <TabsTrigger key={t.id} value={t.id} aria-controls={BOARD_ID}>
               {t.name}
             </TabsTrigger>
           ))}

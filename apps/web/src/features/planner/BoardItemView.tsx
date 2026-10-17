@@ -46,7 +46,7 @@ export const BoardItemView = forwardRef<HTMLButtonElement, Props>(
             <Pin className="size-3 shrink-0" aria-label="pinned" />
           )}
         </span>
-        <span className="truncate text-[11px] opacity-90">{codes}</span>
+        <span className="truncate text-[11px]">{codes}</span>
       </button>
     );
   },

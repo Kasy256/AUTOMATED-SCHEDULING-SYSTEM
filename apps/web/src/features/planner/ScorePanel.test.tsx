@@ -59,6 +59,35 @@ describe("ScorePanel", () => {
     expect(second?.getByText("10")).toBeInTheDocument();
   });
 
+  it("lists a soft rule that is fully met at zero", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve(
+          jsonResponse([
+            rule("c1", "Keep days compact"),
+            rule("c3", "PROG_C lecturers: at most 1 a day"),
+            { ...rule("c4", "Room capacity"), hard: true },
+          ]),
+        ),
+      ),
+    );
+    renderWithProviders(
+      <ScorePanel
+        scheduleId="s1"
+        score={{
+          hard_violations: 0,
+          soft_total: 10,
+          terms: [{ constraint_id: "c1", penalty: 10 }],
+        }}
+      />,
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Score" }));
+    const met = await screen.findByText("PROG_C lecturers: at most 1 a day");
+    expect(met.closest("li")).toHaveTextContent("0");
+    expect(screen.queryByText("Room capacity")).toBeNull();
+  });
+
   it("says when every preference is met", async () => {
     vi.stubGlobal(
       "fetch",

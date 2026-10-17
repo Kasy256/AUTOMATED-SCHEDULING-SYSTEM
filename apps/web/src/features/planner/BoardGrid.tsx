@@ -1,6 +1,7 @@
 import {
   DndContext,
   PointerSensor,
+  pointerWithin,
   useSensor,
   useSensors,
   type DragEndEvent,
@@ -165,6 +166,8 @@ export function BoardGrid({
   return (
     <DndContext
       sensors={sensors}
+      // The target is the cell under the pointer, not whichever cell the dragged card overlaps most.
+      collisionDetection={pointerWithin}
       onDragStart={dragStart}
       onDragEnd={dragEnd}
       onDragCancel={onCancel}

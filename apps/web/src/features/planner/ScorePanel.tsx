@@ -59,7 +59,16 @@ export function ScorePanel({
   const { data: rules = [] } = useListConstraints(scheduleId);
   const text = useEngineText(scheduleId);
   const names = new Map(rules.map((r) => [r.id, r.name]));
-  const { hard, soft, terms } = parseScore(score);
+  const parsed = parseScore(score);
+  const { hard, soft } = parsed;
+  // A met preference costs nothing but still belongs in the breakdown.
+  const scored = new Set(parsed.terms.map((t) => t.constraint_id));
+  const terms = [
+    ...parsed.terms,
+    ...rules
+      .filter((r) => !r.hard && !scored.has(r.id))
+      .map((r) => ({ constraint_id: r.id, penalty: 0, details: "" })),
+  ];
 
   return (
     <Popover>
@@ -74,11 +83,12 @@ export function ScorePanel({
             </span>
             <span className="font-medium">{`Soft penalty: ${String(soft)}`}</span>
           </div>
-          {terms.length === 0 ? (
+          {parsed.terms.length === 0 && (
             <p className="text-sm text-muted-foreground">
               No soft penalties — every preference is met.
             </p>
-          ) : (
+          )}
+          {terms.length > 0 && (
             <ul className="flex max-h-80 flex-col gap-3 overflow-y-auto">
               {terms.map((t) => (
                 <li key={t.constraint_id} className="flex flex-col gap-1">

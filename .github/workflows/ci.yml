@@ -91,6 +91,10 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm api:generate
       - run: pnpm exec playwright install --with-deps chromium
+      # The planner flows solve timetables, which runs on the Dramatiq worker.
+      - name: Start the solve worker
+        run: nohup uv run --env-file .env dramatiq cartlyf_api.jobs.worker --processes 1 --threads 1 > worker.log 2>&1 &
+        working-directory: .
       - run: pnpm e2e
       - if: failure()
         uses: actions/upload-artifact@v4
@@ -99,6 +103,7 @@ jobs:
           path: |
             apps/web/playwright-report
             apps/web/test-results
+            worker.log
           retention-days: 7
 
   security:

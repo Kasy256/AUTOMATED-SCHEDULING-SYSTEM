@@ -28,7 +28,7 @@ import {
 
 import { BoardGrid } from "./BoardGrid";
 import { BoardToolbar } from "./BoardToolbar";
-import { versionLabel } from "./labels";
+import { BOARD_ID, versionLabel } from "./labels";
 import { weekColumns } from "./model/columns";
 import { ExplanationPanel } from "./ExplanationPanel";
 import { applyPending, cellIndex, type BoardItem } from "./model/items";
@@ -237,36 +237,38 @@ export function PlannerPage() {
             </>
           }
         />
-        {data.loading ? (
-          <TableSkeleton label="Loading the board" />
-        ) : !version ? (
-          <EmptyState
-            illustration="setup"
-            title="Solve to create the first timetable"
-            description="The board shows a solved timetable. Run a solve to make one."
-            action={<SolveButton scheduleId={scheduleId} />}
-          />
-        ) : columns.length === 0 ? (
-          <EmptyState
-            title="Nothing is scheduled this week."
-            description="Use the week picker to find scheduled weeks."
-          />
-        ) : (
-          <BoardGrid
-            rows={rows}
-            columns={columns}
-            index={index}
-            codeOf={codeOf}
-            highlight={drag.highlight}
-            canDrag={data.editable && canEdit}
-            onOpenItem={(item, rowId) => setSelected({ item, rowId })}
-            onPickUp={(item, rowId) => void drag.pickUp(item, rowId)}
-            onDrop={dropAt}
-            onCheck={check}
-            onCancel={drag.cancel}
-            onHoverCheck={hoverCheck}
-          />
-        )}
+        <div id={BOARD_ID}>
+          {data.loading ? (
+            <TableSkeleton label="Loading the board" />
+          ) : !version ? (
+            <EmptyState
+              illustration="setup"
+              title="Solve to create the first timetable"
+              description="The board shows a solved timetable. Run a solve to make one."
+              action={<SolveButton scheduleId={scheduleId} />}
+            />
+          ) : columns.length === 0 ? (
+            <EmptyState
+              title="Nothing is scheduled this week."
+              description="Use the week picker to find scheduled weeks."
+            />
+          ) : (
+            <BoardGrid
+              rows={rows}
+              columns={columns}
+              index={index}
+              codeOf={codeOf}
+              highlight={drag.highlight}
+              canDrag={data.editable && canEdit}
+              onOpenItem={(item, rowId) => setSelected({ item, rowId })}
+              onPickUp={(item, rowId) => void drag.pickUp(item, rowId)}
+              onDrop={dropAt}
+              onCheck={check}
+              onCancel={drag.cancel}
+              onHoverCheck={hoverCheck}
+            />
+          )}
+        </div>
         <PendingTray
           changes={pending}
           describe={describe}

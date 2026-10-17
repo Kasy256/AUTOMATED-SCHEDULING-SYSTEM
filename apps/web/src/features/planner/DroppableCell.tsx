@@ -50,6 +50,7 @@ export function DroppableCell({
       role="gridcell"
       data-cell={cellId}
       data-pos={pos}
+      data-check={highlighting ? (check?.state ?? "unchecked") : undefined}
       tabIndex={focused ? 0 : -1}
       onFocus={(e) => {
         if (e.target === e.currentTarget) onFocusCell();
