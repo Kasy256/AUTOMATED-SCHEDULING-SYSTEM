@@ -93,5 +93,13 @@ def check(ctx: CheckContext, instance: ConstraintInstance) -> list[Finding]:
 
 
 SPEC = TemplateSpec(
-    "day_distribution", 1, Params, soft_only=True, encode=encode, check=check, explain=explain
+    "day_distribution",
+    1,
+    Params,
+    soft_only=True,
+    encode=encode,
+    check=check,
+    explain=explain,
+    title="Even days",
+    description="Spreads each resource's activities evenly across days.",
 )

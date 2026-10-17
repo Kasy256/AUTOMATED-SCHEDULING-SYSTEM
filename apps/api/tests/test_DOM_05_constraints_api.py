@@ -144,3 +144,20 @@ def test_rules_block_deleting_what_they_reference(client: TestClient, app: FastA
     response = client.delete(demand_url, headers=admin.auth)
     assert response.status_code == 409
     assert "Max 2 a day" in response.json()["detail"]
+
+
+def test_template_catalogue_has_display_text(client: TestClient, app: FastAPI) -> None:
+    admin = signup_and_confirm(client, app)
+    templates = client.get("/api/v1/constraint-templates", headers=admin.auth).json()
+    max_load = next(t for t in templates if t["key"] == "max_load")
+    assert max_load["title"] == "Maximum workload"
+    assert max_load["description"].endswith(".")
+    assert max_load["params_schema"]["properties"]["max_minutes"]["x-unit"] == "minutes"
+
+
+def test_constraint_responses_carry_a_summary(client: TestClient, app: FastAPI) -> None:
+    admin, _, url = setup(client, app)
+    created = client.post(url, headers=admin.auth, json=rule()).json()
+    assert created["summary"] == "At most 2 activities per day"
+    listed = {c["id"]: c["summary"] for c in client.get(url, headers=admin.auth).json()}
+    assert listed[created["id"]] == "At most 2 activities per day"

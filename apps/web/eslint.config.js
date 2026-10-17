@@ -26,5 +26,31 @@ export default defineConfig([
         tsconfigRootDir: import.meta.dirname,
       },
     },
+    rules: {
+      // react-hook-form field paths are template literals with array indexes.
+      "@typescript-eslint/restrict-template-expressions": [
+        "error",
+        { allowNumber: true },
+      ],
+      // `onClick={() => setOpen(false)}` is idiomatic React.
+      "@typescript-eslint/no-confusing-void-expression": [
+        "error",
+        { ignoreArrowShorthand: true },
+      ],
+      "@typescript-eslint/no-unused-vars": [
+        "error",
+        { argsIgnorePattern: "^_" },
+      ],
+    },
+  },
+  {
+    files: ["e2e/**/*.ts", "playwright.config.ts"],
+    languageOptions: { globals: globals.node },
+    rules: { "react-hooks/rules-of-hooks": "off" },
+  },
+  {
+    // shadcn components are generated and export variants next to components.
+    files: ["src/components/ui/**"],
+    rules: { "react-refresh/only-export-components": "off" },
   },
 ]);

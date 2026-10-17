@@ -2,11 +2,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal, Self, cast
 
-from pydantic import BaseModel, model_validator
+from pydantic import BaseModel, Field, model_validator
 
 from cartlyf_engine.checking import CheckContext, Finding
 from cartlyf_engine.domain import ConstraintInstance, Resource, Scope
-from cartlyf_engine.domain.base import Frozen, Id
+from cartlyf_engine.domain.base import Frozen, ResourceId, SeriesId
 from cartlyf_engine.templates.scope import scoped_activities, scoped_resources, series_of
 from cartlyf_engine.templates.spec import References, TemplateSpec
 
@@ -15,14 +15,16 @@ if TYPE_CHECKING:
 
 
 class Pair(Frozen):
-    resource_id: Id
-    series_id: Id
-    mode: Literal["prefer", "avoid"]
+    resource_id: ResourceId = Field(title="Resource")
+    series_id: SeriesId = Field(title="Demand")
+    mode: Literal["prefer", "avoid"] = Field(title="Mode")
 
 
 class Params(Frozen):
-    source: Literal["calendar", "explicit"]
-    pairs: tuple[Pair, ...] = ()
+    source: Literal["calendar", "explicit"] = Field(
+        title="Source", description="Use availability calendars or the pairs below"
+    )
+    pairs: tuple[Pair, ...] = Field(default=(), title="Pairs")
 
     @model_validator(mode="after")
     def _pairs_match_source(self) -> Self:
@@ -171,4 +173,6 @@ SPEC = TemplateSpec(
     encode=encode,
     check=check,
     explain=explain,
+    title="Preferences",
+    description="Rewards preferred and penalises avoided assignments.",
 )

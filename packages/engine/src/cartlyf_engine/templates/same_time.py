@@ -6,7 +6,7 @@ from pydantic import AfterValidator, BaseModel, Field
 
 from cartlyf_engine.checking import CheckContext, Finding
 from cartlyf_engine.domain import Activity, ConstraintInstance, Problem, Scope
-from cartlyf_engine.domain.base import Frozen, Id
+from cartlyf_engine.domain.base import Frozen, SeriesId
 from cartlyf_engine.templates.scope import scoped_activities, series_of
 from cartlyf_engine.templates.spec import References, TemplateSpec
 
@@ -21,11 +21,11 @@ def _distinct_pairable(group: tuple[str, ...]) -> tuple[str, ...]:
 
 
 # Series ids, not activity ids: the i-th activity of each linked series starts together.
-LinkGroup = Annotated[tuple[Id, ...], AfterValidator(_distinct_pairable)]
+LinkGroup = Annotated[tuple[SeriesId, ...], AfterValidator(_distinct_pairable)]
 
 
 class Params(Frozen):
-    link_groups: tuple[LinkGroup, ...] = Field(min_length=1)
+    link_groups: tuple[LinkGroup, ...] = Field(min_length=1, title="Linked demands")
 
 
 def _references(params: BaseModel) -> References:
@@ -93,4 +93,6 @@ SPEC = TemplateSpec(
     check=check,
     explain=explain,
     relax=relax,
+    title="Same time",
+    description="Linked demands start at the same time.",
 )

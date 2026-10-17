@@ -19,15 +19,26 @@ from cartlyf_api.constraints.schemas import (
 from cartlyf_api.errors import NotFound, Unprocessable, field_error
 from cartlyf_api.resources import repository as resources_repo
 from cartlyf_api.schedules.service import live_schedule
+from cartlyf_engine.domain import ConstraintInstance
 from cartlyf_engine.templates.registry import (
     REGISTRY,
     InvalidInstance,
+    describe,
     params_references,
     validate_instance,
 )
 
 
 def _response(row: ConstraintInstanceRow) -> ConstraintResponse:
+    # explain() wording does not depend on scope, so the instance is built without it.
+    instance = ConstraintInstance(
+        id=str(row.id),
+        template_key=row.template_key,
+        version=row.template_version,
+        params=row.params,
+        hard=row.hard,
+        weight=row.weight,
+    )
     return ConstraintResponse(
         id=row.id,
         schedule_id=row.schedule_id,
@@ -39,6 +50,7 @@ def _response(row: ConstraintInstanceRow) -> ConstraintResponse:
         hard=row.hard,
         weight=row.weight,
         enabled=row.enabled,
+        summary=describe(instance),
     )
 
 
@@ -180,6 +192,8 @@ def list_templates(principal: Principal) -> list[TemplateResponse]:
         TemplateResponse(
             key=spec.key,
             version=spec.version,
+            title=spec.title,
+            description=spec.description,
             soft_only=spec.soft_only,
             params_schema=spec.params_model.model_json_schema(),
         )

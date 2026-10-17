@@ -61,10 +61,13 @@ class ConstraintWrite(BaseModel):
 class ConstraintResponse(ConstraintWrite):
     id: UUID
     schedule_id: UUID
+    summary: str
 
 
 class TemplateResponse(BaseModel):
     key: str
     version: int
+    title: str
+    description: str
     soft_only: bool
     params_schema: dict[str, JsonValue]

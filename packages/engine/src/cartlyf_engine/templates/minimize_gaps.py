@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import TYPE_CHECKING
 
-from pydantic import PositiveInt
+from pydantic import Field, JsonValue, PositiveInt
 
 from cartlyf_engine.checking import CheckContext, Finding
 from cartlyf_engine.domain import Activity, ConstraintInstance
@@ -17,8 +17,15 @@ if TYPE_CHECKING:
     from cartlyf_engine.encoding import Encoding, Rule
 
 
+MINUTES: dict[str, JsonValue] = {"x-unit": "minutes"}
+
+
 class Params(Frozen):
-    per_minutes: PositiveInt
+    per_minutes: PositiveInt = Field(
+        title="Penalty every",
+        description="One penalty unit per this many idle minutes",
+        json_schema_extra=MINUTES,
+    )
 
 
 def _params(instance: ConstraintInstance) -> Params:
@@ -94,5 +101,13 @@ def check(ctx: CheckContext, instance: ConstraintInstance) -> list[Finding]:
 
 
 SPEC = TemplateSpec(
-    "minimize_gaps", 1, Params, soft_only=True, encode=encode, check=check, explain=explain
+    "minimize_gaps",
+    1,
+    Params,
+    soft_only=True,
+    encode=encode,
+    check=check,
+    explain=explain,
+    title="Compact days",
+    description="Penalises idle time between a resource's activities on one day.",
 )

@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Literal, Self
 
-from pydantic import model_validator
+from pydantic import Field, model_validator
 
 from cartlyf_engine.checking import CheckContext, Finding
 from cartlyf_engine.domain import Activity, ConstraintInstance, Problem, Scope
@@ -15,8 +15,14 @@ if TYPE_CHECKING:
 
 
 class Params(Frozen):
-    headcount_from: Literal["group_sizes", "activity_attr"] = "group_sizes"
-    headcount_attr: Key | None = None
+    headcount_from: Literal["group_sizes", "activity_attr"] = Field(
+        default="group_sizes", title="Headcount from"
+    )
+    headcount_attr: Key | None = Field(
+        default=None,
+        title="Headcount attribute",
+        description="Activity attribute holding the headcount",
+    )
 
     @model_validator(mode="after")
     def _attr_when_needed(self) -> Self:
@@ -118,4 +124,13 @@ def check(ctx: CheckContext, instance: ConstraintInstance) -> list[Finding]:
     return findings
 
 
-SPEC = TemplateSpec("capacity_fit", 1, Params, encode=encode, check=check, explain=explain)
+SPEC = TemplateSpec(
+    "capacity_fit",
+    1,
+    Params,
+    encode=encode,
+    check=check,
+    explain=explain,
+    title="Capacity fit",
+    description="A space's capacity covers the headcount of the activity it hosts.",
+)

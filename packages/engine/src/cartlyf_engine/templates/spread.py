@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import TYPE_CHECKING, Self
 
-from pydantic import PositiveInt, model_validator
+from pydantic import Field, PositiveInt, model_validator
 
 from cartlyf_engine.checking import CheckContext, Finding
 from cartlyf_engine.domain import Activity, ConstraintInstance
@@ -18,8 +18,8 @@ if TYPE_CHECKING:
 
 
 class Params(Frozen):
-    max_per_day: PositiveInt | None = None
-    min_days_apart: PositiveInt | None = None
+    max_per_day: PositiveInt | None = Field(default=None, title="Max per day")
+    min_days_apart: PositiveInt | None = Field(default=None, title="Min days apart")
 
     @model_validator(mode="after")
     def _has_a_rule(self) -> Self:
@@ -123,4 +123,14 @@ def check(ctx: CheckContext, instance: ConstraintInstance) -> list[Finding]:
     return findings
 
 
-SPEC = TemplateSpec("spread", 1, Params, encode=encode, check=check, explain=explain, relax=relax)
+SPEC = TemplateSpec(
+    "spread",
+    1,
+    Params,
+    encode=encode,
+    check=check,
+    explain=explain,
+    relax=relax,
+    title="Spread across days",
+    description="Spreads a demand's sessions over the days of the week.",
+)

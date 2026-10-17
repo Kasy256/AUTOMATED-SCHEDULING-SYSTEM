@@ -3,7 +3,7 @@ from __future__ import annotations
 from collections import defaultdict
 from typing import TYPE_CHECKING, Literal, cast
 
-from pydantic import BaseModel, PositiveInt
+from pydantic import BaseModel, Field, PositiveInt
 
 from cartlyf_engine.checking import CheckContext, Finding
 from cartlyf_engine.domain import Activity, ConstraintInstance, activity_matches
@@ -21,9 +21,9 @@ if TYPE_CHECKING:
 
 class Params(Frozen):
     # "activities" (runs in a resource's sequence) is roadmap: no v1 template needs it.
-    unit: Literal["days"]
-    max: PositiveInt
-    activity_filter: ActivityFilter | None = None
+    unit: Literal["days"] = Field(title="Counted in")
+    max: PositiveInt = Field(title="Max in a row")
+    activity_filter: ActivityFilter | None = Field(default=None, title="Only count")
 
 
 def _references(params: BaseModel) -> References:
@@ -119,4 +119,6 @@ SPEC = TemplateSpec(
     check=check,
     explain=explain,
     relax=relax,
+    title="Consecutive days",
+    description="Limits how many days in a row a resource works.",
 )

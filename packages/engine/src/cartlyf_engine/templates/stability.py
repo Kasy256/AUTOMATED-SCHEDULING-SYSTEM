@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from pydantic import NonNegativeInt
+from pydantic import Field, NonNegativeInt
 
 from cartlyf_engine.checking import CheckContext, Finding
 from cartlyf_engine.domain import Activity, Assignment, ConstraintInstance, Problem
@@ -15,8 +15,8 @@ if TYPE_CHECKING:
 
 
 class Params(Frozen):
-    per_change: NonNegativeInt
-    per_resource_change: NonNegativeInt
+    per_change: NonNegativeInt = Field(title="Penalty per moved activity")
+    per_resource_change: NonNegativeInt = Field(title="Penalty per replaced resource")
 
 
 def _params(instance: ConstraintInstance) -> Params:
@@ -88,5 +88,13 @@ def check(ctx: CheckContext, instance: ConstraintInstance) -> list[Finding]:
 
 
 SPEC = TemplateSpec(
-    "stability", 1, Params, soft_only=True, encode=encode, check=check, explain=explain
+    "stability",
+    1,
+    Params,
+    soft_only=True,
+    encode=encode,
+    check=check,
+    explain=explain,
+    title="Stability",
+    description="Keeps repairs close to the published schedule.",
 )
