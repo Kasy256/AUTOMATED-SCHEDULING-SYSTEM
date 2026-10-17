@@ -1,19 +1,40 @@
-import { useState } from "react";
-import { useParams, useSearchParams } from "react-router";
+import { useQueryClient } from "@tanstack/react-query";
+import { useCallback, useEffect, useReducer, useRef, useState } from "react";
+import { useBlocker, useParams, useSearchParams } from "react-router";
+import { toast } from "sonner";
 
 import type { AssignmentEdit } from "@/api/generated/model";
+import {
+  createDraft,
+  getListVersionsQueryKey,
+} from "@/api/generated/versions/versions";
+import { ConfirmDialog } from "@/components/ConfirmDialog";
 import { EmptyState } from "@/components/EmptyState";
 import { PageHeader } from "@/components/PageHeader";
 import { TableSkeleton } from "@/components/TableSkeleton";
 import { SolveButton } from "@/features/solves/SolveDialog";
-import { addDays, mondayOf, scheduleWeeks, zonedParts } from "@/lib/time";
+import { useAuth } from "@/lib/auth/AuthProvider";
+import { describeFailure } from "@/lib/conflict";
+import { useEngineText } from "@/lib/engineText";
+import { isApiError } from "@/lib/problem";
+import {
+  addDays,
+  formatInZone,
+  isoInstant,
+  mondayOf,
+  scheduleWeeks,
+  zonedParts,
+} from "@/lib/time";
 
 import { BoardGrid } from "./BoardGrid";
 import { BoardToolbar } from "./BoardToolbar";
 import { versionLabel } from "./labels";
 import { weekColumns } from "./model/columns";
 import { applyPending, cellIndex } from "./model/items";
+import { pendingReducer } from "./model/pending";
+import { PendingTray } from "./PendingTray";
 import { useBoardData } from "./useBoardData";
+import { useDragChecks } from "./useDragChecks";
 
 const MONTHS = [
   "Jan",
@@ -39,7 +60,12 @@ export function PlannerPage() {
   const [typeChoice, setTypeChoice] = useState<string | null>(null);
   const [weekChoice, setWeekChoice] = useState<string | null>(null);
   const [query, setQuery] = useState("");
-  const pending: AssignmentEdit[] = [];
+  const [pending, dispatch] = useReducer(pendingReducer, []);
+  const [saving, setSaving] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const { can } = useAuth();
+  const queryClient = useQueryClient();
+  const text = useEngineText(scheduleId);
 
   const { schedule, version, types, resources } = data;
   const tz = schedule?.timezone ?? "UTC";
@@ -86,6 +112,82 @@ export function PlannerPage() {
   );
   const codes = new Map(resources.map((r) => [r.id, r.code]));
   const codeOf = (id: string) => codes.get(id) ?? "";
+  const names = new Map(
+    (version?.assignments ?? []).map((a) => [
+      a.activity_id,
+      a.activity_name ?? "Activity",
+    ]),
+  );
+  const describe = (c: AssignmentEdit) => {
+    const column = columns.find((col) => col.start === isoInstant(c.start_at));
+    return `${names.get(c.activity_id) ?? "Activity"} → ${column?.label ?? formatInZone(c.start_at, tz)}`;
+  };
+
+  const drag = useDragChecks(version?.id ?? "");
+  const { check } = drag;
+  const hoverCheck = useCallback(
+    (rowId: string, start: string) => {
+      check(rowId, start).catch(() => undefined);
+    },
+    [check],
+  );
+  async function dropAt(rowId: string, start: string) {
+    try {
+      const out = await drag.drop(rowId, start);
+      if (!out) return;
+      if (out.result.state === "valid") {
+        setSaveError(null);
+        dispatch({ type: "add", change: out.move });
+      } else
+        toast.error("Can't move here", {
+          description: out.result.reasons.map(text).join(" "),
+        });
+    } catch (e) {
+      toast.error(describeFailure(e, "This move"));
+    }
+  }
+
+  // The blocker reads a ref so a save can navigate to the new draft without tripping it.
+  const unsaved = useRef(0);
+  useEffect(() => {
+    unsaved.current = pending.length;
+  });
+  const blocker = useBlocker(() => unsaved.current > 0);
+
+  async function save() {
+    if (!version) return;
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const draft = await createDraft(version.id, { changes: pending });
+      unsaved.current = 0;
+      dispatch({ type: "discard" });
+      await queryClient.invalidateQueries({
+        queryKey: getListVersionsQueryKey(scheduleId),
+      });
+      setParams({ version: draft.id });
+      toast.success(`Saved as ${versionLabel(draft)}`);
+    } catch (e) {
+      if (isApiError(e) && e.status === 422) {
+        const indexes = e.fieldErrors
+          .map((f) => (f.path[0] === "changes" ? f.path[1] : undefined))
+          .filter((i): i is number => typeof i === "number");
+        const culprits = indexes.length
+          ? indexes.flatMap((i) => (pending[i] ? [pending[i]] : []))
+          : pending;
+        const list = [
+          ...new Set(
+            culprits.map((c) => names.get(c.activity_id) ?? "Activity"),
+          ),
+        ];
+        setSaveError(
+          `These changes conflict with each other: ${list.join(", ")}`,
+        );
+      } else setSaveError(describeFailure(e, "This draft"));
+    } finally {
+      setSaving(false);
+    }
+  }
 
   return (
     <>
@@ -138,12 +240,43 @@ export function PlannerPage() {
             columns={columns}
             index={index}
             codeOf={codeOf}
-            highlight={null}
-            canDrag={false}
+            highlight={drag.highlight}
+            canDrag={data.editable && can("config.manage")}
             onOpenItem={() => undefined}
+            onPickUp={(item, rowId) => void drag.pickUp(item, rowId)}
+            onDrop={(rowId, start) => void dropAt(rowId, start)}
+            onCancel={drag.cancel}
+            onHoverCheck={hoverCheck}
           />
         )}
+        <PendingTray
+          changes={pending}
+          describe={describe}
+          onUndo={() => dispatch({ type: "undo" })}
+          onDiscard={() => {
+            setSaveError(null);
+            dispatch({ type: "discard" });
+          }}
+          onSave={() => void save()}
+          saving={saving}
+          error={saveError}
+        />
       </div>
+      <ConfirmDialog
+        open={blocker.state === "blocked"}
+        onOpenChange={(open) => {
+          if (!open) blocker.reset?.();
+        }}
+        title={`Discard ${String(pending.length)} unsaved ${pending.length === 1 ? "change" : "changes"}?`}
+        description="Your moves have not been saved as a draft yet."
+        confirmLabel="Discard"
+        destructive
+        onConfirm={() => {
+          unsaved.current = 0;
+          dispatch({ type: "discard" });
+          blocker.proceed?.();
+        }}
+      />
     </>
   );
 }
