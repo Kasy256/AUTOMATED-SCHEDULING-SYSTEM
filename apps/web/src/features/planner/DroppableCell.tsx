@@ -15,6 +15,9 @@ export function DroppableCell({
   check,
   highlighting,
   onHoverCheck,
+  pos,
+  focused,
+  onFocusCell,
   children,
 }: {
   cellId: string;
@@ -24,6 +27,9 @@ export function DroppableCell({
   check: CellCheck | undefined;
   highlighting: boolean;
   onHoverCheck: (rowId: string, start: string) => void;
+  pos: string;
+  focused: boolean;
+  onFocusCell: () => void;
   children: ReactNode;
 }) {
   const { setNodeRef, isOver } = useDroppable({
@@ -43,6 +49,11 @@ export function DroppableCell({
       ref={setNodeRef}
       role="gridcell"
       data-cell={cellId}
+      data-pos={pos}
+      tabIndex={focused ? 0 : -1}
+      onFocus={(e) => {
+        if (e.target === e.currentTarget) onFocusCell();
+      }}
       aria-label={label}
       title={reasons || undefined}
       className={cn(
@@ -55,6 +66,7 @@ export function DroppableCell({
         check?.state === "invalid" &&
           "bg-[#fee2e2] shadow-[inset_0_0_0_2px_#dc2626]",
         isOver && "ring-2 ring-ring ring-inset",
+        "focus-visible:ring-2 focus-visible:ring-ring focus-visible:outline-none focus-visible:ring-inset",
       )}
     >
       {children}

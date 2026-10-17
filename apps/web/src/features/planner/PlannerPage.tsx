@@ -138,20 +138,22 @@ export function PlannerPage() {
     },
     [check],
   );
-  async function dropAt(rowId: string, start: string) {
+  async function dropAt(rowId: string, start: string): Promise<boolean> {
     try {
       const out = await drag.drop(rowId, start);
-      if (!out) return;
+      if (!out) return false;
       if (out.result.state === "valid") {
         setSaveError(null);
         dispatch({ type: "add", change: out.move });
-      } else
-        toast.error("Can't move here", {
-          description: out.result.reasons.map(text).join(" "),
-        });
+        return true;
+      }
+      toast.error("Can't move here", {
+        description: out.result.reasons.map(text).join(" "),
+      });
     } catch (e) {
       toast.error(describeFailure(e, "This move"));
     }
+    return false;
   }
 
   // The blocker reads a ref so a save can navigate to the new draft without tripping it.
@@ -251,7 +253,8 @@ export function PlannerPage() {
             canDrag={data.editable && canEdit}
             onOpenItem={(item, rowId) => setSelected({ item, rowId })}
             onPickUp={(item, rowId) => void drag.pickUp(item, rowId)}
-            onDrop={(rowId, start) => void dropAt(rowId, start)}
+            onDrop={dropAt}
+            onCheck={check}
             onCancel={drag.cancel}
             onHoverCheck={hoverCheck}
           />

@@ -220,4 +220,28 @@ describe("PlannerPage", () => {
     expect(item).not.toHaveAttribute("aria-roledescription", "draggable");
     expect(screen.queryByRole("button", { name: "Solve" })).toBeNull();
   });
+  it("keyboard: arrow to the item and open its explanation", async () => {
+    signedIn(true);
+    boardApi({
+      "/explanation": {
+        activity_id: "a1",
+        binding: [],
+        alternatives: [],
+        truncated: false,
+      },
+    });
+    renderWithProviders(<PlannerPage />, route);
+    const first = await screen.findByRole("gridcell", {
+      name: "Kato, Mon P1: CS 201",
+    });
+    first.focus();
+    await userEvent.keyboard("{ArrowRight}");
+    expect(
+      screen.getByRole("gridcell", { name: "Kato, Tue P1: empty" }),
+    ).toHaveFocus();
+    await userEvent.keyboard("{ArrowLeft}{Enter}");
+    expect(
+      await screen.findByRole("heading", { name: "CS 201" }),
+    ).toBeInTheDocument();
+  });
 });
