@@ -7,11 +7,13 @@ export function DraggableItem({
   item,
   rowId,
   codeOf,
+  tabbable,
   onOpen,
 }: {
   item: BoardItem;
   rowId: string;
   codeOf: (id: string) => string;
+  tabbable: boolean;
   onOpen: (item: BoardItem, rowId: string) => void;
 }) {
   const { setNodeRef, listeners, attributes, transform, isDragging } =
@@ -26,6 +28,7 @@ export function DraggableItem({
       rowId={rowId}
       codeOf={codeOf}
       draggable
+      tabbable={tabbable}
       onOpen={onOpen}
       {...attributes}
       {...listeners}

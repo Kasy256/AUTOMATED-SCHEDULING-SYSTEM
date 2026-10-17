@@ -33,9 +33,7 @@ export function BoardCell({
       data-pos={pos}
       data-check={highlighting ? (check?.state ?? "unchecked") : undefined}
       tabIndex={focused ? 0 : -1}
-      onFocus={(e) => {
-        if (e.target === e.currentTarget) onFocusCell();
-      }}
+      onFocus={onFocusCell}
       aria-label={label}
       title={reasons || undefined}
       className={cn(

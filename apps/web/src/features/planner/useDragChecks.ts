@@ -26,11 +26,14 @@ export function useDragChecks(versionId: string) {
 
   const pickUp = useCallback(
     async (item: BoardItem, rowId: string) => {
-      live.current = { dragging: { item, rowId }, highlight: new Map() };
-      setDragging({ item, rowId });
+      // The drag object is its identity: answers for an earlier drag are dropped.
+      const drag = { item, rowId };
+      live.current = { dragging: drag, highlight: new Map() };
+      setDragging(drag);
       setHighlight(new Map());
       try {
         const explanation = await explainAssignment(versionId, item.activityId);
+        if (live.current.dragging !== drag) return;
         const map = highlightMap(explanation, item, rowId);
         live.current.highlight = map;
         setHighlight(map);
@@ -57,6 +60,7 @@ export function useDragChecks(versionId: string) {
       const result: CellCheck = out.valid
         ? { state: "valid" }
         : { state: "invalid", reasons: out.broken.map((b) => b.message) };
+      if (live.current.dragging !== current) return result;
       setHighlight((h) => new Map(h ?? []).set(key, result));
       live.current.highlight = new Map(live.current.highlight ?? []).set(
         key,

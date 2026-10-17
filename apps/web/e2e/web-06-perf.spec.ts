@@ -28,17 +28,29 @@ test("WEB-06: board with 2,000 activities stays responsive", async ({
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.goto(`${PREVIEW}/schedules/s1/planner`);
   const grid = page.getByRole("grid");
-  await expect(grid).toBeVisible({ timeout: 30_000 });
+  // First load on a cold preview server is slow on small machines; it is not what is budgeted.
+  await expect(grid).toBeVisible({ timeout: 90_000 });
   const reset = () =>
     page.evaluate(() => {
       (window as unknown as { __longTasks: number[] }).__longTasks = [];
     });
+  // Two frames let the last interaction's render land before the long tasks are read.
   const worst = () =>
-    page.evaluate(() =>
-      Math.max(
-        0,
-        ...(window as unknown as { __longTasks: number[] }).__longTasks,
-      ),
+    page.evaluate(
+      () =>
+        new Promise<number>((resolve) => {
+          requestAnimationFrame(() =>
+            requestAnimationFrame(() =>
+              resolve(
+                Math.max(
+                  0,
+                  ...(window as unknown as { __longTasks: number[] })
+                    .__longTasks,
+                ),
+              ),
+            ),
+          );
+        }),
     );
 
   await reset();
@@ -47,12 +59,12 @@ test("WEB-06: board with 2,000 activities stays responsive", async ({
     await scroller.evaluate((el) => el.scrollBy(0, 600));
   expect(await worst()).toBeLessThan(200);
 
-  // One week in this data set, so a full re-render via the type tab stands in for a week switch.
   await reset();
-  await page.getByRole("tab", { name: "Lecturer" }).click();
+  await page.getByRole("button", { name: "Next week" }).click();
+  await expect(page.getByText("Week of 19 Jan")).toBeVisible();
   expect(await worst()).toBeLessThan(200);
 
-  // Lecturers past 100 teach nothing in this data set, so go back to the busy rows. Overscan rows
+  // Only the first 50 lecturers teach in this data set, so go back to the busy rows. Overscan rows
   // sit under the sticky header, so pick an item in plain view.
   await scroller.evaluate((el) => el.scrollTo(0, 0));
   await expect(page.locator("button[data-activity]").first()).toBeVisible();

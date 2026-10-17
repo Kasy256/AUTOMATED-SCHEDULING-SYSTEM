@@ -33,7 +33,9 @@ export function useSolveStream(
   useEffect(() => {
     const abort = new AbortController();
     let timer: ReturnType<typeof setTimeout> | undefined;
+    let finished = false;
     const finish = () => {
+      finished = true;
       setDone(true);
       // Versions/runs are listed elsewhere; a finished run changes both.
       void queryClient.invalidateQueries({
@@ -70,9 +72,16 @@ export function useSolveStream(
         if (e.event === "done") finish();
       },
       abort.signal,
-    ).catch(() => {
-      if (!abort.signal.aborted) void poll();
-    });
+    )
+      // A stream that ends without "done" (server error, proxy close) is as good as a failure.
+      .then(
+        () => {
+          if (!finished && !abort.signal.aborted) void poll();
+        },
+        () => {
+          if (!abort.signal.aborted) void poll();
+        },
+      );
     return () => {
       abort.abort();
       if (timer) clearTimeout(timer);

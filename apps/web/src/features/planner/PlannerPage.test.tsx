@@ -115,12 +115,21 @@ const version = {
   ],
 };
 
+// An override body may carry `__status` to answer with an error.
+function reply(body: unknown) {
+  if (typeof body === "object" && body !== null && "__status" in body) {
+    const { __status, ...rest } = body as { __status: number };
+    return jsonResponse(rest, __status);
+  }
+  return jsonResponse(body);
+}
+
 export function boardApi(overrides: Record<string, unknown> = {}) {
   vi.stubGlobal(
     "fetch",
     vi.fn((url: string) => {
       for (const [suffix, body] of Object.entries(overrides))
-        if (url.includes(suffix)) return Promise.resolve(jsonResponse(body));
+        if (url.includes(suffix)) return Promise.resolve(reply(body));
       if (url.endsWith("/schedules/s1"))
         return Promise.resolve(jsonResponse(schedule));
       if (url.includes("resource-types"))
@@ -243,5 +252,142 @@ describe("PlannerPage", () => {
     expect(
       await screen.findByRole("heading", { name: "CS 201" }),
     ).toBeInTheDocument();
+  });
+
+  describe("pending changes", () => {
+    const explanation = {
+      activity_id: "a1",
+      binding: [],
+      truncated: false,
+      alternatives: [
+        {
+          start_at: "2026-01-13T06:00:00Z",
+          resources: { lecturer: ["L1"], room: ["R1"] },
+          check: { valid: true, broken: [], penalties: [] },
+        },
+      ],
+    };
+
+    async function movePending(overrides: Record<string, unknown> = {}) {
+      signedIn(true);
+      boardApi({ "/explanation": explanation, ...overrides });
+      const view = renderWithProviders(<PlannerPage />, route);
+      await userEvent.click(
+        await screen.findByRole("button", { name: "CS 201, LH3" }),
+      );
+      await userEvent.click(
+        await screen.findByRole("button", { name: "Move here" }),
+      );
+      expect(
+        await screen.findByRole("region", { name: "Unsaved changes" }),
+      ).toHaveTextContent("1 unsaved change");
+      return view;
+    }
+
+    it("stays on the version the changes were made against", async () => {
+      const versions: unknown[] = [versionSummary];
+      const { queryClient } = await movePending({
+        "/versions": versions,
+        "/solution-versions/v2": { ...version, id: "v2", number: 2 },
+      });
+      versions.push({ ...versionSummary, id: "v2", number: 2 });
+      await queryClient.invalidateQueries();
+      await screen.findByRole("option", { name: "Version 2 · draft" });
+      expect(
+        screen.getByText(/^Version \d · draft/, { selector: "p" }),
+      ).toHaveTextContent("Version 1 · draft");
+      expect(
+        screen.getByRole("region", { name: "Unsaved changes" }),
+      ).toBeInTheDocument();
+    });
+
+    it("warns before the tab closes", async () => {
+      await movePending();
+      const event = new Event("beforeunload", { cancelable: true });
+      window.dispatchEvent(event);
+      expect(event.defaultPrevented).toBe(true);
+    });
+
+    it("shows the server's reason when the draft is rejected", async () => {
+      await movePending({
+        "/drafts": {
+          __status: 422,
+          title: "Unprocessable",
+          errors: [
+            {
+              loc: ["body", "changes"],
+              msg: "Kato is double-booked on Tue P1",
+              type: "conflict",
+            },
+          ],
+        },
+      });
+      await userEvent.click(
+        screen.getByRole("button", { name: "Save as draft" }),
+      );
+      expect(await screen.findByRole("alert")).toHaveTextContent(
+        "Kato is double-booked on Tue P1",
+      );
+    });
+  });
+
+  it("keyboard: Tab reaches every item stacked in a cell", async () => {
+    signedIn(true);
+    const second = {
+      activity_id: "a2",
+      activity_name: "CS 202",
+      start_at: "2026-01-12T06:00:00Z",
+      end_at: "2026-01-12T08:00:00Z",
+      resources: { lecturer: ["L1"], room: ["R1"] },
+    };
+    boardApi({
+      "/explanation": {
+        activity_id: "a2",
+        binding: [],
+        alternatives: [],
+        truncated: false,
+      },
+      "/solution-versions/v1": {
+        ...version,
+        assignments: [...version.assignments, second],
+      },
+    });
+    renderWithProviders(<PlannerPage />, route);
+    const cell = await screen.findByRole("gridcell", {
+      name: "Kato, Mon P1: CS 201, CS 202",
+    });
+    cell.focus();
+    await userEvent.tab();
+    expect(screen.getByRole("button", { name: "CS 201, LH3" })).toHaveFocus();
+    await userEvent.tab();
+    expect(screen.getByRole("button", { name: "CS 202, LH3" })).toHaveFocus();
+    await userEvent.keyboard("{Enter}");
+    expect(
+      await screen.findByRole("heading", { name: "CS 202" }),
+    ).toBeInTheDocument();
+  });
+
+  it("keyboard: the grid keeps a tab stop when the focused row scrolls away", async () => {
+    signedIn(true);
+    const many = Array.from({ length: 80 }, (_, i) => ({
+      ...resources[0],
+      id: `L${String(i + 1)}`,
+      code: `L${String(i + 1).padStart(3, "0")}`,
+      name: `Lecturer ${String(i + 1)}`,
+    }));
+    boardApi({ "/resources": [...many, resources[1]] });
+    renderWithProviders(<PlannerPage />, route);
+    const first = await screen.findByRole("gridcell", {
+      name: /^Lecturer 1, Mon P1/,
+    });
+    first.focus();
+    const scroller = first.closest<HTMLElement>(".overflow-auto");
+    if (!scroller) throw new Error("no scroller");
+    scroller.scrollTop = 3000;
+    scroller.dispatchEvent(new Event("scroll"));
+    await screen.findByRole("gridcell", { name: /^Lecturer 60, Mon P1/ });
+    expect(
+      document.querySelectorAll('[role="gridcell"][tabindex="0"]'),
+    ).toHaveLength(1);
   });
 });

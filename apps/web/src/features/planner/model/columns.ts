@@ -37,9 +37,8 @@ export function weekColumns(
 ): Column[] {
   const sunday = addDays(monday, 6);
   const seen = new Map<string, Column>();
-  for (const raw of starts) {
-    const start = isoInstant(raw);
-    if (seen.has(start)) continue;
+  // Activities share a handful of starts; resolve each distinct instant once.
+  for (const start of new Set([...new Set(starts)].map(isoInstant))) {
     const { date, weekday, minute } = zonedParts(start, timeZone);
     if (date < monday || date > sunday) continue;
     const slot = slots.find(

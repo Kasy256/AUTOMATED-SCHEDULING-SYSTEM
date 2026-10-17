@@ -82,20 +82,31 @@ export function isoInstant(iso: string): string {
   return new Date(iso).toISOString();
 }
 
+// Building an Intl formatter is far slower than using one; the board resolves thousands of starts.
+const formats = new Map<string, Intl.DateTimeFormat>();
+function zonedFormat(timeZone: string): Intl.DateTimeFormat {
+  let format = formats.get(timeZone);
+  if (!format) {
+    format = new Intl.DateTimeFormat("en-CA", {
+      timeZone,
+      hourCycle: "h23",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      weekday: "short",
+    });
+    formats.set(timeZone, format);
+  }
+  return format;
+}
+
 export function zonedParts(
   iso: string,
   timeZone: string,
 ): { date: string; weekday: number; minute: number } {
-  const parts = new Intl.DateTimeFormat("en-CA", {
-    timeZone,
-    hourCycle: "h23",
-    year: "numeric",
-    month: "2-digit",
-    day: "2-digit",
-    hour: "2-digit",
-    minute: "2-digit",
-    weekday: "short",
-  }).formatToParts(new Date(iso));
+  const parts = zonedFormat(timeZone).formatToParts(new Date(iso));
   const get = (type: string) => parts.find((p) => p.type === type)?.value ?? "";
   const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
   return {

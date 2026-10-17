@@ -80,4 +80,27 @@ describe("useBoardKeyboard", () => {
     press("Escape");
     expect(handlers.onCancel).toHaveBeenCalledOnce();
   });
+
+  it("keeps focus inside the board when it shrinks", () => {
+    const hook = renderHook(
+      ({ rows }: { rows: number }) =>
+        useBoardKeyboard({
+          rowCount: rows,
+          colCount: 2,
+          itemAt: () => undefined,
+          onOpen: vi.fn(),
+          onPickUp: vi.fn(),
+          onTarget: vi.fn(),
+          onDrop: vi.fn(),
+          onCancel: vi.fn(),
+          carrying: false,
+        }),
+      { initialProps: { rows: 10 } },
+    );
+    act(() => {
+      hook.result.current.setFocus({ r: 8, c: 1 });
+    });
+    hook.rerender({ rows: 3 });
+    expect(hook.result.current.focus).toEqual({ r: 2, c: 1 });
+  });
 });

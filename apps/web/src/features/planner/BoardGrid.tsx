@@ -115,11 +115,12 @@ export function BoardGrid({
     const col = columns[c];
     return row && col ? { row, col } : null;
   };
+  // Keys pressed on an item act on that item; on the cell itself, on its first item.
+  const keyTarget = useRef<string | null>(null);
   const itemAt = (r: number, c: number) => {
     const cell = cellAt(r, c);
-    return cell
-      ? index.get(cellKey(cell.row.id, cell.col.start))?.[0]
-      : undefined;
+    const items = cell ? index.get(cellKey(cell.row.id, cell.col.start)) : [];
+    return items?.find((i) => i.activityId === keyTarget.current) ?? items?.[0];
   };
   const keyboard = useBoardKeyboard({
     rowCount: rows.length,
@@ -176,17 +177,22 @@ export function BoardGrid({
     },
   });
   const { focus, setFocus } = keyboard;
+  // While the focused row is scrolled out of the virtual window, the first rendered row holds
+  // the tab stop so the grid stays reachable.
+  const rendered = virtual.getVirtualItems();
+  const tabRow = rendered.some((v) => v.index === focus.r)
+    ? focus.r
+    : rendered[0]?.index;
 
   // Roving focus follows the keyboard position, but only while focus is already in the grid.
   useEffect(() => {
     const grid = scroller.current;
     if (!grid?.contains(document.activeElement)) return;
     virtual.scrollToIndex(focus.r);
-    grid
-      .querySelector<HTMLElement>(
-        `[data-pos="${String(focus.r)}:${String(focus.c)}"]`,
-      )
-      ?.focus();
+    const cell = grid.querySelector<HTMLElement>(
+      `[data-pos="${String(focus.r)}:${String(focus.c)}"]`,
+    );
+    if (!cell?.contains(document.activeElement)) cell?.focus();
   }, [focus.r, focus.c, virtual]);
 
   return (
@@ -209,7 +215,13 @@ export function BoardGrid({
           aria-rowcount={rows.length + 1}
           aria-colcount={columns.length + 1}
           className="min-w-max"
-          onKeyDown={keyboard.onKeyDown}
+          onKeyDown={(e) => {
+            keyTarget.current =
+              (e.target as HTMLElement).closest<HTMLElement>(
+                "button[data-activity]",
+              )?.dataset.activity ?? null;
+            keyboard.onKeyDown(e);
+          }}
         >
           <div
             role="row"
@@ -235,7 +247,7 @@ export function BoardGrid({
             ))}
           </div>
           <div className="relative" style={{ height: virtual.getTotalSize() }}>
-            {virtual.getVirtualItems().map((v) => {
+            {rendered.map((v) => {
               const row = rows[v.index];
               if (!row) return null;
               return (
@@ -250,7 +262,7 @@ export function BoardGrid({
                   codeOf={codeOf}
                   highlight={highlight}
                   canDrag={canDrag}
-                  focusCol={focus.r === v.index ? focus.c : -1}
+                  focusCol={tabRow === v.index ? focus.c : -1}
                   overKey={overKey?.startsWith(`${row.id}|`) ? overKey : null}
                   onOpenItem={onOpenItem}
                   setFocus={setFocus}

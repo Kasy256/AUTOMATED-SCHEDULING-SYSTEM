@@ -10,12 +10,22 @@ type Props = {
   rowId: string;
   codeOf: (id: string) => string;
   draggable: boolean;
+  tabbable?: boolean;
   onOpen: (item: BoardItem, rowId: string) => void;
 } & Omit<ComponentPropsWithoutRef<"button">, "onClick">;
 
 export const BoardItemView = forwardRef<HTMLButtonElement, Props>(
   function BoardItemView(
-    { item, rowId, codeOf, draggable, onOpen, className, ...rest },
+    {
+      item,
+      rowId,
+      codeOf,
+      draggable,
+      tabbable = false,
+      onOpen,
+      className,
+      ...rest
+    },
     ref,
   ) {
     const codes = Object.values(item.resources)
@@ -28,7 +38,7 @@ export const BoardItemView = forwardRef<HTMLButtonElement, Props>(
         ref={ref}
         type="button"
         {...rest}
-        tabIndex={-1}
+        tabIndex={tabbable ? 0 : -1}
         data-activity={item.activityId}
         aria-label={codes ? `${item.name}, ${codes}` : item.name}
         onClick={() => onOpen(item, rowId)}

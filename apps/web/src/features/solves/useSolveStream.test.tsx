@@ -71,4 +71,32 @@ describe("useSolveStream", () => {
     });
     expect(polls).toBeGreaterThanOrEqual(2);
   });
+
+  it("falls back to polling when the stream closes without a done event", async () => {
+    let polls = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string) => {
+        if (url.endsWith("/events"))
+          return Promise.resolve(
+            new Response(
+              new ReadableStream<Uint8Array>({
+                start(c) {
+                  c.close();
+                },
+              }),
+            ),
+          );
+        polls += 1;
+        return Promise.resolve(
+          jsonResponse({ id: "r1", status: "succeeded", progress: {} }),
+        );
+      }),
+    );
+    const { result } = renderHook(() => useSolveStream("r1", 10), { wrapper });
+    await waitFor(() => {
+      expect(result.current.done).toBe(true);
+    });
+    expect(polls).toBeGreaterThanOrEqual(1);
+  });
 });

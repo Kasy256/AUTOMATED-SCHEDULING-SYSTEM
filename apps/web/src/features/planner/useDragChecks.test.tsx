@@ -115,4 +115,82 @@ describe("useDragChecks", () => {
     });
     expect(result.current.dragging).toBeNull();
   });
+
+  it("ignores answers that arrive after their drag ended", async () => {
+    const pending: ((r: Response) => void)[] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(
+        () =>
+          new Promise<Response>((resolve) => {
+            pending.push(resolve);
+          }),
+      ),
+    );
+    const explanationFor = (activity: string, start: string) =>
+      jsonResponse({
+        activity_id: activity,
+        binding: [],
+        truncated: false,
+        alternatives: [
+          {
+            start_at: start,
+            resources: item.resources,
+            check: { valid: true, broken: [], penalties: [] },
+          },
+        ],
+      });
+    const { result } = renderHook(() => useDragChecks("v1"), { wrapper });
+
+    // A is picked up, then dropped before its explanation arrives.
+    let pickA!: Promise<void>;
+    act(() => {
+      pickA = result.current.pickUp(item, "L1");
+    });
+    act(() => {
+      result.current.cancel();
+    });
+    await act(async () => {
+      pending[0]?.(explanationFor("a1", "2026-01-13T06:00:00Z"));
+      await pickA;
+    });
+    expect(result.current.highlight).toBeNull();
+
+    // B is picked up while A's (second) explanation is still in flight.
+    const other = { ...item, activityId: "a2", name: "CS 202" };
+    let pickA2!: Promise<void>;
+    act(() => {
+      pickA2 = result.current.pickUp(item, "L1");
+    });
+    let pickB!: Promise<void>;
+    act(() => {
+      pickB = result.current.pickUp(other, "L1");
+    });
+    await act(async () => {
+      pending[2]?.(explanationFor("a2", "2026-01-15T06:00:00Z"));
+      await pickB;
+      pending[1]?.(explanationFor("a1", "2026-01-14T06:00:00Z"));
+      await pickA2;
+    });
+    expect(
+      result.current.highlight?.has(cellKey("L1", "2026-01-14T06:00:00Z")),
+    ).toBe(false);
+    expect(
+      result.current.highlight?.get(cellKey("L1", "2026-01-15T06:00:00Z")),
+    ).toEqual({ state: "valid" });
+
+    // A hover check that lands after the drag ended doesn't bring highlights back.
+    let late!: Promise<unknown>;
+    act(() => {
+      late = result.current.check("L1", "2026-01-16T06:00:00Z");
+    });
+    act(() => {
+      result.current.cancel();
+    });
+    await act(async () => {
+      pending[3]?.(jsonResponse({ valid: true, broken: [], penalties: [] }));
+      await late;
+    });
+    expect(result.current.highlight).toBeNull();
+  });
 });

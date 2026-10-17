@@ -104,20 +104,19 @@ export function PlannerPage() {
     () => applyPending(version?.assignments ?? [], pending),
     [version, pending],
   );
+  // Every week's columns come from the same few distinct starts; collect them once per data load.
+  const starts = useMemo(
+    () => [
+      ...new Set([
+        ...activities.flatMap((a) => a.candidate_starts),
+        ...assignments.map((a) => a.start_at),
+      ]),
+    ],
+    [activities, assignments],
+  );
   const columns = useMemo(
-    () =>
-      !week
-        ? []
-        : weekColumns(
-            [
-              ...activities.flatMap((a) => a.candidate_starts),
-              ...assignments.map((a) => a.start_at),
-            ],
-            week,
-            tz,
-            slots,
-          ),
-    [week, activities, assignments, tz, slots],
+    () => (week ? weekColumns(starts, week, tz, slots) : []),
+    [starts, week, tz, slots],
   );
   const needle = query.trim().toLowerCase();
   const rows = useMemo(
@@ -170,7 +169,7 @@ export function PlannerPage() {
       if (!out) return false;
       if (out.result.state === "valid") {
         setSaveError(null);
-        dispatch({ type: "add", change: out.move });
+        addChange(out.move);
         return true;
       }
       toast.error("Can't move here", {
@@ -181,6 +180,21 @@ export function PlannerPage() {
     }
     return false;
   }
+
+  // Pending moves belong to the version they were made on: pin it in the URL so a newer draft
+  // arriving in the background doesn't slide under them.
+  function addChange(change: AssignmentEdit) {
+    dispatch({ type: "add", change });
+    if (version && !params.get("version"))
+      setParams({ version: version.id }, { replace: true });
+  }
+
+  useEffect(() => {
+    if (pending.length === 0) return;
+    const warn = (e: BeforeUnloadEvent) => e.preventDefault();
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [pending.length]);
 
   // The blocker reads a ref so a save can navigate to the new draft without tripping it.
   const unsaved = useRef(0);
@@ -204,19 +218,16 @@ export function PlannerPage() {
       toast.success(`Saved as ${versionLabel(draft)}`);
     } catch (e) {
       if (isApiError(e) && e.status === 422) {
-        const indexes = e.fieldErrors
-          .map((f) => (f.path[0] === "changes" ? f.path[1] : undefined))
-          .filter((i): i is number => typeof i === "number");
-        const culprits = indexes.length
-          ? indexes.flatMap((i) => (pending[i] ? [pending[i]] : []))
-          : pending;
+        const reasons = e.fieldErrors.map((f) => text(f.message));
         const list = [
           ...new Set(
-            culprits.map((c) => names.get(c.activity_id) ?? "Activity"),
+            pending.map((c) => names.get(c.activity_id) ?? "Activity"),
           ),
         ];
         setSaveError(
-          `These changes conflict with each other: ${list.join(", ")}`,
+          reasons.length
+            ? `These changes can't be saved: ${reasons.join("; ")}`
+            : `These changes conflict with each other: ${list.join(", ")}`,
         );
       } else setSaveError(describeFailure(e, "This draft"));
     } finally {
@@ -321,7 +332,7 @@ export function PlannerPage() {
           onMoveHere={(change) => {
             setSelected(null);
             setSaveError(null);
-            dispatch({ type: "add", change });
+            addChange(change);
           }}
         />
       )}

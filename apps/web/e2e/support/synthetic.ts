@@ -4,6 +4,11 @@ const DAYS = [
   "2026-01-14",
   "2026-01-15",
   "2026-01-16",
+  "2026-01-19",
+  "2026-01-20",
+  "2026-01-21",
+  "2026-01-22",
+  "2026-01-23",
 ];
 const STARTS = DAYS.flatMap((d) =>
   ["06:00", "08:30", "11:00", "13:30"].map((t) => `${d}T${t}:00.000Z`),
@@ -84,7 +89,7 @@ export function syntheticBoard() {
       name: "Perf",
       timezone: "Africa/Kampala",
       start_date: "2026-01-12",
-      end_date: "2026-01-16",
+      end_date: "2026-01-23",
       day_parts: { version: 1, parts: [] },
     },
     "/api/v1/schedules": [
@@ -93,7 +98,7 @@ export function syntheticBoard() {
         name: "Perf",
         timezone: "Africa/Kampala",
         start_date: "2026-01-12",
-        end_date: "2026-01-16",
+        end_date: "2026-01-23",
         day_parts: { version: 1, parts: [] },
       },
     ],

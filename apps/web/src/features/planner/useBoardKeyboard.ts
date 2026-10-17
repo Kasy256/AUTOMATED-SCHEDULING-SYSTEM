@@ -30,7 +30,9 @@ export function useBoardKeyboard({
   onCancel: () => void;
   carrying: boolean;
 }) {
-  const [focus, setFocus] = useState<CellPos>({ r: 0, c: 0 });
+  const [chosen, setFocus] = useState<CellPos>({ r: 0, c: 0 });
+  // Filtering or switching weeks can shrink the board under the focused cell.
+  const focus = { r: clamp(chosen.r, rowCount), c: clamp(chosen.c, colCount) };
 
   function moveTo(r: number, c: number) {
     const next = { r: clamp(r, rowCount), c: clamp(c, colCount) };

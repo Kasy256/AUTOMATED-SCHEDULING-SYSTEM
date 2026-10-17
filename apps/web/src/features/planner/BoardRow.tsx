@@ -82,6 +82,7 @@ export const BoardRow = memo(function BoardRow({
                   item={item}
                   rowId={row.id}
                   codeOf={codeOf}
+                  tabbable={focusCol === ci}
                   onOpen={onOpenItem}
                 />
               ) : (
@@ -91,6 +92,7 @@ export const BoardRow = memo(function BoardRow({
                   rowId={row.id}
                   codeOf={codeOf}
                   draggable={false}
+                  tabbable={focusCol === ci}
                   onOpen={onOpenItem}
                 />
               ),
