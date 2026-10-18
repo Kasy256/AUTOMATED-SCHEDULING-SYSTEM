@@ -10,6 +10,7 @@ export function landingPath(input: {
   lastScheduleId: string | null;
 }): string {
   const { roles, scheduleIds, lastScheduleId } = input;
+  if (!can(roles, "config.read")) return "/me";
   if (scheduleIds.length === 0)
     return can(roles, "config.manage") ? "/setup" : "/resources";
   const id =

@@ -1,6 +1,7 @@
 import {
   BarChart3,
   Boxes,
+  CalendarCheck,
   CalendarDays,
   CalendarRange,
   Cpu,
@@ -74,8 +75,13 @@ function Sidebar() {
       className="flex h-full flex-col gap-3 overflow-y-auto bg-sidebar p-4 text-sidebar-foreground"
     >
       <BrandMark className="px-2 py-2 text-lg" />
-      <ScheduleSwitcher activeId={scheduleId} />
-      {base && (
+      <NavGroup label="You">
+        <Item to="/me" icon={CalendarCheck}>
+          My timetable
+        </Item>
+      </NavGroup>
+      {can("config.read") && <ScheduleSwitcher activeId={scheduleId} />}
+      {base && can("config.read") && (
         <NavGroup label="Schedule">
           <Item to={`${base}/planner`} icon={CalendarDays}>
             Planner
@@ -100,24 +106,26 @@ function Sidebar() {
           </Item>
         </NavGroup>
       )}
-      <NavGroup label="Organisation">
-        <Item to="/resources" icon={Boxes}>
-          Resources
-        </Item>
-        <Item to="/resource-types" icon={Shapes}>
-          Resource types
-        </Item>
-        {can("config.manage") && (
-          <Item to="/imports" icon={FileUp}>
-            Imports
+      {can("config.read") && (
+        <NavGroup label="Organisation">
+          <Item to="/resources" icon={Boxes}>
+            Resources
           </Item>
-        )}
-        {can("members.manage") && (
-          <Item to="/members" icon={Users}>
-            Members
+          <Item to="/resource-types" icon={Shapes}>
+            Resource types
           </Item>
-        )}
-      </NavGroup>
+          {can("config.manage") && (
+            <Item to="/imports" icon={FileUp}>
+              Imports
+            </Item>
+          )}
+          {can("members.manage") && (
+            <Item to="/members" icon={Users}>
+              Members
+            </Item>
+          )}
+        </NavGroup>
+      )}
       <div className="mt-auto border-t border-sidebar-border pt-3">
         <OrgMenu />
       </div>

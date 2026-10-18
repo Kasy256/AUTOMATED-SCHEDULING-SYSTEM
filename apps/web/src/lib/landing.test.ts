@@ -31,4 +31,13 @@ describe("landingPath", () => {
       landingPath({ roles: ["viewer"], scheduleIds: [], lastScheduleId: null }),
     ).toBe("/resources");
   });
+  it("sends people who only see their own timetable to it", () => {
+    expect(
+      landingPath({
+        roles: ["member"],
+        scheduleIds: ["a"],
+        lastScheduleId: "a",
+      }),
+    ).toBe("/me");
+  });
 });
