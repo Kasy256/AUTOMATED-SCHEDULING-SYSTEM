@@ -15,6 +15,7 @@ import { PlannerPage } from "@/features/planner/PlannerPage";
 import { RulesPage } from "@/features/rules/RulesPage";
 import { RunPage } from "@/features/solves/RunPage";
 import { SolvesPage } from "@/features/solves/SolvesPage";
+import { VersionsPage } from "@/features/versions/VersionsPage";
 import { OverviewPage } from "@/features/schedules/OverviewPage";
 import { SetupWizard } from "@/features/setup/SetupWizard";
 import { HomeRedirect } from "@/features/schedules/HomeRedirect";
@@ -51,6 +52,7 @@ export function App() {
           <Route path="rules" element={<RulesPage />} />
           <Route path="solves" element={<SolvesPage />} />
           <Route path="solves/:runId" element={<RunPage />} />
+          <Route path="versions" element={<VersionsPage />} />
         </Route>
         <Route path="resources" element={<ResourcesPage />} />
         <Route path="resources/:resourceId" element={<ResourceDetailPage />} />

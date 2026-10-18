@@ -1,8 +1,10 @@
 import {
+  BarChart3,
   Boxes,
   CalendarDays,
   CalendarRange,
   Cpu,
+  History,
   FileUp,
   LayoutDashboard,
   ListChecks,
@@ -89,6 +91,12 @@ function Sidebar() {
           </Item>
           <Item to={`${base}/solves`} icon={Cpu}>
             Solves
+          </Item>
+          <Item to={`${base}/versions`} icon={History}>
+            Versions
+          </Item>
+          <Item to={`${base}/reports`} icon={BarChart3}>
+            Reports
           </Item>
         </NavGroup>
       )}
