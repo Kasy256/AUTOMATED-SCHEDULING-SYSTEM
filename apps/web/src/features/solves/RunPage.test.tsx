@@ -90,4 +90,64 @@ describe("RunPage", () => {
       );
     });
   });
+
+  it("a finished repair offers its diff against the published version", async () => {
+    vi.spyOn(auth, "useAuth").mockReturnValue({
+      status: "signedIn",
+      me: null,
+      login: vi.fn(),
+      logout: vi.fn(),
+      switchOrganisation: vi.fn(),
+      adoptSession: vi.fn(),
+      can: () => true,
+    });
+    const version = (id: string, number: number, status: string) => ({
+      id,
+      schedule_id: "s1",
+      number,
+      status,
+      solver_status: "OPTIMAL",
+      hard_violations: 0,
+      soft_total: 0,
+      created_at: "2026-01-01T00:00:00Z",
+      published_at: null,
+      archived_at: null,
+      parent_version_id: null,
+      solve_run_id: "r1",
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string) => {
+        if (url.endsWith("/solves/r1"))
+          return Promise.resolve(
+            jsonResponse({
+              ...run,
+              kind: "repair",
+              status: "succeeded",
+              version_id: "v3",
+            }),
+          );
+        if (url.endsWith("/versions"))
+          return Promise.resolve(
+            jsonResponse([
+              version("v2", 2, "published"),
+              version("v3", 3, "draft"),
+            ]),
+          );
+        return Promise.resolve(jsonResponse([]));
+      }),
+    );
+    renderWithProviders(<RunPage />, {
+      route: "/schedules/s1/solves/r1",
+      path: "/schedules/:scheduleId/solves/:runId",
+    });
+    expect(
+      await screen.findByRole("heading", {
+        name: "Repair ready — review the changes",
+      }),
+    ).toBeInTheDocument();
+    expect(
+      await screen.findByRole("link", { name: "Compare with published" }),
+    ).toHaveAttribute("href", "/schedules/s1/versions/v2/compare/v3");
+  });
 });

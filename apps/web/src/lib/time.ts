@@ -102,6 +102,11 @@ function zonedFormat(timeZone: string): Intl.DateTimeFormat {
   return format;
 }
 
+export function localInputNow(timeZone: string, now = new Date()): string {
+  const { date, minute } = zonedParts(now.toISOString(), timeZone);
+  return `${date}T${pad(Math.floor(minute / 60))}:${pad(minute % 60)}`;
+}
+
 export function zonedParts(
   iso: string,
   timeZone: string,

@@ -8,6 +8,7 @@ import {
 import {
   addDays,
   isoInstant,
+  localInputNow,
   mondayOf,
   scheduleWeeks,
   zonedParts,
@@ -76,5 +77,13 @@ describe("zoned calendar helpers", () => {
       "2026-01-26",
     ]);
     expect(scheduleWeeks("2026-01-12", "2026-01-16")).toEqual(["2026-01-12"]);
+  });
+});
+
+describe("localInputNow", () => {
+  it("is the wall-clock time in the zone, ready for a datetime-local input", () => {
+    expect(
+      localInputNow("Africa/Kampala", new Date("2026-01-12T06:05:00Z")),
+    ).toBe("2026-01-12T09:05");
   });
 });

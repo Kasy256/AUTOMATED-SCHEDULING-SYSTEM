@@ -3,6 +3,7 @@ import { Link, useParams } from "react-router";
 import { toast } from "sonner";
 
 import { cancelSolve, useGetSolve } from "@/api/generated/solves/solves";
+import { useListVersions } from "@/api/generated/versions/versions";
 import { PageHeader } from "@/components/PageHeader";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
@@ -36,6 +37,51 @@ function Live({ runId, canCancel }: { runId: string; canCancel: boolean }) {
         </Button>
       )}
     </div>
+  );
+}
+
+function ReadyCard({
+  scheduleId,
+  versionId,
+  repair,
+  cancelled,
+}: {
+  scheduleId: string;
+  versionId: string;
+  repair: boolean;
+  cancelled: boolean;
+}) {
+  const { data: versions = [] } = useListVersions(scheduleId);
+  const published = versions.find(
+    (v) => v.status === "published" && v.id !== versionId,
+  );
+  const board = `/schedules/${scheduleId}/planner?version=${versionId}`;
+  return (
+    <section className="flex flex-wrap items-center gap-4 rounded-xl border bg-card p-5 shadow-sm">
+      <CheckCircle2 className="size-6 text-primary" aria-hidden />
+      <div className="min-w-0 flex-1">
+        <h2 className="font-semibold">
+          {repair ? "Repair ready — review the changes" : "Timetable ready"}
+        </h2>
+        <p className="text-sm text-muted-foreground">
+          {cancelled
+            ? "You cancelled the solve; the best timetable found so far was kept as a draft."
+            : "The new draft respects every hard rule."}
+        </p>
+      </div>
+      {published && (
+        <Button asChild variant={repair ? "default" : "outline"}>
+          <Link
+            to={`/schedules/${scheduleId}/versions/${published.id}/compare/${versionId}`}
+          >
+            Compare with published
+          </Link>
+        </Button>
+      )}
+      <Button asChild variant={repair && published ? "outline" : "default"}>
+        <Link to={board}>Open on the board</Link>
+      </Button>
+    </section>
   );
 }
 
@@ -81,24 +127,12 @@ export function RunPage() {
         {terminal &&
           run.version_id &&
           (run.status === "succeeded" || run.status === "cancelled") && (
-            <section className="flex flex-wrap items-center gap-4 rounded-xl border bg-card p-5 shadow-sm">
-              <CheckCircle2 className="size-6 text-primary" aria-hidden />
-              <div className="min-w-0 flex-1">
-                <h2 className="font-semibold">Timetable ready</h2>
-                <p className="text-sm text-muted-foreground">
-                  {run.status === "cancelled"
-                    ? "You cancelled the solve; the best timetable found so far was kept as a draft."
-                    : "The new draft respects every hard rule."}
-                </p>
-              </div>
-              <Button asChild>
-                <Link
-                  to={`/schedules/${scheduleId}/planner?version=${run.version_id}`}
-                >
-                  Open on the board
-                </Link>
-              </Button>
-            </section>
+            <ReadyCard
+              scheduleId={scheduleId}
+              versionId={run.version_id}
+              repair={run.kind === "repair"}
+              cancelled={run.status === "cancelled"}
+            />
           )}
         {terminal && run.status === "infeasible" && (
           <InfeasibilityReport
