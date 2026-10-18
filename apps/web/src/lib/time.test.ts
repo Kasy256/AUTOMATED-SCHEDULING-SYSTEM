@@ -5,6 +5,13 @@ import {
   parseTimeOfDay,
   toUtcIso,
 } from "./time";
+import {
+  addDays,
+  isoInstant,
+  mondayOf,
+  scheduleWeeks,
+  zonedParts,
+} from "./time";
 
 describe("time helpers", () => {
   it("formats and parses minutes of the day", () => {
@@ -32,5 +39,42 @@ describe("time helpers", () => {
     expect(formatInZone("2026-03-02T06:00:00Z", "Africa/Kampala")).toBe(
       "2 Mar 2026, 09:00",
     );
+  });
+});
+
+describe("zoned calendar helpers", () => {
+  it("normalises instants", () => {
+    expect(isoInstant("2026-01-12T09:00:00+03:00")).toBe(
+      "2026-01-12T06:00:00.000Z",
+    );
+  });
+
+  it("reads local date, weekday and minute in a zone", () => {
+    expect(zonedParts("2026-01-12T06:00:00Z", "Africa/Kampala")).toEqual({
+      date: "2026-01-12",
+      weekday: 0,
+      minute: 540,
+    });
+    expect(zonedParts("2026-01-11T22:30:00Z", "Africa/Kampala")).toEqual({
+      date: "2026-01-12",
+      weekday: 0,
+      minute: 90,
+    });
+  });
+
+  it("does calendar arithmetic and finds Mondays", () => {
+    expect(addDays("2026-01-30", 3)).toBe("2026-02-02");
+    expect(mondayOf("2026-01-15")).toBe("2026-01-12");
+    expect(mondayOf("2026-01-12")).toBe("2026-01-12");
+    expect(mondayOf("2026-01-18")).toBe("2026-01-12");
+  });
+
+  it("lists the Mondays covering a horizon", () => {
+    expect(scheduleWeeks("2026-01-14", "2026-01-27")).toEqual([
+      "2026-01-12",
+      "2026-01-19",
+      "2026-01-26",
+    ]);
+    expect(scheduleWeeks("2026-01-12", "2026-01-16")).toEqual(["2026-01-12"]);
   });
 });

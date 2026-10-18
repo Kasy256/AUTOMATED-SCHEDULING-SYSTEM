@@ -1,7 +1,7 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { render } from "@testing-library/react";
 import type { ReactElement } from "react";
-import { MemoryRouter, Route, Routes } from "react-router";
+import { createMemoryRouter, RouterProvider } from "react-router";
 
 export function renderWithProviders(
   ui: ReactElement,
@@ -14,11 +14,15 @@ export function renderWithProviders(
     queryClient,
     ...render(
       <QueryClientProvider client={queryClient}>
-        <MemoryRouter initialEntries={[route]}>
-          <Routes>
-            <Route path={path} element={ui} />
-          </Routes>
-        </MemoryRouter>
+        <RouterProvider
+          router={createMemoryRouter(
+            [
+              { path, element: ui },
+              ...(path === "*" ? [] : [{ path: "*", element: null }]),
+            ],
+            { initialEntries: [route] },
+          )}
+        />
       </QueryClientProvider>,
     ),
   };

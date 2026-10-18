@@ -1,6 +1,8 @@
 import {
   Boxes,
+  CalendarDays,
   CalendarRange,
+  Cpu,
   FileUp,
   LayoutDashboard,
   ListChecks,
@@ -73,6 +75,9 @@ function Sidebar() {
       <ScheduleSwitcher activeId={scheduleId} />
       {base && (
         <NavGroup label="Schedule">
+          <Item to={`${base}/planner`} icon={CalendarDays}>
+            Planner
+          </Item>
           <Item to={`${base}/overview`} icon={LayoutDashboard}>
             Overview
           </Item>
@@ -81,6 +86,9 @@ function Sidebar() {
           </Item>
           <Item to={`${base}/rules`} icon={ListChecks}>
             Rules
+          </Item>
+          <Item to={`${base}/solves`} icon={Cpu}>
+            Solves
           </Item>
         </NavGroup>
       )}
