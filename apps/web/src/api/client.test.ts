@@ -1,7 +1,7 @@
 import { setAccessToken } from "@/lib/auth/session";
 import { isApiError } from "@/lib/problem";
 
-import { apiFetch, onSignedOut } from "./client";
+import { apiFetch, apiResponse, onSignedOut } from "./client";
 
 const ok = (body: unknown) =>
   new Response(JSON.stringify(body), {
@@ -23,6 +23,30 @@ describe("apiFetch", () => {
   });
   afterEach(() => {
     vi.unstubAllGlobals();
+  });
+
+  it("apiResponse returns the raw response and refreshes once on 401", async () => {
+    let calls = 0;
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string) => {
+        if (url.endsWith("/auth/refresh"))
+          return Promise.resolve(
+            ok({ access_token: "t2", expires_in: 900, organisation_id: "o1" }),
+          );
+        calls += 1;
+        return Promise.resolve(
+          calls === 1
+            ? problem(401)
+            : new Response("a,b\n1,2\n", {
+                headers: { "Content-Type": "text/csv" },
+              }),
+        );
+      }),
+    );
+    const res = await apiResponse("/api/v1/solution-versions/v1/export.csv");
+    expect(await res.text()).toBe("a,b\n1,2\n");
+    expect(calls).toBe(2);
   });
 
   it("sends the bearer token", async () => {

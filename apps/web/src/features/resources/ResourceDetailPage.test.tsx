@@ -70,7 +70,11 @@ describe("ResourceDetailPage", () => {
         }
         if (url.includes("/resource-types/"))
           return Promise.resolve(jsonResponse(type));
-        if (url.includes("/availability"))
+        if (
+          url.includes("/availability") ||
+          url.includes("/members") ||
+          url.includes("/calendar-feeds")
+        )
           return Promise.resolve(jsonResponse([]));
         return Promise.resolve(jsonResponse(resource));
       }),
@@ -94,5 +98,72 @@ describe("ResourceDetailPage", () => {
     expect(patches[0]).toMatchObject({
       attributes: { faculty: "CS", max_hours: 20 },
     });
+  });
+
+  it("viewers cannot create links or link accounts", async () => {
+    vi.spyOn(auth, "useAuth").mockReturnValue({
+      status: "signedIn",
+      me: null,
+      login: vi.fn(),
+      logout: vi.fn(),
+      switchOrganisation: vi.fn(),
+      adoptSession: vi.fn(),
+      can: (a) => a === "config.read",
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string) => {
+        if (url.includes("/resource-types/"))
+          return Promise.resolve(jsonResponse(type));
+        if (url.includes("/availability") || url.includes("/calendar-feeds"))
+          return Promise.resolve(jsonResponse([]));
+        return Promise.resolve(jsonResponse(resource));
+      }),
+    );
+    renderWithProviders(<ResourceDetailPage />, {
+      route: "/resources/r1",
+      path: "/resources/:resourceId",
+    });
+    expect(
+      await screen.findByRole("heading", { name: "Dr. Okello" }),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Create calendar link" }),
+    ).toBeNull();
+    expect(screen.queryByLabelText("Linked account")).toBeNull();
+  });
+
+  it("offers account linking only on person resources", async () => {
+    vi.spyOn(auth, "useAuth").mockReturnValue({
+      status: "signedIn",
+      me: null,
+      login: vi.fn(),
+      logout: vi.fn(),
+      switchOrganisation: vi.fn(),
+      adoptSession: vi.fn(),
+      can: () => true,
+    });
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string) => {
+        if (url.includes("/resource-types/"))
+          return Promise.resolve(jsonResponse({ ...type, kind: "space" }));
+        if (
+          url.includes("/availability") ||
+          url.includes("/members") ||
+          url.includes("/calendar-feeds")
+        )
+          return Promise.resolve(jsonResponse([]));
+        return Promise.resolve(jsonResponse(resource));
+      }),
+    );
+    renderWithProviders(<ResourceDetailPage />, {
+      route: "/resources/r1",
+      path: "/resources/:resourceId",
+    });
+    expect(
+      await screen.findByRole("button", { name: "Create calendar link" }),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText("Linked account")).toBeNull();
   });
 });

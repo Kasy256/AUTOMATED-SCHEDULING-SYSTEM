@@ -9,9 +9,11 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { AvailabilityTab } from "@/features/availability/AvailabilityTab";
 import { ExceptionsTab } from "@/features/availability/ExceptionsTab";
+import { CalendarLinks } from "@/features/calendar/CalendarLinks";
 import { useAuth } from "@/lib/auth/AuthProvider";
 
 import { AttributeForm } from "./AttributeForm";
+import { LinkedAccount } from "./LinkedAccount";
 
 export function ResourceDetailPage() {
   const { resourceId = "" } = useParams();
@@ -55,13 +57,17 @@ export function ResourceDetailPage() {
           <TabsTrigger value="availability">Weekly availability</TabsTrigger>
           <TabsTrigger value="exceptions">Exceptions</TabsTrigger>
         </TabsList>
-        <TabsContent value="details">
+        <TabsContent value="details" className="flex flex-col gap-6">
           <AttributeForm
             defs={type.attribute_schema.attributes ?? []}
             kind={type.kind}
             resource={resource}
             canEdit={canEdit}
           />
+          {can("members.manage") && type.kind === "person" && (
+            <LinkedAccount resource={resource} />
+          )}
+          {canEdit && <CalendarLinks resourceId={resource.id} />}
         </TabsContent>
         <TabsContent value="availability">
           <AvailabilityTab resourceId={resource.id} canEdit={canEdit} />

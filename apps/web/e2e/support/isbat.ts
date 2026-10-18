@@ -44,9 +44,10 @@ export async function setUpIsbat(page: Page): Promise<string> {
   await page.getByLabel("Start date").fill("2026-01-12");
   await page.getByLabel("End date").fill("2026-01-16");
   await page.getByRole("button", { name: "Create schedule" }).click();
+  // Creating the Education template's rules and slots is the slowest call in setup on a cold API.
   await expect(
     page.getByRole("heading", { name: "Import your data" }),
-  ).toBeVisible();
+  ).toBeVisible({ timeout: 60_000 });
   await importResources(page, "Lecturer", "lecturers.csv", {
     Tags: "subjects",
   });

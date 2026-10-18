@@ -13,15 +13,18 @@ from cartlyf_api.versions import repository
 from cartlyf_api.versions.diff import Placed, diff
 from cartlyf_api.versions.export import ExportRow, csv_rows
 from cartlyf_api.versions.models import SolutionVersion
+from cartlyf_api.versions.report import build_report
 from cartlyf_api.versions.schemas import (
     AssignmentChange,
     AssignmentOut,
     MyAssignment,
     VersionDetail,
     VersionDiff,
+    VersionReport,
     VersionStatus,
     VersionSummary,
 )
+from cartlyf_api.versions.state import load_state
 
 
 def _summary(version: SolutionVersion) -> VersionSummary:
@@ -187,10 +190,23 @@ async def my_assignments(session: AsyncSession, principal: Principal) -> list[My
         return []
     mine = set(own)
     out: list[MyAssignment] = []
-    for version, schedule_name in await repository.published_versions(session, org):
-        for assignment in await _assignments(session, org, version.id, own):
+    for version, schedule_name, schedule_timezone in await repository.published_versions(
+        session, org
+    ):
+        assignments = await _assignments(session, org, version.id, own)
+        others = {rid for a in assignments for ids in a.resources.values() for rid in ids} - mine
+        codes = await repository.resource_names(session, org, others)
+        for assignment in assignments:
             roles = sorted(
                 role for role, ids in assignment.resources.items() if mine.intersection(ids)
+            )
+            other_codes = sorted(
+                {
+                    codes[rid][0]
+                    for ids in assignment.resources.values()
+                    for rid in ids
+                    if rid not in mine and rid in codes
+                }
             )
             out.append(
                 MyAssignment(
@@ -198,7 +214,26 @@ async def my_assignments(session: AsyncSession, principal: Principal) -> list[My
                     version_id=version.id,
                     schedule_id=version.schedule_id,
                     schedule_name=schedule_name,
+                    schedule_timezone=schedule_timezone,
                     roles=roles,
+                    other_resource_codes=other_codes,
                 )
             )
     return sorted(out, key=lambda a: (a.start_at, str(a.activity_id)))
+
+
+async def version_report(
+    session: AsyncSession, principal: Principal, version_id: UUID
+) -> VersionReport:
+    principal.require(Permission.VERSIONS_READ)
+    org = principal.organisation_id
+    version = await require_version(session, org, version_id)
+    state = await load_state(session, org, version)
+    schedule = await repository.schedule_of(session, org, version.schedule_id)
+    return build_report(
+        version.id,
+        state.problem,
+        state.assignments,
+        state.run.horizon_origin,
+        ZoneInfo(schedule.timezone),
+    )

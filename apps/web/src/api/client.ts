@@ -29,10 +29,10 @@ function send(url: string, init: RequestInit): Promise<Response> {
   return fetch(url, { ...init, headers, credentials: "same-origin" });
 }
 
-export async function apiFetch<T>(
+export async function apiResponse(
   url: string,
   init: RequestInit = {},
-): Promise<T> {
+): Promise<Response> {
   let res = await send(url, init);
   if (res.status === 401 && !NO_REFRESH.some((path) => url.includes(path))) {
     if (await refreshAccessToken()) {
@@ -44,6 +44,14 @@ export async function apiFetch<T>(
     }
   }
   if (!res.ok) throw await parseProblem(res);
+  return res;
+}
+
+export async function apiFetch<T>(
+  url: string,
+  init: RequestInit = {},
+): Promise<T> {
+  const res = await apiResponse(url, init);
   if (res.status === 204) return undefined as T;
   const text = await res.text();
   return (text ? JSON.parse(text) : undefined) as T;

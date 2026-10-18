@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal
 from uuid import UUID
 
@@ -55,7 +55,10 @@ class MyAssignment(AssignmentOut):
     version_id: UUID
     schedule_id: UUID
     schedule_name: str
+    schedule_timezone: str
     roles: list[str]
+    # Members can't list resources, so the other resources' codes travel with the row.
+    other_resource_codes: list[str]
 
 
 class AssignmentEdit(BaseModel):
@@ -146,3 +149,43 @@ class DraftRequest(BaseModel):
     )
 
     changes: list[AssignmentEdit] = Field(min_length=1)
+
+
+class ResourceUtilisation(BaseModel):
+    resource_id: UUID
+    type_key: str
+    assigned_minutes: int
+    available_minutes: int
+    ratio: float
+
+
+class PersonLoad(BaseModel):
+    resource_id: UUID
+    activities: int
+    minutes: int
+    busiest_day: date | None
+    busiest_day_minutes: int
+
+
+class CoverageGap(BaseModel):
+    activity_id: UUID
+    role: str
+    required_min: int
+    assigned: int
+
+
+class FairnessSpread(BaseModel):
+    type_key: str
+    resources: int
+    min_minutes: int
+    max_minutes: int
+    mean_minutes: float
+    spread: int
+
+
+class VersionReport(BaseModel):
+    version_id: UUID
+    utilisation: list[ResourceUtilisation]
+    load: list[PersonLoad]
+    coverage_gaps: list[CoverageGap]
+    fairness: list[FairnessSpread]

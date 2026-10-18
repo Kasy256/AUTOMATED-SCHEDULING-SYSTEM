@@ -15,6 +15,11 @@ import { PlannerPage } from "@/features/planner/PlannerPage";
 import { RulesPage } from "@/features/rules/RulesPage";
 import { RunPage } from "@/features/solves/RunPage";
 import { SolvesPage } from "@/features/solves/SolvesPage";
+import { MyTimetablePage } from "@/features/me/MyTimetablePage";
+import { ReportsPage } from "@/features/reports/ReportsPage";
+import { ComparePage } from "@/features/versions/ComparePage";
+import { PrintPage } from "@/features/versions/print/PrintPage";
+import { VersionsPage } from "@/features/versions/VersionsPage";
 import { OverviewPage } from "@/features/schedules/OverviewPage";
 import { SetupWizard } from "@/features/setup/SetupWizard";
 import { HomeRedirect } from "@/features/schedules/HomeRedirect";
@@ -36,6 +41,14 @@ export function App() {
         }
       />
       <Route
+        path="/schedules/:scheduleId/versions/:versionId/print"
+        element={
+          <RequireAuth>
+            <PrintPage />
+          </RequireAuth>
+        }
+      />
+      <Route
         element={
           <RequireAuth>
             <AppShell />
@@ -51,7 +64,11 @@ export function App() {
           <Route path="rules" element={<RulesPage />} />
           <Route path="solves" element={<SolvesPage />} />
           <Route path="solves/:runId" element={<RunPage />} />
+          <Route path="versions" element={<VersionsPage />} />
+          <Route path="versions/:a/compare/:b" element={<ComparePage />} />
+          <Route path="reports" element={<ReportsPage />} />
         </Route>
+        <Route path="me" element={<MyTimetablePage />} />
         <Route path="resources" element={<ResourcesPage />} />
         <Route path="resources/:resourceId" element={<ResourceDetailPage />} />
         <Route path="resource-types" element={<ResourceTypesPage />} />

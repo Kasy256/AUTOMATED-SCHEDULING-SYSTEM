@@ -18,6 +18,7 @@ from cartlyf_api.versions.schemas import (
     MyAssignment,
     VersionDetail,
     VersionDiff,
+    VersionReport,
     VersionSummary,
 )
 
@@ -71,6 +72,13 @@ async def diff_versions(
     version_id: UUID, other_version_id: UUID, session: DbSession, principal: CurrentPrincipal
 ) -> VersionDiff:
     return await service.diff_versions(session, principal, version_id, other_version_id)
+
+
+@router.get("/solution-versions/{version_id}/report", response_model=VersionReport, responses=_READ)
+async def version_report(
+    version_id: UUID, session: DbSession, principal: CurrentPrincipal
+) -> VersionReport:
+    return await service.version_report(session, principal, version_id)
 
 
 @router.get("/me/assignments", response_model=list[MyAssignment], responses=_READ)

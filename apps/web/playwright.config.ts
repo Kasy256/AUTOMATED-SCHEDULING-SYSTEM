@@ -16,11 +16,15 @@ export default defineConfig({
     video: process.env.E2E_VIDEO === "1" ? "on" : "retain-on-failure",
   },
   projects: [
-    { name: "desktop", use: { ...devices["Desktop Chrome"] } },
+    {
+      name: "desktop",
+      use: { ...devices["Desktop Chrome"] },
+      testIgnore: /me-phone\.spec\.ts/,
+    },
     {
       name: "phone",
       use: { ...devices["Pixel 7"] },
-      testMatch: /smoke\.spec\.ts/,
+      testMatch: /(smoke|me-phone)\.spec\.ts/,
     },
   ],
   webServer: [
