@@ -105,14 +105,18 @@ const report = {
   ],
 };
 
-function api(versions: unknown[]) {
+function api(versions: unknown[], reportStatus = 200) {
   const reportUrls: string[] = [];
   vi.stubGlobal(
     "fetch",
     vi.fn((url: string) => {
       if (url.endsWith("/report")) {
         reportUrls.push(url);
-        return Promise.resolve(jsonResponse(report));
+        return Promise.resolve(
+          reportStatus === 200
+            ? jsonResponse(report)
+            : jsonResponse({ title: "Server error" }, reportStatus),
+        );
       }
       if (url.endsWith("/versions"))
         return Promise.resolve(jsonResponse(versions));
@@ -171,6 +175,25 @@ describe("ReportsPage", () => {
     renderWithProviders(<ReportsPage />, route);
     await vi.waitFor(() => {
       expect(urls[0]).toBe("/api/v1/solution-versions/v2/report");
+    });
+  });
+
+  it("says when the report can't be loaded", async () => {
+    api([summary(1, "published")], 500);
+    renderWithProviders(<ReportsPage />, route);
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "This report couldn't be loaded.",
+    );
+  });
+
+  it("ignores a version in the address that isn't this schedule's", async () => {
+    const urls = api([summary(1, "published")]);
+    renderWithProviders(<ReportsPage />, {
+      ...route,
+      route: "/schedules/s1/reports?version=gone",
+    });
+    await vi.waitFor(() => {
+      expect(urls[0]).toBe("/api/v1/solution-versions/v1/report");
     });
   });
 });

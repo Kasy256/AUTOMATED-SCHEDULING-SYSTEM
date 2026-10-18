@@ -193,9 +193,20 @@ async def my_assignments(session: AsyncSession, principal: Principal) -> list[My
     for version, schedule_name, schedule_timezone in await repository.published_versions(
         session, org
     ):
-        for assignment in await _assignments(session, org, version.id, own):
+        assignments = await _assignments(session, org, version.id, own)
+        others = {rid for a in assignments for ids in a.resources.values() for rid in ids} - mine
+        codes = await repository.resource_names(session, org, others)
+        for assignment in assignments:
             roles = sorted(
                 role for role, ids in assignment.resources.items() if mine.intersection(ids)
+            )
+            other_codes = sorted(
+                {
+                    codes[rid][0]
+                    for ids in assignment.resources.values()
+                    for rid in ids
+                    if rid not in mine and rid in codes
+                }
             )
             out.append(
                 MyAssignment(
@@ -205,6 +216,7 @@ async def my_assignments(session: AsyncSession, principal: Principal) -> list[My
                     schedule_name=schedule_name,
                     schedule_timezone=schedule_timezone,
                     roles=roles,
+                    other_resource_codes=other_codes,
                 )
             )
     return sorted(out, key=lambda a: (a.start_at, str(a.activity_id)))

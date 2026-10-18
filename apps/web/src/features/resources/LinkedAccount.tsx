@@ -34,6 +34,10 @@ export function LinkedAccount({ resource }: { resource: ResourceResponse }) {
         onChange={(e) => void link(e.target.value)}
       >
         <option value="">Not linked</option>
+        {resource.user_id &&
+          !active.some((m) => m.user_id === resource.user_id) && (
+            <option value={resource.user_id}>Inactive account</option>
+          )}
         {active.map((m) => (
           <option key={m.user_id} value={m.user_id}>
             {`${m.name} (${m.email})`}

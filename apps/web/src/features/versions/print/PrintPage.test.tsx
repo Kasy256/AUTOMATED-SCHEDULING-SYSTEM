@@ -139,4 +139,24 @@ describe("PrintPage", () => {
       await screen.findAllByRole("heading", { name: "Hall 3 (LH3)" }),
     ).toHaveLength(2);
   });
+
+  it("says when the version can't be found", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn((url: string) =>
+        Promise.resolve(
+          url.endsWith("/solution-versions/v1")
+            ? jsonResponse({ title: "Not Found" }, 404)
+            : jsonResponse(url.endsWith("/schedules/s1") ? schedule : []),
+        ),
+      ),
+    );
+    renderWithProviders(<PrintPage />, {
+      route: "/schedules/s1/versions/v1/print",
+      path: "/schedules/:scheduleId/versions/:versionId/print",
+    });
+    expect(
+      await screen.findByRole("heading", { name: "Version not found" }),
+    ).toBeInTheDocument();
+  });
 });

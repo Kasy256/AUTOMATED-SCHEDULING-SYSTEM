@@ -1,7 +1,6 @@
 import { useState } from "react";
 
 import type { MyAssignment } from "@/api/generated/model";
-import { useListResources } from "@/api/generated/resources/resources";
 import { useMyAssignments } from "@/api/generated/versions/versions";
 import { PageHeader } from "@/components/PageHeader";
 import { TableSkeleton } from "@/components/TableSkeleton";
@@ -14,13 +13,7 @@ import { groupByDay, type Day } from "./days";
 const clock = (iso: string, tz: string) =>
   formatMinuteOfDay(zonedParts(iso, tz).minute);
 
-function DayList({
-  days,
-  codeOf,
-}: {
-  days: Day[];
-  codeOf: (id: string) => string | undefined;
-}) {
+function DayList({ days }: { days: Day[] }) {
   return (
     <>
       {days.map((day) => (
@@ -30,7 +23,7 @@ function DayList({
           </h2>
           <ul className="flex flex-col divide-y rounded-xl border bg-card shadow-sm">
             {day.items.map((item) => (
-              <Row key={item.activity_id} item={item} codeOf={codeOf} />
+              <Row key={item.activity_id} item={item} />
             ))}
           </ul>
         </section>
@@ -39,18 +32,7 @@ function DayList({
   );
 }
 
-function Row({
-  item,
-  codeOf,
-}: {
-  item: MyAssignment;
-  codeOf: (id: string) => string | undefined;
-}) {
-  const others = Object.entries(item.resources)
-    .filter(([role]) => !item.roles.includes(role))
-    .flatMap(([, ids]) => ids)
-    .map(codeOf)
-    .filter((c): c is string => c !== undefined);
+function Row({ item }: { item: MyAssignment }) {
   return (
     <li className="flex flex-col gap-0.5 px-4 py-3">
       <div className="flex flex-wrap items-baseline gap-x-3">
@@ -60,7 +42,7 @@ function Row({
         <span className="font-medium">{item.activity_name ?? "Activity"}</span>
       </div>
       <span className="text-xs text-muted-foreground">
-        {[...others, item.schedule_name].join(" · ")}
+        {[...item.other_resource_codes, item.schedule_name].join(" · ")}
       </span>
     </li>
   );
@@ -68,12 +50,7 @@ function Row({
 
 export function MyTimetablePage() {
   const { data: items = [], isPending } = useMyAssignments();
-  // Members can't list resources; then codes are simply left out.
-  const { data: resources = [] } = useListResources({
-    query: { retry: false },
-  });
   const [showPast, setShowPast] = useState(false);
-  const codes = new Map(resources.map((r) => [r.id, r.code]));
   const { upcoming, past } = groupByDay(items, new Date());
 
   return (
@@ -88,7 +65,7 @@ export function MyTimetablePage() {
           </p>
         ) : (
           <>
-            <DayList days={upcoming} codeOf={(id) => codes.get(id)} />
+            <DayList days={upcoming} />
             {past.length > 0 && (
               <Button
                 variant="ghost"
@@ -98,7 +75,7 @@ export function MyTimetablePage() {
                 {showPast ? "Hide past" : "Show past"}
               </Button>
             )}
-            {showPast && <DayList days={past} codeOf={(id) => codes.get(id)} />}
+            {showPast && <DayList days={past} />}
           </>
         )}
         <CalendarLinks />

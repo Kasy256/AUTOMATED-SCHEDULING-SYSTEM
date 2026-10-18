@@ -61,4 +61,20 @@ describe("LinkedAccount", () => {
       ]);
     });
   });
+
+  it("keeps showing a link to an account that is no longer active", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() =>
+        Promise.resolve(jsonResponse([member("u3", "Old", "suspended")])),
+      ),
+    );
+    renderWithProviders(
+      <LinkedAccount resource={{ ...resource, user_id: "u3" }} />,
+    );
+    expect(await screen.findByLabelText("Linked account")).toHaveValue("u3");
+    expect(
+      screen.getByRole("option", { name: "Inactive account" }),
+    ).toBeInTheDocument();
+  });
 });

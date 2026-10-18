@@ -16,6 +16,7 @@ const item = (id: string, start: string, end: string) => ({
   schedule_name: "Term 1",
   schedule_timezone: "Africa/Kampala",
   roles: ["lecturer"],
+  other_resource_codes: ["LH3"],
 });
 
 function api(items: unknown[]) {
@@ -50,6 +51,7 @@ describe("MyTimetablePage", () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/CS 201/)).toBeInTheDocument();
     expect(screen.getByText("09:00–11:00")).toBeInTheDocument();
+    expect(screen.getByText("LH3 · Term 1")).toBeInTheDocument();
     expect(screen.queryByText(/Old class/)).toBeNull();
     await userEvent.click(screen.getByRole("button", { name: "Show past" }));
     expect(await screen.findByText(/Old class/)).toBeInTheDocument();

@@ -57,6 +57,8 @@ class MyAssignment(AssignmentOut):
     schedule_name: str
     schedule_timezone: str
     roles: list[str]
+    # Members can't list resources, so the other resources' codes travel with the row.
+    other_resource_codes: list[str]
 
 
 class AssignmentEdit(BaseModel):

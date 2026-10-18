@@ -8,12 +8,13 @@ export type Origin = "Solve" | "Repair" | "Board edit";
 
 export function originOf(
   v: VersionSummary,
-  runs: Pick<SolveRunResponse, "id" | "kind">[],
+  runs: Pick<SolveRunResponse, "id" | "kind" | "version_id">[],
 ): Origin {
-  if (v.parent_version_id) return "Board edit";
-  return runs.find((r) => r.id === v.solve_run_id)?.kind === "repair"
-    ? "Repair"
-    : "Solve";
+  // A run's own output is a solve or a repair; any other version on that run is an edit of one.
+  const run = runs.find((r) => r.id === v.solve_run_id);
+  if (run?.version_id === v.id)
+    return run.kind === "repair" ? "Repair" : "Solve";
+  return v.parent_version_id ? "Board edit" : "Solve";
 }
 
 export function compareTargetOf(

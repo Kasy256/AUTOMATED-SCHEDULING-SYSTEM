@@ -19,11 +19,23 @@ export function PrintPage() {
   const { scheduleId = "", versionId = "" } = useParams();
   const [params, setParams] = useSearchParams();
   const { data: schedule } = useGetSchedule(scheduleId);
-  const { data: version } = useGetVersion(versionId);
+  const { data: version, error } = useGetVersion(versionId);
   const { data: types = [] } = useListResourceTypes();
   const { data: resources = [] } = useListResources();
   const { data: templates = [] } = useListSlotTemplates(scheduleId);
 
+  if (error)
+    return (
+      <main className="flex flex-col gap-3 p-8">
+        <h1 className="text-lg font-semibold">Version not found</h1>
+        <Link
+          className="text-primary hover:underline"
+          to={`/schedules/${scheduleId}/versions`}
+        >
+          Back to versions
+        </Link>
+      </main>
+    );
   if (!schedule || !version)
     return (
       <div role="status" className="p-8 text-muted-foreground">

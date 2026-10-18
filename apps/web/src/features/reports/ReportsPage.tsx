@@ -14,6 +14,7 @@ import { EmptyState } from "@/components/EmptyState";
 import { NativeSelect } from "@/components/NativeSelect";
 import { PageHeader } from "@/components/PageHeader";
 import { TableSkeleton } from "@/components/TableSkeleton";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -84,8 +85,10 @@ export function ReportsPage() {
   const fallback =
     newest.find((v) => v.status === "published") ??
     newest.find((v) => v.status === "draft");
-  const versionId = params.get("version") ?? fallback?.id ?? "";
-  const { data: report } = useVersionReport(versionId, {
+  const asked = params.get("version");
+  const versionId =
+    (versions.some((v) => v.id === asked) ? asked : null) ?? fallback?.id ?? "";
+  const { data: report, error } = useVersionReport(versionId, {
     query: { enabled: versionId !== "" },
   });
 
@@ -140,7 +143,14 @@ export function ReportsPage() {
         }
       />
       <div className="flex flex-col gap-8 px-4 py-6 sm:px-6 lg:px-8">
-        {!report ? (
+        {error ? (
+          <Alert variant="destructive" role="alert">
+            <AlertDescription>
+              This report couldn't be loaded. Try again, or pick another
+              version.
+            </AlertDescription>
+          </Alert>
+        ) : !report ? (
           <TableSkeleton label="Loading the report" />
         ) : (
           <>

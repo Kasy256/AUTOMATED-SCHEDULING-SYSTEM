@@ -23,15 +23,18 @@ const v = (
 
 describe("version helpers", () => {
   it("names where a version came from", () => {
+    // A repair's output has the published version as parent; a board edit keeps its source's run.
     const runs = [
-      { id: "r2", kind: "repair" },
-      { id: "r1", kind: "solve" },
+      { id: "r2", kind: "repair", version_id: "v2" },
+      { id: "r1", kind: "solve", version_id: "v1" },
     ] as never;
     expect(originOf(v(1, "draft"), runs)).toBe("Solve");
-    expect(originOf(v(2, "draft"), runs)).toBe("Repair");
+    expect(originOf(v(2, "draft", { parent_version_id: "v1" }), runs)).toBe(
+      "Repair",
+    );
     expect(
       originOf(
-        v(3, "draft", { parent_version_id: "v1", solve_run_id: "r1" }),
+        v(3, "draft", { parent_version_id: "v2", solve_run_id: "r2" }),
         runs,
       ),
     ).toBe("Board edit");

@@ -42,7 +42,9 @@ function api(versions: unknown[]) {
       if (url.endsWith("/versions"))
         return Promise.resolve(jsonResponse(versions));
       if (url.endsWith("/solves"))
-        return Promise.resolve(jsonResponse([{ id: "r3", kind: "repair" }]));
+        return Promise.resolve(
+          jsonResponse([{ id: "r3", kind: "repair", version_id: "v3" }]),
+        );
       return Promise.resolve(jsonResponse([]));
     }),
   );

@@ -64,7 +64,9 @@ export function ResourceDetailPage() {
             resource={resource}
             canEdit={canEdit}
           />
-          {can("members.manage") && <LinkedAccount resource={resource} />}
+          {can("members.manage") && type.kind === "person" && (
+            <LinkedAccount resource={resource} />
+          )}
           {canEdit && <CalendarLinks resourceId={resource.id} />}
         </TabsContent>
         <TabsContent value="availability">

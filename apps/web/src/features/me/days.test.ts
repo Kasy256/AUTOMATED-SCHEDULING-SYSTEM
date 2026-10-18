@@ -11,6 +11,7 @@ const item = (id: string, start: string, end: string) => ({
   schedule_name: "Term 1",
   schedule_timezone: "Africa/Kampala",
   roles: ["lecturer"],
+  other_resource_codes: [],
 });
 
 describe("groupByDay", () => {
