@@ -129,3 +129,16 @@
     scrollbar-color: var(--input) transparent;
   }
 }
+
+@media print {
+  @page {
+    size: A4 landscape;
+    margin: 12mm;
+  }
+  .sheet {
+    break-after: page;
+  }
+  .sheet:last-of-type {
+    break-after: auto;
+  }
+}

@@ -16,6 +16,7 @@ import { RulesPage } from "@/features/rules/RulesPage";
 import { RunPage } from "@/features/solves/RunPage";
 import { SolvesPage } from "@/features/solves/SolvesPage";
 import { ComparePage } from "@/features/versions/ComparePage";
+import { PrintPage } from "@/features/versions/print/PrintPage";
 import { VersionsPage } from "@/features/versions/VersionsPage";
 import { OverviewPage } from "@/features/schedules/OverviewPage";
 import { SetupWizard } from "@/features/setup/SetupWizard";
@@ -34,6 +35,14 @@ export function App() {
         element={
           <RequireAuth>
             <SetupWizard />
+          </RequireAuth>
+        }
+      />
+      <Route
+        path="/schedules/:scheduleId/versions/:versionId/print"
+        element={
+          <RequireAuth>
+            <PrintPage />
           </RequireAuth>
         }
       />
