@@ -33,6 +33,10 @@ test.describe.serial("versions and distribution", () => {
     await expect(dialog).toContainText("Publish version 1?");
     await dialog.getByRole("button", { name: "Publish" }).click();
     await expect(page.getByText("Version 1 · published")).toBeVisible();
+    // Sonner's default success green is 4.25:1 here; the app's darker green must be in effect.
+    await expect(
+      page.getByText("Version 1 published — affected people are being emailed"),
+    ).toHaveCSS("color", "rgb(22, 101, 52)");
     await expectNoA11yViolations(page);
   });
 
