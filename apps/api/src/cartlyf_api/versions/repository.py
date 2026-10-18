@@ -91,9 +91,9 @@ async def placements(
 
 async def published_versions(
     session: AsyncSession, org: UUID
-) -> Sequence[tuple[SolutionVersion, str]]:
+) -> Sequence[tuple[SolutionVersion, str, str]]:
     rows = await session.execute(
-        select(SolutionVersion, Schedule.name)
+        select(SolutionVersion, Schedule.name, Schedule.timezone)
         .join(
             Schedule,
             (Schedule.organisation_id == SolutionVersion.organisation_id)
@@ -106,7 +106,7 @@ async def published_versions(
         )
         .order_by(Schedule.name, SolutionVersion.number)
     )
-    return [(version, name) for version, name in rows]
+    return [(version, name, timezone) for version, name, timezone in rows]
 
 
 async def assignment_rows(

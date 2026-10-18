@@ -50,6 +50,7 @@ def test_AUTH_06_member_sees_only_published_and_own_assignments(
     rows = own.json()
     assert {r["activity_id"] for r in rows} == {a["activity_id"] for a in expected}
     assert all(r["version_id"] == version and r["roles"] == ["lecturer"] for r in rows)
+    assert all(r["schedule_timezone"] == "Africa/Kampala" for r in rows)
     assert [r["start_at"] for r in rows] == sorted(r["start_at"] for r in rows)
 
 

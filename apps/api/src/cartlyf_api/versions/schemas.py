@@ -55,6 +55,7 @@ class MyAssignment(AssignmentOut):
     version_id: UUID
     schedule_id: UUID
     schedule_name: str
+    schedule_timezone: str
     roles: list[str]
 
 
