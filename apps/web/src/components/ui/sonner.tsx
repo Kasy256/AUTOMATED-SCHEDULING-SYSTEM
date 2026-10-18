@@ -9,6 +9,19 @@ import {
   Loader2Icon,
 } from "lucide-react";
 
+// Sonner's light rich colours fall short of 4.5:1 on their tinted backgrounds. Set inline, so no
+// stylesheet ordering can undo them; dark mode keeps Sonner's own (lighter) text.
+const LIGHT_RICH_TEXT = {
+  "--success-text": "#166534",
+  "--error-text": "#b91c1c",
+  "--warning-text": "#92400e",
+  "--info-text": "#1d4ed8",
+};
+
+const prefersDark = () =>
+  typeof window !== "undefined" &&
+  window.matchMedia("(prefers-color-scheme: dark)").matches;
+
 const Toaster = ({ ...props }: ToasterProps) => {
   return (
     <Sonner
@@ -27,6 +40,7 @@ const Toaster = ({ ...props }: ToasterProps) => {
           "--normal-text": "var(--popover-foreground)",
           "--normal-border": "var(--border)",
           "--border-radius": "var(--radius)",
+          ...(prefersDark() ? {} : LIGHT_RICH_TEXT),
         } as React.CSSProperties
       }
       toastOptions={{

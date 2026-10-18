@@ -130,14 +130,6 @@
   }
 }
 
-/* Sonner's light rich colours fall short of 4.5:1 on their tinted backgrounds. */
-html [data-sonner-toaster][data-sonner-theme="light"] {
-  --success-text: #166534;
-  --error-text: #b91c1c;
-  --warning-text: #92400e;
-  --info-text: #1d4ed8;
-}
-
 @media print {
   @page {
     size: A4 landscape;
