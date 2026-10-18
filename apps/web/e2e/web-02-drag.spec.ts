@@ -10,7 +10,13 @@ test.describe.serial("planner board", () => {
 
   test.beforeAll(async ({ browser }) => {
     test.setTimeout(360_000);
-    page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
+    // A page made here isn't recorded by the config's video option, so E2E_VIDEO opts in explicitly.
+    page = await browser.newPage({
+      viewport: { width: 1440, height: 900 },
+      ...(process.env.E2E_VIDEO === "1"
+        ? { recordVideo: { dir: "test-results/web-02-video" } }
+        : {}),
+    });
     await signUpAndConfirm(page);
     scheduleId = await setUpIsbat(page);
     await solve(page, scheduleId);
