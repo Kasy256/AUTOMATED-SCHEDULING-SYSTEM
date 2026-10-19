@@ -15,12 +15,16 @@ from cartlyf_engine.index import ProblemIndex
 
 # Sub-solves stop on CP-SAT's deterministic time, so the sequence of neighbourhoods and results
 # is the same on every machine; wall time only cuts the loop short (ADR 0015).
-SUB_DETERMINISTIC_S = 0.03
+_SUB_DETERMINISTIC_S = 0.03
 _LOOP_DETERMINISTIC_PER_S = 0.5
 _STALL_LIMIT = 30
 # Sub-models are mostly fixed: a light presolve and no LP relaxation leave more time to search.
-SUB_PARAMETERS = {
+# One worker: with more, CP-SAT 9.15 under probing level 0 calls feasible sub-models INFEASIBLE
+# or aborts; with probing on, presolve eats the whole deterministic cap on large models.
+_SUB_PARAMETERS = {
+    "num_workers": 1,
     "max_presolve_iterations": 1,
+    "cp_model_probing_level": 0,
     "symmetry_level": 0,
     "linearization_level": 0,
 }
@@ -113,12 +117,7 @@ def improve(
             else:
                 freed, free_resources = _resource_subset(problem, best.assignments, rng, size.value)
             opened = fixed.open(best.assignments, freed, free_resources)
-            solver = cp_model.CpSolver()
-            solver.parameters.random_seed = options.seed
-            solver.parameters.num_workers = options.num_workers
-            solver.parameters.max_deterministic_time = SUB_DETERMINISTIC_S
-            for name, value in SUB_PARAMETERS.items():
-                setattr(solver.parameters, name, value)
+            solver = sub_solver(options.seed)
             solver.parameters.max_time_in_seconds = max(0.01, wall_budget_s - fixed.charged)
             attach(solver.stop_search)
             try:
@@ -147,6 +146,16 @@ def improve(
     finally:
         fixed.release()
     return best, fixed.charged
+
+
+def sub_solver(seed: int) -> cp_model.CpSolver:
+    """A CP-SAT solver configured as every LNS sub-solve is."""
+    solver = cp_model.CpSolver()
+    solver.parameters.random_seed = seed
+    solver.parameters.max_deterministic_time = _SUB_DETERMINISTIC_S
+    for name, value in _SUB_PARAMETERS.items():
+        setattr(solver.parameters, name, value)
+    return solver
 
 
 def finding_neighbourhood(

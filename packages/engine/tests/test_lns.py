@@ -9,20 +9,14 @@ from cartlyf_engine.checker import check, check_with_findings
 from cartlyf_engine.compiler import compile_problem
 from cartlyf_engine.construct import construct
 from cartlyf_engine.domain import Assignment, Pin, Problem, SolveOptions
-from cartlyf_engine.lns import (
-    SUB_DETERMINISTIC_S,
-    SUB_PARAMETERS,
-    Incumbent,
-    finding_neighbourhood,
-    improve,
-)
+from cartlyf_engine.lns import Incumbent, finding_neighbourhood, improve, sub_solver
 from cartlyf_engine.solve import solve
 from cartlyf_engine.synthetic import synthetic_problem
 from kit import DAY, act, needs, person, problem, rule
 
 SHIFTS = {"Day": 420, "Evening": 900, "Night": 1380}
 OPTIONS = SolveOptions(time_limit_s=60, seed=0, num_workers=1)
-# A 29-variable cut of a roster LNS sub-model; feasible (pick nobody for Ward B Day).
+# A 68-variable cut of a roster LNS sub-model, which the default search solves to optimality.
 FALSE_INFEASIBLE = Path(__file__).parent / "fixtures/cpsat/false_infeasible.pbtxt"
 
 
@@ -149,16 +143,9 @@ def test_lns_frees_the_resources_behind_the_costliest_finding() -> None:
 
 
 def test_lns_sub_solves_never_call_a_feasible_model_infeasible() -> None:
-    # With 4 workers, CP-SAT 9.15 under cp_model_probing_level=0 calls this model INFEASIBLE
-    # in about a quarter of runs, and aborts the process on the full sub-model (ADR 0015).
+    # Multi-worker CP-SAT 9.15 with cp_model_probing_level=0 calls this model INFEASIBLE in
+    # most runs, and can abort the process on the full sub-model (ADR 0015).
     model = cp_model.CpModel()
     model.proto.parse_text_format(FALSE_INFEASIBLE.read_text(encoding="utf-8"))  # pyright: ignore[reportUnknownMemberType]
-    for parameters in [SUB_PARAMETERS, *({k: v} for k, v in SUB_PARAMETERS.items())]:
-        for _ in range(40):
-            solver = cp_model.CpSolver()
-            solver.parameters.num_workers = 4
-            solver.parameters.random_seed = 0
-            solver.parameters.max_deterministic_time = SUB_DETERMINISTIC_S
-            for name, value in parameters.items():
-                setattr(solver.parameters, name, value)
-            assert solver.solve(model) != cp_model.INFEASIBLE, parameters
+    for seed in range(40):
+        assert sub_solver(seed).solve(model) != cp_model.INFEASIBLE, seed
