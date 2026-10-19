@@ -4,6 +4,7 @@ the rest to the incumbent, re-solve, keep the result when the checker scores it 
 import random
 from collections.abc import Callable, Sequence
 from dataclasses import dataclass
+from typing import Protocol, cast
 
 from ortools.sat.python import cp_model
 
@@ -86,7 +87,7 @@ def improve(
             freed = _day_window(problem, best.assignments, rng, size.value)
         else:
             freed, free_resources = _resource_subset(problem, best.assignments, rng, size.value)
-        sub = _fixed_model(problem, compiled, best.assignments, freed, free_resources)
+        saved = _fix(problem, compiled, best.assignments, freed, free_resources)
         solver = cp_model.CpSolver()
         solver.parameters.random_seed = options.seed
         solver.parameters.num_workers = options.num_workers
@@ -96,9 +97,10 @@ def improve(
         solver.parameters.max_time_in_seconds = wall_budget_s - spent_wall
         attach(solver.stop_search)
         try:
-            code = solver.solve(sub)
+            code = solver.solve(compiled.model)
         finally:
             attach(None)
+            _restore(compiled.model, saved)
         spent_wall += solver.wall_time
         spent_det += solver.response_proto.deterministic_time
         size.update(code == cp_model.OPTIMAL)
@@ -148,18 +150,27 @@ def _resource_subset(
     return freed, chosen
 
 
-def _fixed_model(
+def _fix(
     problem: Problem,
     compiled: Compiled,
     assignments: Sequence[Assignment],
     freed: set[str],
     free_resources: set[str],
-) -> cp_model.CpModel:
-    """A copy of the model with every activity outside `freed` fixed to its incumbent start and
-    resources, except picks of `free_resources`; the incumbent is the hint everywhere."""
-    model = compiled.model.clone()
+) -> list[tuple[int, int, int]]:
+    """Fix every activity outside `freed` to its incumbent start and resources, except picks of
+    `free_resources`, by narrowing variable domains in place; hint the incumbent everywhere.
+    Returns the narrowed domains to restore. Domains presolve faster than added equalities."""
+    model = compiled.model
     model.clear_hints()
     enc, pinned = compiled.encoding, {a.id for a in problem.activities if a.pinned is not None}
+    saved: list[tuple[int, int, int]] = []
+
+    def set_to(index: int, value: int) -> None:
+        domain = _domain(model, index)
+        saved.append((index, domain[0], domain[1]))
+        domain[0] = value
+        domain[1] = value
+
     for placed in assignments:
         activity_id = placed.activity_id
         fixed = activity_id in pinned or activity_id not in freed
@@ -167,14 +178,32 @@ def _fixed_model(
             value = int(start == placed.start)
             model.add_hint(lit, value)
             if fixed:
-                model.add(lit == value)
+                set_to(lit.index, value)
         for role, picks in compiled.picks[activity_id].items():
             for resource_id, lit in picks.items():
                 value = int(resource_id in placed.resources.get(role, ()))
                 model.add_hint(lit, value)
                 if fixed and (activity_id in pinned or resource_id not in free_resources):
-                    model.add(lit == value)
-    return model
+                    set_to(lit.index, value)
+    return saved
+
+
+class _Domain(Protocol):
+    def __getitem__(self, i: int, /) -> int: ...
+    def __setitem__(self, i: int, value: int, /) -> None: ...
+
+
+def _domain(model: cp_model.CpModel, index: int) -> _Domain:
+    # OR-Tools' C++-backed proto ships without type stubs.
+    variables = model.proto.variables  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
+    return cast(_Domain, variables[index].domain)  # pyright: ignore[reportUnknownMemberType]
+
+
+def _restore(model: cp_model.CpModel, saved: list[tuple[int, int, int]]) -> None:
+    for index, low, high in reversed(saved):
+        domain = _domain(model, index)
+        domain[0] = low
+        domain[1] = high
 
 
 def decode(
