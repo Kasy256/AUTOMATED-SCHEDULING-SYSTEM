@@ -1,0 +1,48 @@
+variables { domain: 0 domain: 1 }
+variables { name: "start[Ward A Evening and night 2027-01-11 Evening]" domain: 10980 domain: 10980 }
+variables { domain: 0 domain: 1 }
+variables { name: "start[Ward A Evening and night 2027-01-12 Evening]" domain: 12420 domain: 12420 }
+variables { domain: 0 domain: 1 }
+variables { name: "start[Ward B Day 2027-01-12 Day]" domain: 11940 domain: 11940 }
+variables { domain: 0 domain: 1 }
+variables { name: "start[Ward A Day 2027-01-12 Day]" domain: 11940 domain: 11940 }
+variables { domain: 0 domain: 1 }
+variables { name: "pick[Ward A Day 2027-01-12 Day,midwife,S28]" domain: 1 domain: 1 }
+variables { name: "use[Ward A Day 2027-01-12 Day,S28]" domain: 0 domain: 1 }
+variables { name: "pick[Ward A Evening and night 2027-01-11 Evening,midwife,S25]" domain: 1 domain: 1 }
+variables { name: "use[Ward A Evening and night 2027-01-11 Evening,S25]" domain: 0 domain: 1 }
+variables { name: "pick[Ward A Evening and night 2027-01-12 Evening,midwife,S25]" domain: 1 domain: 1 }
+variables { name: "use[Ward A Evening and night 2027-01-12 Evening,S25]" domain: 0 domain: 1 }
+variables { name: "pick[Ward B Day 2027-01-12 Day,midwife,S25]" domain: 0 domain: 1 }
+variables { name: "pick[Ward B Day 2027-01-12 Day,midwife,S26]" domain: 0 domain: 1 }
+variables { name: "pick[Ward B Day 2027-01-12 Day,midwife,S27]" domain: 0 domain: 1 }
+variables { name: "pick[Ward B Day 2027-01-12 Day,midwife,S28]" domain: 0 domain: 1 }
+variables { name: "pick[Ward B Day 2027-01-12 Day,midwife,S29]" domain: 0 domain: 1 }
+variables { name: "pick[Ward B Day 2027-01-12 Day,midwife,S30]" domain: 0 domain: 1 }
+variables { name: "pick[Ward B Day 2027-01-12 Day,midwife,S31]" domain: 0 domain: 1 }
+variables { name: "pick[Ward B Day 2027-01-12 Day,midwife,S32]" domain: 0 domain: 1 }
+variables { name: "pick[Ward B Day 2027-01-12 Day,midwife,S33]" domain: 0 domain: 1 }
+variables { name: "pick[Ward B Day 2027-01-12 Day,midwife,S34]" domain: 0 domain: 1 }
+variables { name: "pick[Ward B Day 2027-01-12 Day,midwife,S35]" domain: 0 domain: 1 }
+variables { name: "use[Ward B Day 2027-01-12 Day,S25]" domain: 0 domain: 1 }
+variables { name: "use[Ward B Day 2027-01-12 Day,S28]" domain: 0 domain: 1 }
+variables { name: "hard[11 hours rest between shifts]" domain: 0 domain: 1 }
+constraints { enforcement_literal: 0 interval { start { vars: 1 coeffs: 1 } end { vars: 1 coeffs: 1 offset: 1140 } size { offset: 1140 } } }
+constraints { enforcement_literal: 2 interval { start { vars: 3 coeffs: 1 } end { vars: 3 coeffs: 1 offset: 1140 } size { offset: 1140 } } }
+constraints { enforcement_literal: 4 interval { start { vars: 5 coeffs: 1 } end { vars: 5 coeffs: 1 offset: 1140 } size { offset: 1140 } } }
+constraints { enforcement_literal: 6 interval { start { vars: 7 coeffs: 1 } end { vars: 7 coeffs: 1 offset: 1140 } size { offset: 1140 } } }
+constraints { enforcement_literal: 8 interval { start { vars: 5 coeffs: 1 } end { vars: 5 coeffs: 1 offset: 1140 } size { offset: 1140 } } }
+constraints { linear { vars: 9 vars: 10 coeffs: -1 coeffs: 1 domain: 0 domain: 0 } }
+constraints { linear { vars: 11 vars: 12 coeffs: -1 coeffs: 1 domain: 0 domain: 0 } }
+constraints { linear { vars: 13 vars: 14 coeffs: -1 coeffs: 1 domain: 0 domain: 0 } }
+constraints { linear { vars: 15 vars: 16 vars: 17 vars: 18 vars: 19 vars: 20 vars: 21 vars: 22 vars: 23 vars: 24 vars: 25 coeffs: 1 coeffs: 1 coeffs: 1 coeffs: 1 coeffs: 1 coeffs: 1 coeffs: 1 coeffs: 1 coeffs: 1 coeffs: 1 coeffs: 1 domain: -9223372036854775808 domain: 1 } }
+constraints { linear { vars: 15 vars: 26 coeffs: -1 coeffs: 1 domain: 0 domain: 0 } }
+constraints { linear { vars: 18 vars: 27 coeffs: -1 coeffs: 1 domain: 0 domain: 0 } }
+constraints { linear { vars: 12 vars: 28 vars: 0 coeffs: -1 coeffs: -1 coeffs: 1 domain: -1 domain: 9223372036854775807 } }
+constraints { linear { vars: 14 vars: 28 vars: 2 coeffs: -1 coeffs: -1 coeffs: 1 domain: -1 domain: 9223372036854775807 } }
+constraints { linear { vars: 26 vars: 4 coeffs: -1 coeffs: 1 domain: -9223372036854775808 domain: 0 } }
+constraints { no_overlap { intervals: 0 intervals: 1 intervals: 2 } }
+constraints { linear { vars: 10 vars: 28 vars: 6 coeffs: -1 coeffs: -1 coeffs: 1 domain: -1 domain: 9223372036854775807 } }
+constraints { linear { vars: 27 vars: 8 coeffs: -1 coeffs: 1 domain: -9223372036854775808 domain: 0 } }
+constraints { no_overlap { intervals: 3 intervals: 4 } }
+constraints { linear { vars: 28 coeffs: 1 domain: 1 domain: 1 } }

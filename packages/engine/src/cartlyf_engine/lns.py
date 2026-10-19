@@ -15,13 +15,12 @@ from cartlyf_engine.index import ProblemIndex
 
 # Sub-solves stop on CP-SAT's deterministic time, so the sequence of neighbourhoods and results
 # is the same on every machine; wall time only cuts the loop short (ADR 0015).
-_SUB_DETERMINISTIC_S = 0.03
+SUB_DETERMINISTIC_S = 0.03
 _LOOP_DETERMINISTIC_PER_S = 0.5
 _STALL_LIMIT = 30
 # Sub-models are mostly fixed: a light presolve and no LP relaxation leave more time to search.
-_SUB_PARAMETERS = {
+SUB_PARAMETERS = {
     "max_presolve_iterations": 1,
-    "cp_model_probing_level": 0,
     "symmetry_level": 0,
     "linearization_level": 0,
 }
@@ -117,8 +116,8 @@ def improve(
             solver = cp_model.CpSolver()
             solver.parameters.random_seed = options.seed
             solver.parameters.num_workers = options.num_workers
-            solver.parameters.max_deterministic_time = _SUB_DETERMINISTIC_S
-            for name, value in _SUB_PARAMETERS.items():
+            solver.parameters.max_deterministic_time = SUB_DETERMINISTIC_S
+            for name, value in SUB_PARAMETERS.items():
                 setattr(solver.parameters, name, value)
             solver.parameters.max_time_in_seconds = max(0.01, wall_budget_s - fixed.charged)
             attach(solver.stop_search)
