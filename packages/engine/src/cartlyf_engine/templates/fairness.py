@@ -120,16 +120,19 @@ def check(ctx: CheckContext, instance: ConstraintInstance) -> list[Finding]:
     starts = counted(ctx.problem, instance, ctx.placed.values())
     totals = {r.id: history.get(r.id, 0) + len(starts.get(r.id, [])) for r in resources}
     hi_id, lo_id = max(totals, key=totals.__getitem__), min(totals, key=totals.__getitem__)
-    spread = totals[hi_id] - totals[lo_id]
-    if not spread:
+    lo, hi = totals[lo_id], totals[hi_id]
+    if hi == lo:
         return []
+    # Every resource at an extreme, so a search can move work off all the tied highest.
+    extremes = tuple(r for r, t in totals.items() if t == lo) + tuple(
+        r for r, t in totals.items() if t == hi
+    )
     return [
         Finding(
-            spread,
-            f"{explain(instance)}: totals range from {totals[lo_id]} ({lo_id}) "
-            f"to {totals[hi_id]} ({hi_id})",
+            hi - lo,
+            f"{explain(instance)}: totals range from {lo} ({lo_id}) to {hi} ({hi_id})",
             (),
-            (lo_id, hi_id),
+            extremes,
         )
     ]
 

@@ -1,7 +1,7 @@
 from hypothesis import given
 
 from bruteforce import assert_agree
-from cartlyf_engine.checker import check
+from cartlyf_engine.checker import check, check_with_findings
 from cartlyf_engine.domain import AttrValue, Problem, Resource, Scope
 from cartlyf_engine.templates.fairness import counted
 from kit import act, needs, person, place, problem, rule, solved, who, win
@@ -81,3 +81,14 @@ def test_fairness_counted_lists_matching_starts() -> None:
 def test_fairness_without_history_is_balance_on_matches() -> None:
     assert check(_nights(), [*BOTH_ON_P, place("d1", 300, who="q")]).soft_total == 2
     assert check(_nights(), ONE_EACH).soft_total == 0
+
+
+def test_fairness_finding_names_every_resource_at_both_extremes() -> None:
+    p = _nights(extra=(person("r"), person("s")))
+    # Totals p 0, q 0, r 1, s 1: two tied at each extreme.
+    placed = [place("n1", 0, who="r"), place("n2", 120, who="s"), place("d1", 300, who="p")]
+    _, findings = check_with_findings(p, placed)
+    [fair] = [f.finding for f in findings if f.constraint_id == "fair"]
+    assert fair.resource_ids == ("p", "q", "r", "s")
+    assert fair.amount == 1
+    assert fair.message.endswith("totals range from 0 (p) to 1 (r)")

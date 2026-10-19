@@ -90,7 +90,10 @@ def improve(
         size = days if by_days else people
         guided = None
         if rng.random() < _GUIDED_SHARE:
-            guided = finding_neighbourhood(best.assignments, best.findings or (), rng, people.value)
+            within = _window(problem, rng, days.value) if len(problem.day_windows) > 1 else None
+            guided = finding_neighbourhood(
+                best.assignments, best.findings or (), rng, people.value, within
+            )
         free_resources: set[str] = set()
         if guided is not None:
             size = people
@@ -139,10 +142,12 @@ def finding_neighbourhood(
     findings: Sequence[SoftFinding],
     rng: random.Random,
     count: int,
+    within: tuple[int, int] | None = None,
 ) -> tuple[set[str], set[str]] | None:
     """Resources and activities named by soft findings, until `count` resources: a rule is drawn
     uniformly, then one of its findings in proportion to cost. The named activities and every
-    activity the resources work are freed, and the resources are open to every other activity."""
+    activity the resources work (starting `within` the window, if given) are freed, and the
+    resources are open to every other activity."""
     # Drawing across rules by cost would let one large, unimprovable rule starve the rest.
     by_rule: dict[str, list[SoftFinding]] = {}
     for f in findings:
@@ -161,20 +166,25 @@ def finding_neighbourhood(
         activities |= set(finding.activity_ids)
     if not resources and not activities:
         return None
+    lo, hi = within or (0, max((a.start + 1 for a in assignments), default=0))
     freed = activities | {
         a.activity_id
         for a in assignments
-        if any(r in resources for ids in a.resources.values() for r in ids)
+        if lo <= a.start < hi and any(r in resources for ids in a.resources.values() for r in ids)
     }
     return freed, resources
+
+
+def _window(problem: Problem, rng: random.Random, width: int) -> tuple[int, int]:
+    windows = problem.day_windows
+    first = rng.randrange(max(1, len(windows) - width + 1))
+    return windows[first].start, windows[min(len(windows), first + width) - 1].end
 
 
 def _day_window(
     problem: Problem, assignments: Sequence[Assignment], rng: random.Random, width: int
 ) -> set[str]:
-    windows = problem.day_windows
-    first = rng.randrange(max(1, len(windows) - width + 1))
-    lo, hi = windows[first].start, windows[min(len(windows), first + width) - 1].end
+    lo, hi = _window(problem, rng, width)
     return {a.activity_id for a in assignments if lo <= a.start < hi}
 
 
