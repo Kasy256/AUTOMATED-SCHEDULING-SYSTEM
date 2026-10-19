@@ -11,6 +11,7 @@ from ortools.sat.python import cp_model
 from cartlyf_engine.checker import SoftFinding, check_with_findings
 from cartlyf_engine.compiler import Compiled
 from cartlyf_engine.domain import Assignment, Problem, Score, SolveOptions
+from cartlyf_engine.index import ProblemIndex
 
 # Sub-solves stop on CP-SAT's deterministic time, so the sequence of neighbourhoods and results
 # is the same on every machine; wall time only cuts the loop short (ADR 0015).
@@ -27,6 +28,11 @@ _SUB_PARAMETERS = {
 _MIN_DAYS, _MAX_DAYS = 1, 7
 _MIN_RESOURCES, _MAX_RESOURCES = 2, 12
 _GUIDED_SHARE = 0.9
+# The engine reads no clock, so the loop charges its own Python work to the wall budget: per
+# literal fixed, opened, hinted or read, and per activity checked. Measured on the slowest
+# supported machine (ADR 0015); a faster one only ends the loop a little early.
+_LITERAL_S = 2e-5
+_CHECK_ACTIVITY_S = 3e-4
 
 
 @dataclass(frozen=True)
@@ -63,78 +69,85 @@ def improve(
     attach: Callable[[Callable[[], None] | None], None] = lambda _: None,
     on_improved: Callable[[Incumbent, float], None] = lambda _i, _w: None,
 ) -> tuple[Incumbent, float]:
-    """The best incumbent found and the CP-SAT wall time spent; never worse than `start`.
-    Pinned activities are never freed."""
+    """The best incumbent found and the wall time charged for it: CP-SAT's own plus the loop's
+    Python work (see `_LITERAL_S`); never worse than `start`. Pinned activities are never
+    freed."""
     rng = random.Random(options.seed)
+    index = ProblemIndex(problem)
     best = start
+    checked = 0
     if best.findings is None:
-        score, findings = check_with_findings(problem, best.assignments)
+        score, findings = check_with_findings(problem, best.assignments, index)
         best = Incumbent(best.assignments, score, best.objective, tuple(findings))
-    spent_wall = 0.0
-    spent_det = 0.0
+        checked = len(best.assignments)
     det_budget = _LOOP_DETERMINISTIC_PER_S * options.time_limit_s
     days = _Size(_MIN_DAYS + 1, _MIN_DAYS, min(_MAX_DAYS, max(1, len(problem.day_windows))))
     people = _Size(_MIN_RESOURCES + 1, _MIN_RESOURCES, min(_MAX_RESOURCES, len(problem.resources)))
-    model = compiled.model
+    fixed = _Fixed(problem, compiled, best.assignments)
+    fixed.charged += _CHECK_ACTIVITY_S * checked
+    spent_det = 0.0
     stalled = 0
     iteration = 0
-    while (
-        best.score.soft_total > 0
-        and stalled < _STALL_LIMIT
-        and spent_det < det_budget
-        and wall_budget_s - spent_wall > 0.05
-        and keep_going()
-    ):
-        by_days = iteration % 2 == 0 and len(problem.day_windows) > 1
-        iteration += 1
-        size = days if by_days else people
-        guided = None
-        if rng.random() < _GUIDED_SHARE:
-            within = _window(problem, rng, days.value) if len(problem.day_windows) > 1 else None
-            guided = finding_neighbourhood(
-                best.assignments, best.findings or (), rng, people.value, within
-            )
-        free_resources: set[str] = set()
-        if guided is not None:
-            size = people
-            freed, free_resources = guided
-        elif by_days:
-            freed = _day_window(problem, best.assignments, rng, size.value)
-        else:
-            freed, free_resources = _resource_subset(problem, best.assignments, rng, size.value)
-        saved = _fix(problem, compiled, best.assignments, freed, free_resources)
-        solver = cp_model.CpSolver()
-        solver.parameters.random_seed = options.seed
-        solver.parameters.num_workers = options.num_workers
-        solver.parameters.max_deterministic_time = _SUB_DETERMINISTIC_S
-        for name, value in _SUB_PARAMETERS.items():
-            setattr(solver.parameters, name, value)
-        solver.parameters.max_time_in_seconds = wall_budget_s - spent_wall
-        attach(solver.stop_search)
-        try:
-            code = solver.solve(model)
-        finally:
-            attach(None)
-            _restore(model, saved)
-        spent_wall += solver.wall_time
-        spent_det += solver.response_proto.deterministic_time
-        size.update(code == cp_model.OPTIMAL)
-        if code not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
-            stalled += 1
-            continue
-        assignments = decode(problem, compiled, solver)
-        score, findings = check_with_findings(problem, assignments)
-        if _key(score) > _key(best.score):
-            stalled += 1
-            continue
-        improved = _key(score) < _key(best.score)
-        stalled = 0 if improved else stalled + 1
-        if assignments != best.assignments:
-            # The sub-model's objective over-estimates like the full one; the checker is exact.
-            best = Incumbent(assignments, score, score.soft_total, tuple(findings))
+    try:
+        while (
+            best.score.soft_total > 0
+            and stalled < _STALL_LIMIT
+            and spent_det < det_budget
+            and wall_budget_s - fixed.charged > 0.05
+            and keep_going()
+        ):
+            by_days = iteration % 2 == 0 and len(problem.day_windows) > 1
+            iteration += 1
+            size = days if by_days else people
+            guided = None
+            if rng.random() < _GUIDED_SHARE:
+                within = _window(problem, rng, days.value) if len(problem.day_windows) > 1 else None
+                guided = finding_neighbourhood(
+                    best.assignments, best.findings or (), rng, people.value, within
+                )
+            free_resources: set[str] = set()
+            if guided is not None:
+                size = people
+                freed, free_resources = guided
+            elif by_days:
+                freed = _day_window(problem, best.assignments, rng, size.value)
+            else:
+                freed, free_resources = _resource_subset(problem, best.assignments, rng, size.value)
+            opened = fixed.open(best.assignments, freed, free_resources)
+            solver = cp_model.CpSolver()
+            solver.parameters.random_seed = options.seed
+            solver.parameters.num_workers = options.num_workers
+            solver.parameters.max_deterministic_time = _SUB_DETERMINISTIC_S
+            for name, value in _SUB_PARAMETERS.items():
+                setattr(solver.parameters, name, value)
+            solver.parameters.max_time_in_seconds = max(0.01, wall_budget_s - fixed.charged)
+            attach(solver.stop_search)
+            try:
+                code = solver.solve(compiled.model)
+            finally:
+                attach(None)
+            fixed.charged += solver.wall_time
+            spent_det += solver.response_proto.deterministic_time
+            size.update(code == cp_model.OPTIMAL)
+            found = code in (cp_model.OPTIMAL, cp_model.FEASIBLE)
+            assignments = fixed.read(best.assignments, opened, solver) if found else None
+            improved = False
+            if assignments is not None and assignments != best.assignments:
+                score, findings = check_with_findings(problem, assignments, index)
+                fixed.charged += _CHECK_ACTIVITY_S * len(assignments)
+                if _key(score) <= _key(best.score):
+                    improved = _key(score) < _key(best.score)
+                    # The sub-model's objective over-estimates like the full one; the checker
+                    # is exact.
+                    best = Incumbent(assignments, score, score.soft_total, tuple(findings))
+            # Close on the incumbent kept, not on a rejected result.
+            fixed.close(opened, best.assignments)
+            stalled = 0 if improved else stalled + 1
             if improved:
-                on_improved(best, spent_wall)
-    return best, spent_wall
+                on_improved(best, fixed.charged)
+    finally:
+        fixed.release()
+    return best, fixed.charged
 
 
 def finding_neighbourhood(
@@ -207,42 +220,155 @@ def _resource_subset(
     return freed, chosen
 
 
-def _fix(
-    problem: Problem,
-    compiled: Compiled,
-    assignments: Sequence[Assignment],
-    freed: set[str],
-    free_resources: set[str],
-) -> list[tuple[int, int, int]]:
-    """Fix every activity outside `freed` to its incumbent start and resources, except picks of
-    `free_resources`, by narrowing variable domains in place; hint the incumbent everywhere.
-    Returns the narrowed domains to restore. Domains presolve faster than added equalities."""
-    model = compiled.model
-    model.clear_hints()
-    enc, pinned = compiled.encoding, {a.id for a in problem.activities if a.pinned is not None}
-    saved: list[tuple[int, int, int]] = []
+@dataclass(frozen=True)
+class _Start:
+    activity_id: str
+    start: int
+    lit: cp_model.IntVar
 
-    def set_to(index: int, value: int) -> None:
-        domain = _domain(model, index)
-        saved.append((index, domain[0], domain[1]))
-        domain[0] = value
-        domain[1] = value
+    def value(self, placed: Assignment) -> int:
+        return int(placed.start == self.start)
 
-    for placed in assignments:
-        activity_id = placed.activity_id
-        fixed = activity_id in pinned or activity_id not in freed
-        for start, lit in enc.starts[activity_id].items():
-            value = int(start == placed.start)
-            model.add_hint(lit, value)
-            if fixed:
-                set_to(lit.index, value)
-        for role, picks in compiled.picks[activity_id].items():
-            for resource_id, lit in picks.items():
-                value = int(resource_id in placed.resources.get(role, ()))
-                model.add_hint(lit, value)
-                if fixed and (activity_id in pinned or resource_id not in free_resources):
-                    set_to(lit.index, value)
-    return saved
+
+@dataclass(frozen=True)
+class _Pick:
+    activity_id: str
+    role: str
+    resource_id: str
+    lit: cp_model.IntVar
+
+    def value(self, placed: Assignment) -> int:
+        return int(self.resource_id in placed.resources.get(self.role, ()))
+
+
+_Literal = _Start | _Pick
+
+
+class _Fixed:
+    """Every start and pick literal held at the incumbent's value by narrowing its domain in
+    place (domains presolve faster than added equalities). An iteration opens only its
+    neighbourhood and closes it again on the next incumbent, so its cost scales with the
+    neighbourhood, not the problem. `charged` is the wall time charged so far."""
+
+    def __init__(
+        self, problem: Problem, compiled: Compiled, assignments: Sequence[Assignment]
+    ) -> None:
+        self._model = compiled.model
+        self._variables = _variables(compiled.model)
+        self._compiled = compiled
+        self._pinned = {a.id for a in problem.activities if a.pinned is not None}
+        self._by_resource: dict[str, list[_Pick]] = {}
+        for activity_id, roles in compiled.picks.items():
+            if activity_id in self._pinned:
+                continue
+            for role, picks in roles.items():
+                for resource_id, lit in picks.items():
+                    self._by_resource.setdefault(resource_id, []).append(
+                        _Pick(activity_id, role, resource_id, lit)
+                    )
+        self._original: dict[int, tuple[int, int]] = {}
+        self.charged = 0.0
+        for placed in assignments:
+            literals = self._literals(placed.activity_id)
+            for literal in literals:
+                value = literal.value(placed)
+                domain = self._variables[literal.lit.index].domain
+                self._original[literal.lit.index] = (domain[0], domain[1])
+                domain[0] = value
+                domain[1] = value
+            # Charged twice: fixing now, restoring in release().
+            self._charge(2 * len(literals))
+
+    def _charge(self, literals: int) -> None:
+        self.charged += _LITERAL_S * literals
+
+    def _literals(self, activity_id: str) -> list[_Literal]:
+        literals: list[_Literal] = [
+            _Start(activity_id, s, lit)
+            for s, lit in self._compiled.encoding.starts[activity_id].items()
+        ]
+        for role, picks in self._compiled.picks[activity_id].items():
+            literals += [_Pick(activity_id, role, r, lit) for r, lit in picks.items()]
+        return literals
+
+    def open(
+        self, assignments: Sequence[Assignment], freed: set[str], free_resources: set[str]
+    ) -> list[_Literal]:
+        """Open the freed activities and the free resources' picks on every unpinned activity,
+        hinting the incumbent on what is open; everything else stays fixed."""
+        by_id = {a.activity_id: a for a in assignments}
+        opened: list[_Literal] = []
+        for activity_id in sorted(freed - self._pinned):
+            if activity_id in by_id:
+                opened += self._literals(activity_id)
+        for resource_id in sorted(free_resources):
+            opened += [
+                p for p in self._by_resource.get(resource_id, ()) if p.activity_id not in freed
+            ]
+        self._model.clear_hints()
+        for literal in opened:
+            low, high = self._original[literal.lit.index]
+            domain = self._variables[literal.lit.index].domain
+            domain[0] = low
+            domain[1] = high
+            self._model.add_hint(literal.lit, literal.value(by_id[literal.activity_id]))
+        self._charge(2 * len(opened))
+        return opened
+
+    def close(self, opened: Sequence[_Literal], assignments: Sequence[Assignment]) -> None:
+        by_id = {a.activity_id: a for a in assignments}
+        for literal in opened:
+            value = literal.value(by_id[literal.activity_id])
+            domain = self._variables[literal.lit.index].domain
+            domain[0] = value
+            domain[1] = value
+        self._charge(len(opened))
+
+    def read(
+        self,
+        assignments: tuple[Assignment, ...],
+        opened: Sequence[_Literal],
+        solver: cp_model.CpSolver,
+    ) -> tuple[Assignment, ...]:
+        """The incumbent with the opened literals read back from the solver; every other literal
+        was fixed. Changed activities are rebuilt as `decode` builds them."""
+        by_id = {a.activity_id: a for a in assignments}
+        values: dict[str, list[tuple[_Literal, bool]]] = {}
+        changed: set[str] = set()
+        for literal in opened:
+            on = solver.boolean_value(literal.lit)
+            values.setdefault(literal.activity_id, []).append((literal, on))
+            if int(on) != literal.value(by_id[literal.activity_id]):
+                changed.add(literal.activity_id)
+        self._charge(len(opened))
+        if not changed:
+            return assignments
+        result: list[Assignment] = []
+        for placed in assignments:
+            if placed.activity_id not in changed:
+                result.append(placed)
+                continue
+            start = placed.start
+            chosen = {(role, r) for role, ids in placed.resources.items() for r in ids}
+            for literal, on in values[placed.activity_id]:
+                if isinstance(literal, _Start):
+                    start = literal.start if on else start
+                elif on:
+                    chosen.add((literal.role, literal.resource_id))
+                else:
+                    chosen.discard((literal.role, literal.resource_id))
+            roles = {
+                role: tuple(r for r in picks if (role, r) in chosen)
+                for role, picks in self._compiled.picks[placed.activity_id].items()
+            }
+            result.append(Assignment(activity_id=placed.activity_id, start=start, resources=roles))
+        return tuple(result)
+
+    def release(self) -> None:
+        for index, (low, high) in self._original.items():
+            domain = self._variables[index].domain
+            domain[0] = low
+            domain[1] = high
 
 
 class _Domain(Protocol):
@@ -250,17 +376,18 @@ class _Domain(Protocol):
     def __setitem__(self, i: int, value: int, /) -> None: ...
 
 
-def _domain(model: cp_model.CpModel, index: int) -> _Domain:
+class _Variable(Protocol):
+    @property
+    def domain(self) -> _Domain: ...
+
+
+class _Variables(Protocol):
+    def __getitem__(self, i: int, /) -> _Variable: ...
+
+
+def _variables(model: cp_model.CpModel) -> _Variables:
     # OR-Tools' C++-backed proto ships without type stubs.
-    variables = model.proto.variables  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType]
-    return cast(_Domain, variables[index].domain)  # pyright: ignore[reportUnknownMemberType]
-
-
-def _restore(model: cp_model.CpModel, saved: list[tuple[int, int, int]]) -> None:
-    for index, low, high in reversed(saved):
-        domain = _domain(model, index)
-        domain[0] = low
-        domain[1] = high
+    return cast(_Variables, model.proto.variables)  # pyright: ignore[reportUnknownMemberType]
 
 
 def decode(

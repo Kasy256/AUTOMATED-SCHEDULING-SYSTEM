@@ -1,4 +1,5 @@
 import random
+import time
 from functools import cache
 
 from cartlyf_engine.checker import check, check_with_findings
@@ -7,6 +8,7 @@ from cartlyf_engine.construct import construct
 from cartlyf_engine.domain import Assignment, Pin, Problem, SolveOptions
 from cartlyf_engine.lns import Incumbent, finding_neighbourhood, improve
 from cartlyf_engine.solve import solve
+from cartlyf_engine.synthetic import synthetic_problem
 from kit import DAY, act, needs, person, problem, rule
 
 SHIFTS = {"Day": 420, "Evening": 900, "Night": 1380}
@@ -100,6 +102,21 @@ def test_lns_never_worse_than_start() -> None:
     )
     solution = solve(p, OPTIONS)
     assert solution.score.soft_total <= check(p, construct(p)).soft_total
+
+
+def test_lns_charges_its_own_work_to_the_wall_budget() -> None:
+    p = synthetic_problem(seed=1, activities=200, resources=60)
+    start = construct(p)
+    compiled = compile_problem(p)
+    options = SolveOptions(time_limit_s=60, seed=0, num_workers=1)
+    budget = 3.0
+    began = time.perf_counter()
+    result, spent = improve(p, compiled, Incumbent(start, check(p, start), None), options, budget)
+    elapsed = time.perf_counter() - began
+    assert result.score.hard_violations == 0
+    assert spent <= budget + 1
+    # Fixing, decoding and checking happen outside CP-SAT's clock; they must not overrun.
+    assert elapsed <= 1.5 * budget, f"{elapsed:.1f}s for a {budget}s budget"
 
 
 def test_lns_frees_the_resources_behind_the_costliest_finding() -> None:
