@@ -1,10 +1,11 @@
+import random
 from functools import cache
 
-from cartlyf_engine.checker import check
+from cartlyf_engine.checker import check, check_with_findings
 from cartlyf_engine.compiler import compile_problem
 from cartlyf_engine.construct import construct
 from cartlyf_engine.domain import Assignment, Pin, Problem, SolveOptions
-from cartlyf_engine.lns import Incumbent, improve
+from cartlyf_engine.lns import Incumbent, finding_neighbourhood, improve
 from cartlyf_engine.solve import solve
 from kit import DAY, act, needs, person, problem, rule
 
@@ -99,3 +100,21 @@ def test_lns_never_worse_than_start() -> None:
     )
     solution = solve(p, OPTIONS)
     assert solution.score.soft_total <= check(p, construct(p)).soft_total
+
+
+def test_lns_frees_the_resources_behind_the_costliest_finding() -> None:
+    p, start, result = greedy()
+    _, findings = check_with_findings(p, start)
+    [fair] = [f for f in findings if f.constraint_id == "fair"]
+    # Fairness is the only soft rule naming resources, so it is the one every draw lands on.
+    named = [f for f in findings if f.finding.resource_ids]
+    assert named == [fair]
+    neighbourhood = finding_neighbourhood(start, named, random.Random(0), 2)
+    assert neighbourhood is not None
+    freed, free_resources = neighbourhood
+    assert free_resources == set(fair.finding.resource_ids)
+    assert freed == {
+        a.activity_id for a in start if free_resources & set(a.resources.get("who", ()))
+    }
+    fair_term = {t.constraint_id: t.penalty for t in result.score.terms}["fair"]
+    assert fair_term < fair.cost

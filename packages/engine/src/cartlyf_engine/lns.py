@@ -8,13 +8,13 @@ from typing import Protocol, cast
 
 from ortools.sat.python import cp_model
 
-from cartlyf_engine.checker import check
+from cartlyf_engine.checker import SoftFinding, check_with_findings
 from cartlyf_engine.compiler import Compiled
 from cartlyf_engine.domain import Assignment, Problem, Score, SolveOptions
 
 # Sub-solves stop on CP-SAT's deterministic time, so the sequence of neighbourhoods and results
 # is the same on every machine; wall time only cuts the loop short (ADR 0015).
-_SUB_DETERMINISTIC_S = 0.2
+_SUB_DETERMINISTIC_S = 0.03
 _LOOP_DETERMINISTIC_PER_S = 0.5
 _STALL_LIMIT = 30
 # Sub-models are mostly fixed: a light presolve and no LP relaxation leave more time to search.
@@ -26,6 +26,7 @@ _SUB_PARAMETERS = {
 }
 _MIN_DAYS, _MAX_DAYS = 1, 7
 _MIN_RESOURCES, _MAX_RESOURCES = 2, 12
+_GUIDED_SHARE = 0.9
 
 
 @dataclass(frozen=True)
@@ -33,6 +34,7 @@ class Incumbent:
     assignments: tuple[Assignment, ...]
     score: Score
     objective: int | None
+    findings: tuple[SoftFinding, ...] | None = None
 
 
 @dataclass
@@ -65,11 +67,15 @@ def improve(
     Pinned activities are never freed."""
     rng = random.Random(options.seed)
     best = start
+    if best.findings is None:
+        score, findings = check_with_findings(problem, best.assignments)
+        best = Incumbent(best.assignments, score, best.objective, tuple(findings))
     spent_wall = 0.0
     spent_det = 0.0
     det_budget = _LOOP_DETERMINISTIC_PER_S * options.time_limit_s
     days = _Size(_MIN_DAYS + 1, _MIN_DAYS, min(_MAX_DAYS, max(1, len(problem.day_windows))))
     people = _Size(_MIN_RESOURCES + 1, _MIN_RESOURCES, min(_MAX_RESOURCES, len(problem.resources)))
+    model = compiled.model
     stalled = 0
     iteration = 0
     while (
@@ -82,8 +88,14 @@ def improve(
         by_days = iteration % 2 == 0 and len(problem.day_windows) > 1
         iteration += 1
         size = days if by_days else people
+        guided = None
+        if rng.random() < _GUIDED_SHARE:
+            guided = finding_neighbourhood(best.assignments, best.findings or (), rng, people.value)
         free_resources: set[str] = set()
-        if by_days:
+        if guided is not None:
+            size = people
+            freed, free_resources = guided
+        elif by_days:
             freed = _day_window(problem, best.assignments, rng, size.value)
         else:
             freed, free_resources = _resource_subset(problem, best.assignments, rng, size.value)
@@ -97,10 +109,10 @@ def improve(
         solver.parameters.max_time_in_seconds = wall_budget_s - spent_wall
         attach(solver.stop_search)
         try:
-            code = solver.solve(compiled.model)
+            code = solver.solve(model)
         finally:
             attach(None)
-            _restore(compiled.model, saved)
+            _restore(model, saved)
         spent_wall += solver.wall_time
         spent_det += solver.response_proto.deterministic_time
         size.update(code == cp_model.OPTIMAL)
@@ -108,18 +120,53 @@ def improve(
             stalled += 1
             continue
         assignments = decode(problem, compiled, solver)
-        score = check(problem, assignments)
+        score, findings = check_with_findings(problem, assignments)
         if _key(score) > _key(best.score):
             stalled += 1
             continue
-        stalled = 0 if _key(score) < _key(best.score) else stalled + 1
-        if score != best.score or assignments != best.assignments:
-            improved = _key(score) < _key(best.score)
+        improved = _key(score) < _key(best.score)
+        stalled = 0 if improved else stalled + 1
+        if assignments != best.assignments:
             # The sub-model's objective over-estimates like the full one; the checker is exact.
-            best = Incumbent(assignments, score, score.soft_total)
+            best = Incumbent(assignments, score, score.soft_total, tuple(findings))
             if improved:
                 on_improved(best, spent_wall)
     return best, spent_wall
+
+
+def finding_neighbourhood(
+    assignments: Sequence[Assignment],
+    findings: Sequence[SoftFinding],
+    rng: random.Random,
+    count: int,
+) -> tuple[set[str], set[str]] | None:
+    """Resources and activities named by soft findings, until `count` resources: a rule is drawn
+    uniformly, then one of its findings in proportion to cost. The named activities and every
+    activity the resources work are freed, and the resources are open to every other activity."""
+    # Drawing across rules by cost would let one large, unimprovable rule starve the rest.
+    by_rule: dict[str, list[SoftFinding]] = {}
+    for f in findings:
+        if f.finding.resource_ids or f.finding.activity_ids:
+            by_rule.setdefault(f.constraint_id, []).append(f)
+    resources: set[str] = set()
+    activities: set[str] = set()
+    while by_rule and len(resources) < count:
+        rule_id = rng.choice(sorted(by_rule))
+        named = by_rule[rule_id]
+        drawn = rng.choices(range(len(named)), weights=[f.cost for f in named])[0]
+        finding = named.pop(drawn).finding
+        if not named:
+            del by_rule[rule_id]
+        resources |= set(finding.resource_ids)
+        activities |= set(finding.activity_ids)
+    if not resources and not activities:
+        return None
+    freed = activities | {
+        a.activity_id
+        for a in assignments
+        if any(r in resources for ids in a.resources.values() for r in ids)
+    }
+    return freed, resources
 
 
 def _day_window(

@@ -90,7 +90,7 @@ _STATUS = {
     cp_model.UNKNOWN: SolveStatus.UNKNOWN,
 }
 _NO_SCORE = Score(hard_violations=0, soft_total=0)
-_FIRST_SOLVE_SHARE = 0.25
+_FIRST_SOLVE_SHARE = 0.1
 # Enough first-fit evaluations for a few options per activity; ENG-08 sizes it (ADR 0010).
 _EVALUATIONS_PER_ACTIVITY = 50
 
