@@ -1,0 +1,195 @@
+"""Large-neighbourhood search after the first solution: free a few days or a few resources, fix
+the rest to the incumbent, re-solve, keep the result when the checker scores it no worse."""
+
+import random
+from collections.abc import Callable, Sequence
+from dataclasses import dataclass
+
+from ortools.sat.python import cp_model
+
+from cartlyf_engine.checker import check
+from cartlyf_engine.compiler import Compiled
+from cartlyf_engine.domain import Assignment, Problem, Score, SolveOptions
+
+# Sub-solves stop on CP-SAT's deterministic time, so the sequence of neighbourhoods and results
+# is the same on every machine; wall time only cuts the loop short (ADR 0015).
+_SUB_DETERMINISTIC_S = 0.2
+_LOOP_DETERMINISTIC_PER_S = 0.5
+_STALL_LIMIT = 30
+# Sub-models are mostly fixed: a light presolve and no LP relaxation leave more time to search.
+_SUB_PARAMETERS = {
+    "max_presolve_iterations": 1,
+    "cp_model_probing_level": 0,
+    "symmetry_level": 0,
+    "linearization_level": 0,
+}
+_MIN_DAYS, _MAX_DAYS = 1, 7
+_MIN_RESOURCES, _MAX_RESOURCES = 2, 12
+
+
+@dataclass(frozen=True)
+class Incumbent:
+    assignments: tuple[Assignment, ...]
+    score: Score
+    objective: int | None
+
+
+@dataclass
+class _Size:
+    """Neighbourhood size that grows while sub-solves finish and shrinks when they time out."""
+
+    value: int
+    low: int
+    high: int
+
+    def update(self, finished: bool) -> None:
+        self.value = min(self.high, self.value + 1) if finished else max(self.low, self.value - 1)
+
+
+def _key(score: Score) -> tuple[int, int]:
+    return score.hard_violations, score.soft_total
+
+
+def improve(
+    problem: Problem,
+    compiled: Compiled,
+    start: Incumbent,
+    options: SolveOptions,
+    wall_budget_s: float,
+    keep_going: Callable[[], bool] = lambda: True,
+    attach: Callable[[Callable[[], None] | None], None] = lambda _: None,
+    on_improved: Callable[[Incumbent, float], None] = lambda _i, _w: None,
+) -> tuple[Incumbent, float]:
+    """The best incumbent found and the CP-SAT wall time spent; never worse than `start`.
+    Pinned activities are never freed."""
+    rng = random.Random(options.seed)
+    best = start
+    spent_wall = 0.0
+    spent_det = 0.0
+    det_budget = _LOOP_DETERMINISTIC_PER_S * options.time_limit_s
+    days = _Size(_MIN_DAYS + 1, _MIN_DAYS, min(_MAX_DAYS, max(1, len(problem.day_windows))))
+    people = _Size(_MIN_RESOURCES + 1, _MIN_RESOURCES, min(_MAX_RESOURCES, len(problem.resources)))
+    stalled = 0
+    iteration = 0
+    while (
+        best.score.soft_total > 0
+        and stalled < _STALL_LIMIT
+        and spent_det < det_budget
+        and wall_budget_s - spent_wall > 0.05
+        and keep_going()
+    ):
+        by_days = iteration % 2 == 0 and len(problem.day_windows) > 1
+        iteration += 1
+        size = days if by_days else people
+        free_resources: set[str] = set()
+        if by_days:
+            freed = _day_window(problem, best.assignments, rng, size.value)
+        else:
+            freed, free_resources = _resource_subset(problem, best.assignments, rng, size.value)
+        sub = _fixed_model(problem, compiled, best.assignments, freed, free_resources)
+        solver = cp_model.CpSolver()
+        solver.parameters.random_seed = options.seed
+        solver.parameters.num_workers = options.num_workers
+        solver.parameters.max_deterministic_time = _SUB_DETERMINISTIC_S
+        for name, value in _SUB_PARAMETERS.items():
+            setattr(solver.parameters, name, value)
+        solver.parameters.max_time_in_seconds = wall_budget_s - spent_wall
+        attach(solver.stop_search)
+        try:
+            code = solver.solve(sub)
+        finally:
+            attach(None)
+        spent_wall += solver.wall_time
+        spent_det += solver.response_proto.deterministic_time
+        size.update(code == cp_model.OPTIMAL)
+        if code not in (cp_model.OPTIMAL, cp_model.FEASIBLE):
+            stalled += 1
+            continue
+        assignments = decode(problem, compiled, solver)
+        score = check(problem, assignments)
+        if _key(score) > _key(best.score):
+            stalled += 1
+            continue
+        stalled = 0 if _key(score) < _key(best.score) else stalled + 1
+        if score != best.score or assignments != best.assignments:
+            improved = _key(score) < _key(best.score)
+            # The sub-model's objective over-estimates like the full one; the checker is exact.
+            best = Incumbent(assignments, score, score.soft_total)
+            if improved:
+                on_improved(best, spent_wall)
+    return best, spent_wall
+
+
+def _day_window(
+    problem: Problem, assignments: Sequence[Assignment], rng: random.Random, width: int
+) -> set[str]:
+    windows = problem.day_windows
+    first = rng.randrange(max(1, len(windows) - width + 1))
+    lo, hi = windows[first].start, windows[min(len(windows), first + width) - 1].end
+    return {a.activity_id for a in assignments if lo <= a.start < hi}
+
+
+def _resource_subset(
+    problem: Problem, assignments: Sequence[Assignment], rng: random.Random, count: int
+) -> tuple[set[str], set[str]]:
+    """Some resources of one type, with every activity they now work freed and every other
+    activity open to them."""
+    by_type: dict[str, list[str]] = {}
+    for r in problem.resources:
+        by_type.setdefault(r.type_key, []).append(r.id)
+    pools = [ids for ids in by_type.values() if len(ids) > 1] or list(by_type.values())
+    pool = pools[rng.randrange(len(pools))]
+    chosen = set(rng.sample(pool, min(count, len(pool))))
+    freed = {
+        a.activity_id
+        for a in assignments
+        if any(r in chosen for ids in a.resources.values() for r in ids)
+    }
+    return freed, chosen
+
+
+def _fixed_model(
+    problem: Problem,
+    compiled: Compiled,
+    assignments: Sequence[Assignment],
+    freed: set[str],
+    free_resources: set[str],
+) -> cp_model.CpModel:
+    """A copy of the model with every activity outside `freed` fixed to its incumbent start and
+    resources, except picks of `free_resources`; the incumbent is the hint everywhere."""
+    model = compiled.model.clone()
+    model.clear_hints()
+    enc, pinned = compiled.encoding, {a.id for a in problem.activities if a.pinned is not None}
+    for placed in assignments:
+        activity_id = placed.activity_id
+        fixed = activity_id in pinned or activity_id not in freed
+        for start, lit in enc.starts[activity_id].items():
+            value = int(start == placed.start)
+            model.add_hint(lit, value)
+            if fixed:
+                model.add(lit == value)
+        for role, picks in compiled.picks[activity_id].items():
+            for resource_id, lit in picks.items():
+                value = int(resource_id in placed.resources.get(role, ()))
+                model.add_hint(lit, value)
+                if fixed and (activity_id in pinned or resource_id not in free_resources):
+                    model.add(lit == value)
+    return model
+
+
+def decode(
+    problem: Problem, compiled: Compiled, solver: cp_model.CpSolver
+) -> tuple[Assignment, ...]:
+    placed: list[Assignment] = []
+    for activity in problem.activities:
+        start = next(
+            s
+            for s, lit in compiled.encoding.starts[activity.id].items()
+            if solver.boolean_value(lit)
+        )
+        roles = {
+            role: tuple(r for r, lit in picks.items() if solver.boolean_value(lit))
+            for role, picks in compiled.picks[activity.id].items()
+        }
+        placed.append(Assignment(activity_id=activity.id, start=start, resources=roles))
+    return tuple(placed)

@@ -19,6 +19,7 @@ from cartlyf_engine.domain import (
     SolveStats,
     SolveStatus,
 )
+from cartlyf_engine.lns import Incumbent, decode, improve
 
 
 class Progress(Frozen):
@@ -89,6 +90,7 @@ _STATUS = {
     cp_model.UNKNOWN: SolveStatus.UNKNOWN,
 }
 _NO_SCORE = Score(hard_violations=0, soft_total=0)
+_FIRST_SOLVE_SHARE = 0.25
 # Enough first-fit evaluations for a few options per activity; ENG-08 sizes it (ADR 0010).
 _EVALUATIONS_PER_ACTIVITY = 50
 
@@ -124,7 +126,9 @@ def solve(
         )
 
     solver = cp_model.CpSolver()
-    solver.parameters.max_time_in_seconds = options.time_limit_s
+    # A verified start leaves part of the budget to LNS, which improves where one search stalls.
+    first_s = options.time_limit_s * (_FIRST_SOLVE_SHARE if verified else 1.0)
+    solver.parameters.max_time_in_seconds = first_s
     solver.parameters.random_seed = options.seed
     solver.parameters.num_workers = options.num_workers
     if on_progress is not None:
@@ -152,38 +156,72 @@ def solve(
     if status is None:
         raise RuntimeError(f"CP-SAT rejected the model: {solver.status_name(code)}")
 
-    if status in (SolveStatus.OPTIMAL, SolveStatus.FEASIBLE):
-        assignments = _assignments(problem, compiled, solver)
+    if verified and status is SolveStatus.INFEASIBLE:
+        raise RuntimeError("CP-SAT reports INFEASIBLE for a checker-verified schedule")
+    found = status in (SolveStatus.OPTIMAL, SolveStatus.FEASIBLE)
+    start = Incumbent(plan, built, built.soft_total) if verified else None
+    proven = False
+    if found:
+        assignments = decode(problem, compiled, solver)
         score = check(problem, assignments)
         better = score.soft_total <= built.soft_total or status is SolveStatus.OPTIMAL
         # A checker-verified construction always beats a search result the checker rejects.
         if not verified or (score.hard_violations == 0 and better):
-            objective = round(solver.objective_value)
-            bound = solver.best_objective_bound
-            return Solution(
-                status=status,
-                assignments=assignments,
-                score=score,
-                stats=SolveStats(
-                    wall_time_s=solver.wall_time,
-                    objective=objective,
-                    objective_bound=bound,
-                    gap=(objective - bound) / max(1, abs(objective)),
-                ),
-            )
-        return constructed(solver.wall_time)
-    if verified:
-        if status is SolveStatus.INFEASIBLE:
-            raise RuntimeError("CP-SAT reports INFEASIBLE for a checker-verified schedule")
-        return constructed(solver.wall_time)
-    conflicts: tuple[str, ...] = ()
-    if status is SolveStatus.INFEASIBLE:
-        conflicts = _conflicts(problem, options)
+            start = Incumbent(assignments, score, round(solver.objective_value))
+            proven = status is SolveStatus.OPTIMAL
+    if start is None:
+        conflicts = _conflicts(problem, options) if status is SolveStatus.INFEASIBLE else ()
+        return Solution(
+            status=status,
+            score=_NO_SCORE,
+            conflicts=conflicts,
+            stats=SolveStats(wall_time_s=solver.wall_time),
+        )
+    wall = solver.wall_time
+    if not proven and start.score.hard_violations == 0:
+        start, lns_wall = _improve(problem, compiled, start, options, wall, on_progress, cancel)
+        wall += lns_wall
+    stats = SolveStats(wall_time_s=wall, objective=start.objective)
+    if found:
+        bound = solver.best_objective_bound
+        objective = start.objective or 0
+        stats = stats.model_copy(
+            update={"objective_bound": bound, "gap": (objective - bound) / max(1, abs(objective))}
+        )
     return Solution(
-        status=status,
-        score=_NO_SCORE,
-        conflicts=conflicts,
-        stats=SolveStats(wall_time_s=solver.wall_time),
+        status=SolveStatus.OPTIMAL if proven else SolveStatus.FEASIBLE,
+        assignments=start.assignments,
+        score=start.score,
+        stats=stats,
+    )
+
+
+def _improve(
+    problem: Problem,
+    compiled: Compiled,
+    start: Incumbent,
+    options: SolveOptions,
+    spent_s: float,
+    on_progress: ProgressFn | None,
+    cancel: CancelToken | None,
+) -> tuple[Incumbent, float]:
+    def improved(incumbent: Incumbent, wall_s: float) -> None:
+        if on_progress is not None:
+            on_progress(
+                Progress(
+                    kind="solution", objective=incumbent.objective, wall_time_s=spent_s + wall_s
+                )
+            )
+
+    return improve(
+        problem,
+        compiled,
+        start,
+        options,
+        wall_budget_s=options.time_limit_s - spent_s,
+        keep_going=lambda: cancel is None or not cancel.cancelled,
+        attach=cancel.attach if cancel is not None else lambda _: None,
+        on_improved=improved,
     )
 
 
@@ -220,21 +258,3 @@ def _conflicts(problem: Problem, options: SolveOptions) -> tuple[str, ...]:
         return ()
     found = solver.sufficient_assumptions_for_infeasibility()
     return tuple(sorted(compiled.hard[i] for i in found if i in compiled.hard))
-
-
-def _assignments(
-    problem: Problem, compiled: Compiled, solver: cp_model.CpSolver
-) -> tuple[Assignment, ...]:
-    placed: list[Assignment] = []
-    for activity in problem.activities:
-        start = next(
-            s
-            for s, lit in compiled.encoding.starts[activity.id].items()
-            if solver.boolean_value(lit)
-        )
-        roles = {
-            role: tuple(r for r, lit in picks.items() if solver.boolean_value(lit))
-            for role, picks in compiled.picks[activity.id].items()
-        }
-        placed.append(Assignment(activity_id=activity.id, start=start, resources=roles))
-    return tuple(placed)
