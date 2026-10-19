@@ -34,6 +34,7 @@ from cartlyf_api.examples import EXAMPLE_IDS
 from cartlyf_api.jobs.broker import SOLVE_QUEUE, setup_broker
 from cartlyf_api.settings import Settings
 from cartlyf_api.solves.runner import SolveFn, execute_run
+from cartlyf_engine.domain import Problem
 from cartlyf_engine.solve import solve
 
 API_DIR = Path(__file__).resolve().parents[1]
@@ -868,3 +869,31 @@ def move(
 
 def publish(client: TestClient, admin: Account, version_id: str) -> Any:
     return client.post(f"/api/v1/solution-versions/{version_id}/publish", headers=admin.auth)
+
+
+_ID_LISTS = {"fixed_resource_ids", "resource_ids", "series_ids"}
+
+
+def _resorted(value: object) -> object:
+    # The snapshot sorts id lists by uuid; after renaming they are re-sorted by name.
+    if isinstance(value, dict):
+        items = cast(dict[str, object], value).items()
+        return {
+            k: sorted(cast(list[str], v))
+            if k in _ID_LISTS and isinstance(v, list)
+            else _resorted(v)
+            for k, v in items
+        }
+    if isinstance(value, list):
+        return [_resorted(v) for v in cast(list[object], value)]
+    return value
+
+
+def renamed(problem: Problem, names: dict[str, str]) -> Problem:
+    text = problem.model_dump_json()
+    for uid, name in names.items():
+        text = text.replace(uid, name)
+    data = cast(dict[str, Any], _resorted(json.loads(text)))
+    for key in ("resources", "activities", "constraints"):
+        data[key] = sorted(data[key], key=lambda item: item["id"])
+    return Problem.model_validate(data)

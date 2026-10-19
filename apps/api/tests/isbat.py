@@ -29,14 +29,19 @@ def read_fixture(name: str) -> str:
 
 
 def _import(
-    client: TestClient, admin: Account, job: dict[str, Any], name: str, mapping: object
+    client: TestClient,
+    admin: Account,
+    job: dict[str, Any],
+    name: str,
+    mapping: object,
+    content: str | None = None,
 ) -> None:
     created = client.post("/api/v1/imports", headers=admin.auth, json=job | {"filename": name})
     url = f"/api/v1/imports/{created.json()['id']}"
     client.put(
         f"{url}/file",
         headers=admin.auth | {"Content-Type": "text/csv"},
-        content=read_fixture(name).encode(),
+        content=(read_fixture(name) if content is None else content).encode(),
     )
     dry = client.post(f"{url}/dry-run", headers=admin.auth, json={"mapping": mapping})
     assert dry.status_code == 200 and dry.json()["report"]["valid"], dry.text
