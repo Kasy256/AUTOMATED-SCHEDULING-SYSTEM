@@ -58,6 +58,21 @@ def test_soft_requirement_shortfall_does_not_block() -> None:
     assert len(plan) == 1 and plan[0].resources["who"] == ("p",)
 
 
+def test_soft_requirement_is_partly_staffed_when_a_hard_rule_blocks_a_full_crew() -> None:
+    # q has used its one activity of the day, so only p can join a1 without a hard finding.
+    p = problem(
+        [person("p"), person("q")],
+        [
+            act("a0", 60, [0], needs(), pin=Pin(start=0, resources={"who": ("q",)})),
+            act("a1", 60, [120], needs(count=2, count_max=2, hard=False, weight=1)),
+        ],
+        [rule("cap", "max_load", period="day", max_count=1, scope=Scope(resource_ids=("q",)))],
+    )
+    plan = construct(p)
+    assert [(a.activity_id, a.resources["who"]) for a in plan] == [("a0", ("q",)), ("a1", ("p",))]
+    assert check(p, plan).hard_violations == 0
+
+
 def test_lower_bound_rules_never_block() -> None:
     p = problem(
         [person("p"), person("q")],
