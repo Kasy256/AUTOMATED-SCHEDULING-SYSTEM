@@ -1,5 +1,7 @@
 import asyncio
 import time
+from dataclasses import replace
+from types import MappingProxyType
 from typing import Any, cast
 from uuid import UUID
 
@@ -16,6 +18,7 @@ from cartlyf_api.solves import runner
 from cartlyf_api.solves.runner import execute_run
 from cartlyf_engine.domain import Problem, Solution, SolveOptions
 from cartlyf_engine.solve import CancelToken, ProgressFn, solve
+from cartlyf_engine.templates import registry
 from support import (
     APP,
     Account,
@@ -66,7 +69,13 @@ def test_infeasible_run_stores_conflicts(client: TestClient, app: FastAPI) -> No
     assert rule in run["conflicts"]
 
 
-def test_unsupported_template_fails_cleanly(client: TestClient, app: FastAPI) -> None:
+def test_unsupported_template_fails_cleanly(
+    client: TestClient, app: FastAPI, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    # Every v1 template is wired now, so unwire one to keep this path covered.
+    unwired = replace(registry.REGISTRY["fairness", 1], encode=None, check=None, explain=None)
+    patched = MappingProxyType({**registry.REGISTRY, ("fairness", 1): unwired})
+    monkeypatch.setattr(registry, "REGISTRY", patched)
     admin = signup_and_confirm(client, app)
     built = build_schedule(client, admin)
     add_rule(
@@ -74,7 +83,7 @@ def test_unsupported_template_fails_cleanly(client: TestClient, app: FastAPI) ->
         admin,
         built.schedule_id,
         "fairness",
-        {"activity_filter": {}, "lookback_days": 0},
+        {"counter": "nights", "activity_filter": {}, "lookback_days": 0},
         weight=1,
     )
     run_id = request_run(client, admin, built.schedule_id)

@@ -185,7 +185,7 @@ def fairness_rule() -> dict[str, object]:
         "id": "fair1",
         "template_key": "fairness",
         "version": 1,
-        "params": {"activity_filter": {}, "lookback_days": 0},
+        "params": {"counter": "nights", "activity_filter": {}, "lookback_days": 0},
         "hard": False,
         "weight": 1,
     }

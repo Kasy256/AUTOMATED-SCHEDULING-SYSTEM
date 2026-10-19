@@ -47,7 +47,7 @@ describe("parseSchema", () => {
       kind: "refGroups",
       ref: "series",
     });
-    const filter = parse("fairness")[0];
+    const filter = parse("fairness").find((f) => f.name === "activity_filter");
     expect(filter).toMatchObject({ kind: "object", name: "activity_filter" });
   });
 });

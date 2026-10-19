@@ -144,7 +144,18 @@ def tiny_problems(
     baseline = None
     if "stability" in chosen:
         baseline = [_baseline(draw, a, people) for a in activities if draw(st.booleans())]
-    return problem([*people, *rooms, *groups], activities, constraints, baseline=baseline)
+    history = {
+        c.id: {p.id: draw(st.integers(0, 3)) for p in people}
+        for c in constraints
+        if c.template_key == "fairness"
+    }
+    return problem(
+        [*people, *rooms, *groups],
+        activities,
+        constraints,
+        baseline=baseline,
+        history=history or None,
+    )
 
 
 def _baseline(draw: st.DrawFn, activity: Activity, people: list[Resource]) -> Assignment:
@@ -230,6 +241,13 @@ RULE_PARAMS["minimize_gaps"] = lambda draw: {"per_minutes": draw(st.sampled_from
 
 
 RULE_PARAMS["balance"] = lambda draw: {"measure": draw(st.sampled_from(("count", "minutes")))}
+
+
+RULE_PARAMS["fairness"] = lambda draw: {
+    "counter": "nights",
+    "activity_filter": {"series_ids": draw(st.sampled_from(([], ["s1"], ["s2"])))},
+    "lookback_days": draw(st.integers(0, 90)),
+}
 
 
 RULE_PARAMS["day_distribution"] = lambda draw: {}
