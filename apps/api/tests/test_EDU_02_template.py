@@ -118,9 +118,9 @@ def test_demand_shape_names_known_types_and_slot_template() -> None:
 def test_EDU_02_migration_seeds_the_packaged_template(migrated_pg: PostgresContainer) -> None:
     rows = fetch(
         superuser_url(migrated_pg),
-        "SELECT key, version, definition FROM industry_template ORDER BY key",
+        "SELECT key, version, definition FROM industry_template WHERE key = 'education' "
+        "ORDER BY version",
     )
-    rows = sorted(rows, key=lambda row: row[1])
     packaged = load_packaged("education").model_dump(mode="json")
     assert [(k, v) for k, v, _ in rows] == [("education", 1), ("education", 2)]
     assert rows[-1][2] == packaged
@@ -129,7 +129,7 @@ def test_EDU_02_migration_seeds_the_packaged_template(migrated_pg: PostgresConta
 @pytest.mark.integration
 def test_app_role_can_only_read_templates(migrated_pg: PostgresContainer) -> None:
     app_url = db_url(migrated_pg, *APP)
-    assert fetch(app_url, "SELECT count(*) FROM industry_template") == [(2,)]
+    assert fetch(app_url, "SELECT count(*) FROM industry_template") == [(3,)]
     with pytest.raises(Exception, match="permission denied"):
         fetch(app_url, "DELETE FROM industry_template RETURNING key")
 
@@ -139,8 +139,9 @@ def test_members_list_templates(client: TestClient, app: FastAPI) -> None:
     admin = signup_and_confirm(client, app)
     response = client.get("/api/v1/industry-templates", headers=admin.auth)
     assert response.status_code == 200, response.text
-    [education] = response.json()
+    education, healthcare = response.json()
     assert (education["key"], education["version"]) == ("education", 2)
+    assert (healthcare["key"], healthcare["version"]) == ("healthcare", 1)
     assert len(education["constraints"]) == 12
     assert client.get("/api/v1/industry-templates").status_code == 401
 
@@ -148,7 +149,9 @@ def test_members_list_templates(client: TestClient, app: FastAPI) -> None:
 VERSIONS = Path(__file__).resolve().parents[1] / "migrations/versions"
 
 
-@pytest.mark.parametrize("migration", ["0005_industry_template.py", "0008_education_v2.py"])
+@pytest.mark.parametrize(
+    "migration", ["0005_industry_template.py", "0008_education_v2.py", "0009_healthcare_v1.py"]
+)
 def test_template_migrations_are_frozen(migration: str) -> None:
     # Migrations never change: they seed frozen copies, never the live file or models.
     tree = ast.parse((VERSIONS / migration).read_text(encoding="utf-8"))
