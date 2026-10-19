@@ -13,6 +13,7 @@ from cartlyf_engine.domain import (
     Window,
     activity_matches,
     predicate_holds,
+    problem_hash,
     resource_matches,
 )
 
@@ -177,3 +178,47 @@ def test_problem_accepts_a_consistent_snapshot() -> None:
 def test_problem_rejects_inconsistent_snapshots(overrides: dict[str, object], message: str) -> None:
     with pytest.raises(ValidationError, match=message):
         Problem.model_validate(problem_data(**overrides))
+
+
+def fairness_rule() -> dict[str, object]:
+    return {
+        "id": "fair1",
+        "template_key": "fairness",
+        "version": 1,
+        "params": {"activity_filter": {}, "lookback_days": 0},
+        "hard": False,
+        "weight": 1,
+    }
+
+
+def balance_rule() -> dict[str, object]:
+    return {
+        "id": "bal1",
+        "template_key": "balance",
+        "version": 1,
+        "params": {"measure": "count"},
+        "hard": False,
+        "weight": 1,
+    }
+
+
+def test_history_must_name_a_fairness_rule() -> None:
+    data = problem_data(constraints=[balance_rule()], history={"bal1": {"r1": 2}})
+    with pytest.raises(ValidationError, match="history names constraint"):
+        Problem.model_validate(data)
+
+
+def test_history_must_name_known_resources() -> None:
+    data = problem_data(constraints=[fairness_rule()], history={"fair1": {"ghost": 2}})
+    with pytest.raises(ValidationError, match="unknown resource"):
+        Problem.model_validate(data)
+
+
+def test_history_round_trips() -> None:
+    data = problem_data(constraints=[fairness_rule()], history={"fair1": {"r1": 2}})
+    problem = Problem.model_validate(data)
+    assert Problem.model_validate(problem.model_dump()) == problem
+    changed = Problem.model_validate(
+        problem_data(constraints=[fairness_rule()], history={"fair1": {"r1": 3}})
+    )
+    assert problem_hash(changed) != problem_hash(problem)

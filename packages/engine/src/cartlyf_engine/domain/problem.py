@@ -33,7 +33,7 @@ class Problem(Frozen):
     activities: tuple[Activity, ...]
     constraints: tuple[ConstraintInstance, ...] = ()
     baseline: tuple[Assignment, ...] | None = None
-    history: dict[Id, dict[Key, NonNegativeInt]] | None = None
+    history: dict[Id, dict[Id, NonNegativeInt]] | None = None
     options: SolveOptions = SolveOptions()
 
     @model_validator(mode="after")
@@ -65,6 +65,14 @@ class Problem(Frozen):
             window = constraint.params.get("window")
             if isinstance(window, str) and window not in self.named_windows:
                 raise ValueError(f"constraint {constraint.id} names unknown window '{window}'")
+        fairness_ids = {c.id for c in self.constraints if c.template_key == "fairness"}
+        for constraint_id, counts in (self.history or {}).items():
+            if constraint_id not in fairness_ids:
+                raise ValueError(f"history names constraint {constraint_id}, not a fairness rule")
+            if unknown := counts.keys() - resource_ids:
+                raise ValueError(
+                    f"history for {constraint_id} names unknown resource ids {sorted(unknown)}"
+                )
         return self
 
 
