@@ -93,6 +93,7 @@ def build_report(
                         role=req.role,
                         required_min=req.count_min,
                         assigned=count,
+                        starts_at=origin + timedelta(minutes=assignment.start),
                     )
                 )
 
