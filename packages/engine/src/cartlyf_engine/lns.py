@@ -2,7 +2,7 @@
 the rest to the incumbent, re-solve, keep the result when the checker scores it no worse."""
 
 import random
-from collections.abc import Callable, Sequence
+from collections.abc import Callable, Iterable, Sequence
 from dataclasses import dataclass
 from typing import Protocol, cast
 
@@ -34,7 +34,7 @@ _GUIDED_SHARE = 0.9
 # The engine reads no clock, so the loop charges its own Python work to the wall budget: per
 # literal fixed, opened, hinted or read, and per activity checked. Measured on the slowest
 # supported machine (ADR 0015); a faster one only ends the loop a little early.
-_LITERAL_S = 2e-5
+_LITERAL_S = 1e-5
 _CHECK_ACTIVITY_S = 3e-4
 
 
@@ -274,6 +274,8 @@ class _Fixed:
                     self._by_resource.setdefault(resource_id, []).append(
                         _Pick(activity_id, role, resource_id, lit)
                     )
+        # Domain proxies are cached: indexing the proto costs three times a write.
+        self._domains: dict[int, _Domain] = {}
         self._original: dict[int, tuple[int, int]] = {}
         self.charged = 0.0
         for placed in assignments:
@@ -281,11 +283,12 @@ class _Fixed:
             for literal in literals:
                 value = literal.value(placed)
                 domain = self._variables[literal.lit.index].domain
+                self._domains[literal.lit.index] = domain
                 self._original[literal.lit.index] = (domain[0], domain[1])
                 domain[0] = value
                 domain[1] = value
-            # Charged twice: fixing now, restoring in release().
-            self._charge(2 * len(literals))
+            # Charged for fixing now and for restoring in release().
+            self._charge(3 * len(literals))
 
     def _charge(self, literals: int) -> None:
         self.charged += _LITERAL_S * literals
@@ -313,13 +316,16 @@ class _Fixed:
             opened += [
                 p for p in self._by_resource.get(resource_id, ()) if p.activity_id not in freed
             ]
-        self._model.clear_hints()
         for literal in opened:
             low, high = self._original[literal.lit.index]
-            domain = self._variables[literal.lit.index].domain
+            domain = self._domains[literal.lit.index]
             domain[0] = low
             domain[1] = high
-            self._model.add_hint(literal.lit, literal.value(by_id[literal.activity_id]))
+        self._model.clear_hints()
+        # One extend per field: add_hint per literal costs more than the domain writes.
+        hint = _hint(self._model)
+        hint.vars.extend(literal.lit.index for literal in opened)
+        hint.values.extend(literal.value(by_id[literal.activity_id]) for literal in opened)
         self._charge(2 * len(opened))
         return opened
 
@@ -327,7 +333,7 @@ class _Fixed:
         by_id = {a.activity_id: a for a in assignments}
         for literal in opened:
             value = literal.value(by_id[literal.activity_id])
-            domain = self._variables[literal.lit.index].domain
+            domain = self._domains[literal.lit.index]
             domain[0] = value
             domain[1] = value
         self._charge(len(opened))
@@ -374,7 +380,7 @@ class _Fixed:
 
     def release(self) -> None:
         for index, (low, high) in self._original.items():
-            domain = self._variables[index].domain
+            domain = self._domains[index]
             domain[0] = low
             domain[1] = high
 
@@ -393,9 +399,24 @@ class _Variables(Protocol):
     def __getitem__(self, i: int, /) -> _Variable: ...
 
 
+class _Ints(Protocol):
+    def extend(self, values: Iterable[int], /) -> None: ...
+
+
+class _Hint(Protocol):
+    @property
+    def vars(self) -> _Ints: ...
+    @property
+    def values(self) -> _Ints: ...
+
+
+# OR-Tools' C++-backed proto ships without type stubs.
 def _variables(model: cp_model.CpModel) -> _Variables:
-    # OR-Tools' C++-backed proto ships without type stubs.
     return cast(_Variables, model.proto.variables)  # pyright: ignore[reportUnknownMemberType]
+
+
+def _hint(model: cp_model.CpModel) -> _Hint:
+    return cast(_Hint, model.proto.solution_hint)  # pyright: ignore[reportUnknownMemberType]
 
 
 def decode(
