@@ -35,6 +35,7 @@ import {
 
 import { BoardGrid } from "./BoardGrid";
 import { BoardToolbar } from "./BoardToolbar";
+import { CoverageGapsPanel } from "./CoverageGapsPanel";
 import { BOARD_ID, versionLabel } from "./labels";
 import { weekColumns } from "./model/columns";
 import { ExplanationPanel } from "./ExplanationPanel";
@@ -117,6 +118,10 @@ export function PlannerPage() {
   const columns = useMemo(
     () => (week ? weekColumns(starts, week, tz, slots) : []),
     [starts, week, tz, slots],
+  );
+  const activityNames = useMemo(
+    () => Object.fromEntries(activities.map((a) => [a.id, a.name])),
+    [activities],
   );
   const needle = query.trim().toLowerCase();
   const rows = useMemo(
@@ -273,6 +278,15 @@ export function PlannerPage() {
             </>
           }
         />
+        {version && week && (
+          <CoverageGapsPanel
+            versionId={version.id}
+            weekStart={week}
+            weekEnd={addDays(week, 6)}
+            activityNames={activityNames}
+            timezone={tz}
+          />
+        )}
         <div id={BOARD_ID}>
           {data.loading ? (
             <TableSkeleton label="Loading the board" />

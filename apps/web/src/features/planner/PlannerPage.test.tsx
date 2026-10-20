@@ -124,10 +124,20 @@ function reply(body: unknown) {
   return jsonResponse(body);
 }
 
+const report = {
+  version_id: "v1",
+  utilisation: [],
+  load: [],
+  coverage_gaps: [],
+  fairness: [],
+};
+
 export function boardApi(overrides: Record<string, unknown> = {}) {
   vi.stubGlobal(
     "fetch",
     vi.fn((url: string) => {
+      if (url.endsWith("/solution-versions/v1/report"))
+        return Promise.resolve(jsonResponse(report));
       for (const [suffix, body] of Object.entries(overrides))
         if (url.includes(suffix)) return Promise.resolve(reply(body));
       if (url.endsWith("/schedules/s1"))
