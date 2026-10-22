@@ -3,6 +3,8 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.routing import APIRoute
+from starlette.middleware.cors import CORSMiddleware
+from starlette.types import ASGIApp, Receive, Scope, Send
 
 from cartlyf_api.activities.router import router as activities_router
 from cartlyf_api.auth.router import router as auth_router
@@ -34,6 +36,36 @@ def _operation_id(route: APIRoute) -> str:
     return route.name
 
 
+def web_origin(settings: Settings) -> str:
+    url = settings.web_base_url
+    port = f":{url.port}" if url.port not in (None, 80, 443) else ""
+    return f"{url.scheme}://{url.host}{port}"
+
+
+class WebOriginCors:
+    """CORS for the web app's origin only; built on first request, once settings are resolved."""
+
+    def __init__(self, app: ASGIApp) -> None:
+        self.app = app
+        self.cors: CORSMiddleware | None = None
+
+    async def __call__(self, scope: Scope, receive: Receive, send: Send) -> None:
+        if scope["type"] != "http":
+            await self.app(scope, receive, send)
+            return
+        if self.cors is None:
+            settings: Settings = scope["app"].state.settings
+            self.cors = CORSMiddleware(
+                self.app,
+                allow_origins=[web_origin(settings)],
+                allow_credentials=True,
+                allow_methods=["GET", "POST", "PUT", "PATCH", "DELETE"],
+                allow_headers=["Authorization", "Content-Type"],
+                expose_headers=["Retry-After", "Content-Disposition"],
+            )
+        await self.cors(scope, receive, send)
+
+
 def create_app(settings: Settings | None = None) -> FastAPI:
     # Settings resolve at startup, so the OpenAPI schema can be exported without any env.
     @asynccontextmanager
@@ -61,6 +93,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         generate_unique_id_function=_operation_id,
     )
     install_error_handlers(app)
+    app.add_middleware(WebOriginCors)
     app.include_router(health_router, prefix="/api/v1")
     app.include_router(auth_router, prefix="/api/v1")
     app.include_router(orgs_router, prefix="/api/v1")
