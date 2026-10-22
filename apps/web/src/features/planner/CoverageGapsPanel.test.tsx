@@ -13,6 +13,11 @@ const gap = (activity_id: string, starts_at: string, assigned = 1) => ({
 });
 
 function renderPanel(gaps: unknown[]) {
+  stubReport(gaps);
+  mountPanel();
+}
+
+function stubReport(gaps: unknown[]) {
   vi.stubGlobal(
     "fetch",
     vi.fn(() =>
@@ -27,6 +32,9 @@ function renderPanel(gaps: unknown[]) {
       ),
     ),
   );
+}
+
+function mountPanel() {
   renderWithProviders(
     <CoverageGapsPanel
       versionId="v1"
@@ -75,5 +83,34 @@ describe("CoverageGapsPanel", () => {
       await screen.findByText("Every shift is fully staffed this week"),
     ).toBeInTheDocument();
     expect(screen.queryByRole("list")).not.toBeInTheDocument();
+  });
+
+  it("shows a loading state until the report arrives", () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => new Promise<Response>(() => undefined)),
+    );
+    mountPanel();
+    expect(
+      screen.getByRole("region", { name: "Coverage gaps" }),
+    ).toBeInTheDocument();
+    expect(screen.getByText("Loading coverage gaps…")).toBeInTheDocument();
+    expect(
+      screen.queryByText("Every shift is fully staffed this week"),
+    ).not.toBeInTheDocument();
+  });
+
+  it("says the report failed instead of claiming full staffing", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(() => Promise.resolve(jsonResponse({ detail: "boom" }, 500))),
+    );
+    mountPanel();
+    expect(
+      await screen.findByText("Couldn't load coverage gaps"),
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("Every shift is fully staffed this week"),
+    ).not.toBeInTheDocument();
   });
 });

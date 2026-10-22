@@ -38,12 +38,11 @@ export function CoverageGapsPanel({
   activityNames: Record<string, string>;
   timezone: string;
 }) {
-  const { data: report } = useVersionReport(versionId, {
+  const { data: report, isError } = useVersionReport(versionId, {
     query: { enabled: versionId !== "" },
   });
-  if (!report) return null;
 
-  const gaps = report.coverage_gaps
+  const gaps = (report?.coverage_gaps ?? [])
     .map((g) => ({ gap: g, at: localStart(g.starts_at, timezone) }))
     .filter(({ at }) => at.date >= weekStart && at.date <= weekEnd)
     .sort((a, b) => a.gap.starts_at.localeCompare(b.gap.starts_at));
@@ -53,7 +52,13 @@ export function CoverageGapsPanel({
       <h2 id="coverage-gaps-heading" className="font-medium">
         Coverage gaps
       </h2>
-      {gaps.length === 0 ? (
+      {isError ? (
+        <p role="alert" className="text-destructive">
+          Couldn&apos;t load coverage gaps
+        </p>
+      ) : !report ? (
+        <p className="text-muted-foreground">Loading coverage gaps…</p>
+      ) : gaps.length === 0 ? (
         <p className="text-muted-foreground">
           Every shift is fully staffed this week
         </p>
