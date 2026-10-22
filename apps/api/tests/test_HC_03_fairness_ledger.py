@@ -9,6 +9,7 @@ import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from sqlalchemy import select
+from sqlalchemy.exc import DBAPIError
 from sqlalchemy.ext.asyncio import create_async_engine
 from testcontainers.community.postgres import PostgresContainer
 
@@ -319,3 +320,32 @@ def test_HC_03_ledger_isolation(
     assert asyncio.run(visible(org2)) == {org2}
     assert asyncio.run(visible(org1)) == {org1}
     assert asyncio.run(visible(None)) == set()
+
+    async def forge() -> None:
+        engine = create_async_engine(db_url(migrated_pg, *APP))
+        try:
+            async with scoped_transaction(engine, org1) as session:
+                row = (await session.scalars(select(FairnessLedgerRow).limit(1))).one()
+                template = (
+                    row.schedule_id,
+                    row.version_id,
+                    row.resource_id,
+                    row.day,
+                )
+            async with scoped_transaction(engine, org2) as session:
+                session.add(
+                    FairnessLedgerRow(
+                        organisation_id=org1,
+                        schedule_id=template[0],
+                        version_id=template[1],
+                        resource_id=template[2],
+                        counter="forged",
+                        day=template[3],
+                        count=1,
+                    )
+                )
+        finally:
+            await engine.dispose()
+
+    with pytest.raises(DBAPIError, match="row-level security"):
+        asyncio.run(forge())
