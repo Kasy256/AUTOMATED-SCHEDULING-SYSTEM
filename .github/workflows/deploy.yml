@@ -1,0 +1,88 @@
+name: Deploy
+
+# Runs after CI passes on a push: Development -> staging, main -> production.
+# The production environment must have a required reviewer, so nothing ships without a human.
+#
+# Each GitHub environment (staging, production) needs:
+#   secrets: RENDER_API_KEY, CLOUDFLARE_API_TOKEN (Pages: Edit)
+#   vars:    RENDER_MIGRATE_SERVICE_ID, RENDER_WORKER_SERVICE_ID, RENDER_API_SERVICE_ID,
+#            CLOUDFLARE_ACCOUNT_ID, PAGES_PROJECT, PAGES_BRANCH (main for production),
+#            API_URL (https://api[-staging].<domain>), WEB_URL (https://app[-staging].<domain>),
+#            VITE_SENTRY_DSN (the web project's public DSN)
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+    branches: [Development, main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    environment: ${{ github.event.workflow_run.head_branch == 'main' && 'production' || 'staging' }}
+    env:
+      SHA: ${{ github.event.workflow_run.head_sha }}
+      RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+
+      # Release step: migrations as cartlyf_owner, before any new app code takes traffic.
+      # The owner URL lives only on the migrate service; the job uses its latest build.
+      - name: Build the migrate service
+        run: python3 tools/render_deploy.py deploy "${{ vars.RENDER_MIGRATE_SERVICE_ID }}" "$SHA"
+      - name: Migrate
+        run: >
+          python3 tools/render_deploy.py job "${{ vars.RENDER_MIGRATE_SERVICE_ID }}"
+          alembic -c apps/api/alembic.ini upgrade head
+
+      - name: Deploy the worker
+        run: python3 tools/render_deploy.py deploy "${{ vars.RENDER_WORKER_SERVICE_ID }}" "$SHA"
+      - name: Deploy the API
+        run: python3 tools/render_deploy.py deploy "${{ vars.RENDER_API_SERVICE_ID }}" "$SHA"
+
+      - uses: astral-sh/setup-uv@v10.3.0
+        with:
+          enable-cache: true
+      # The API exports the OpenAPI schema that orval generates the client from.
+      - run: uv sync --frozen --no-dev
+      - uses: pnpm/action-setup@v6
+        with:
+          package_json_file: apps/web/package.json
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+          cache-dependency-path: apps/web/pnpm-lock.yaml
+      - name: Build the web app
+        working-directory: apps/web
+        env:
+          VITE_API_BASE_URL: ${{ vars.API_URL }}
+          VITE_SENTRY_DSN: ${{ vars.VITE_SENTRY_DSN }}
+          VITE_DEPLOY_ENV: ${{ github.event.workflow_run.head_branch == 'main' && 'production' || 'staging' }}
+          VITE_RELEASE: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm api:generate
+          pnpm build
+      - name: Deploy the web app to Cloudflare Pages
+        working-directory: apps/web
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ vars.CLOUDFLARE_ACCOUNT_ID }}
+        run: >
+          pnpm dlx wrangler@4.149.0 pages deploy dist
+          --project-name "${{ vars.PAGES_PROJECT }}" --branch "${{ vars.PAGES_BRANCH }}"
+          --commit-hash "$SHA"
+
+      - name: Smoke test
+        run: python3 tools/smoke.py "${{ vars.API_URL }}" "${{ vars.WEB_URL }}"
