@@ -119,7 +119,7 @@ def solve(
 
     def constructed(wall_time_s: float) -> Solution:
         return Solution(
-            status=SolveStatus.FEASIBLE,
+            status=SolveStatus.OPTIMAL if built.soft_total == 0 else SolveStatus.FEASIBLE,
             assignments=plan,
             score=built,
             stats=SolveStats(wall_time_s=wall_time_s, objective=built.soft_total),
@@ -178,6 +178,8 @@ def solve(
             stats=SolveStats(wall_time_s=solver.wall_time),
         )
     wall = solver.wall_time
+    # Penalties are never negative, so a verified schedule costing 0 is optimal without a proof.
+    proven = proven or (start.score.hard_violations == 0 and start.score.soft_total == 0)
     if not proven and start.score.hard_violations == 0:
         start, lns_wall = _improve(problem, compiled, start, options, wall, on_progress, cancel)
         wall += lns_wall

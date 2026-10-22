@@ -190,6 +190,20 @@ def test_construction_is_returned_when_search_is_stopped_at_once() -> None:
     assert [e.kind for e in events if e.kind == "constructed"] == ["constructed"]
 
 
+def test_zero_penalty_construction_is_optimal_without_search() -> None:
+    # Penalties are never negative, so a verified start costing 0 needs no proof from CP-SAT.
+    token = CancelToken()
+
+    def on_progress(event: Progress) -> None:
+        if event.kind == "constructed":
+            token.cancel()
+
+    p = problem([person("p")], [act("a1", 60, [0, 60], needs())])
+    solution = solve(p, options(), on_progress=on_progress, cancel=token)
+    assert solution.status is SolveStatus.OPTIMAL
+    assert solution.score.soft_total == solution.stats.objective == 0
+
+
 def test_unverified_construction_is_not_returned() -> None:
     p = problem(
         [person("p"), person("q")],
