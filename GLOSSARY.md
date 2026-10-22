@@ -73,6 +73,15 @@ _Avoid_: rule (acceptable in UI copy), constraint (alone, ambiguous)
 **Scope**:
 The resources or series a constraint instance applies to.
 
+**Fairness ledger**:
+The running record of how many undesirable shifts (nights, weekends) each person has worked in earlier published rosters, so the next roster can even them out.
+
+**Ledger counter**:
+The named tally a fairness rule reads and adds to in the fairness ledger, such as nights or weekends. Rules that share a counter share one tally.
+
+**Generated activity attributes**:
+Facts Cartlyf attaches to every shift a coverage demand produces, such as its slot and the weekday it starts on, so a rule can pick out nights or weekends without a custom setting.
+
 **Hard / soft**:
 A hard rule must never be broken. A soft rule may be broken at a cost (its **weight**).
 
