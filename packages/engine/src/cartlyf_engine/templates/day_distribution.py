@@ -97,6 +97,7 @@ SPEC = TemplateSpec(
     1,
     Params,
     soft_only=True,
+    whole_scope=True,
     encode=encode,
     check=check,
     explain=explain,

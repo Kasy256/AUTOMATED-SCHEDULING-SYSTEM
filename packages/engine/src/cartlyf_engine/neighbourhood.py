@@ -2,7 +2,7 @@
 
 Every v1 rule's findings are local to a resource, an activity or a series, so comparing before
 and after on the neighbourhood gives the same difference as on the whole schedule. Whole-scope
-rules (balance, fairness) widen it to everything in their scope."""
+rules (balance, fairness, day_distribution) widen it to everything in their scope."""
 
 from collections.abc import Collection, Sequence
 from dataclasses import dataclass

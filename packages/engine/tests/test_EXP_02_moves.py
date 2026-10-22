@@ -84,6 +84,18 @@ def test_EXP_02_unknown_activity_is_an_error() -> None:
         MoveChecker(_day(), NOW).check(place("nope", 0, who="p"))
 
 
+def test_EXP_02_day_distribution_counts_days_the_resource_could_work_outside_the_move() -> None:
+    p = problem(
+        [person("p"), person("r")],
+        [act("a1", 60, [0], needs(count=0)), act("a2", 60, [DAY], needs(count=0))],
+        [rule("even", "day_distribution", hard=False, weight=1)],
+    )
+    report = MoveChecker(p, [place("a1", 0), place("a2", DAY, who="r")]).check(
+        place("a1", 0, who="p")
+    )
+    assert [(c.constraint_id, c.before, c.after) for c in report.penalties] == [("even", 1, 2)]
+
+
 @st.composite
 def _moves(draw: st.DrawFn, p: Problem) -> Assignment:
     activity = draw(st.sampled_from(p.activities))
