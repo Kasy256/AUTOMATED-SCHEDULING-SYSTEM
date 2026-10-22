@@ -1,0 +1,221 @@
+# Render Blueprint: one project, a staging and a production environment, all in Frankfurt.
+# Deploys are triggered by CI (.github/workflows/deploy.yml), never by Render on push.
+# Plans are placeholders to confirm against cost before creating the Blueprint.
+#
+# After creating it, once per environment (see docs: apps/api/db/README.md):
+#   1. run apps/api/db/managed_roles.sql as the database admin;
+#   2. set CARTLYF_DATABASE_URL (cartlyf_app, internal host) in the env group and
+#      CARTLYF_MIGRATION_DATABASE_URL (cartlyf_owner) on the migrate service only;
+#   3. fill every `sync: false` value.
+# Database URLs use the asyncpg driver: postgresql+asyncpg://user:password@host:5432/cartlyf
+
+projects:
+  - name: cartlyf
+    environments:
+      - name: staging
+        services:
+          - name: cartlyf-api-staging
+            type: web
+            runtime: docker
+            region: frankfurt
+            plan: 1c-2g
+            dockerfilePath: ./apps/api/Dockerfile
+            dockerContext: .
+            healthCheckPath: /api/v1/health
+            autoDeployTrigger: "off"
+            envVars:
+              - fromGroup: cartlyf-staging
+              - key: PORT
+                value: "8000"
+              # uvicorn trusts X-Forwarded-For only from Render's proxy (confirm the range on staging).
+              - key: FORWARDED_ALLOW_IPS
+                value: 10.0.0.0/8
+              - key: CARTLYF_REDIS_URL
+                fromService:
+                  type: keyvalue
+                  name: cartlyf-queue-staging
+                  property: connectionString
+          - name: cartlyf-worker-staging
+            type: worker
+            runtime: docker
+            region: frankfurt
+            plan: 2c-4g
+            dockerfilePath: ./apps/api/Dockerfile
+            dockerContext: .
+            dockerCommand: dramatiq cartlyf_api.jobs.worker --processes 1 --threads 2
+            autoDeployTrigger: "off"
+            envVars:
+              - fromGroup: cartlyf-staging
+              # Two solve threads share the instance's cores.
+              - key: CARTLYF_SOLVE_NUM_WORKERS
+                value: "1"
+              - key: CARTLYF_REDIS_URL
+                fromService:
+                  type: keyvalue
+                  name: cartlyf-queue-staging
+                  property: connectionString
+          # Holds the only copy of the owner URL. CI deploys it, then runs `alembic upgrade head`
+          # as a one-off job on it before the API and worker deploy. The schedule is never due.
+          - name: cartlyf-migrate-staging
+            type: cron
+            runtime: docker
+            region: frankfurt
+            plan: 0.5c-512mb
+            schedule: "0 0 1 1 *"
+            dockerfilePath: ./apps/api/Dockerfile
+            dockerContext: .
+            dockerCommand: alembic -c apps/api/alembic.ini upgrade head
+            autoDeployTrigger: "off"
+            envVars:
+              - key: CARTLYF_MIGRATION_DATABASE_URL
+                sync: false
+          - name: cartlyf-queue-staging
+            type: keyvalue
+            region: frankfurt
+            plan: 256mb
+            # Dramatiq keeps queued solves here: evicting a key would drop a job.
+            maxmemoryPolicy: noeviction
+            ipAllowList: []
+        databases:
+          - name: cartlyf-db-staging
+            region: frankfurt
+            plan: 1c-2g
+            postgresMajorVersion: "16"
+            databaseName: cartlyf
+            user: cartlyf_admin
+            ipAllowList: []
+        envVarGroups:
+          - name: cartlyf-staging
+            envVars:
+              - key: CARTLYF_ENVIRONMENT
+                value: staging
+              - key: CARTLYF_LOG_LEVEL
+                value: INFO
+              - key: CARTLYF_DATABASE_URL
+                sync: false
+              - key: CARTLYF_JWT_SECRET
+                generateValue: true
+              - key: CARTLYF_WEB_BASE_URL
+                sync: false
+              - key: CARTLYF_PUBLIC_API_BASE_URL
+                sync: false
+              - key: CARTLYF_S3_ENDPOINT
+                sync: false
+              - key: CARTLYF_S3_ACCESS_KEY
+                sync: false
+              - key: CARTLYF_S3_SECRET_KEY
+                sync: false
+              - key: CARTLYF_S3_BUCKET
+                sync: false
+              - key: CARTLYF_S3_REGION
+                value: auto
+              - key: CARTLYF_SENTRY_DSN
+                sync: false
+              - key: CARTLYF_EMAIL_PROVIDER
+                value: resend
+              - key: CARTLYF_RESEND_API_KEY
+                sync: false
+              - key: CARTLYF_EMAIL_FROM
+                sync: false
+
+      - name: production
+        services:
+          - name: cartlyf-api
+            type: web
+            runtime: docker
+            region: frankfurt
+            plan: 2c-4g
+            dockerfilePath: ./apps/api/Dockerfile
+            dockerContext: .
+            healthCheckPath: /api/v1/health
+            autoDeployTrigger: "off"
+            envVars:
+              - fromGroup: cartlyf-production
+              - key: PORT
+                value: "8000"
+              - key: FORWARDED_ALLOW_IPS
+                value: 10.0.0.0/8
+              - key: CARTLYF_REDIS_URL
+                fromService:
+                  type: keyvalue
+                  name: cartlyf-queue
+                  property: connectionString
+          - name: cartlyf-worker
+            type: worker
+            runtime: docker
+            region: frankfurt
+            # ENG-08 / EDU-05 are budgeted on 4 vCPU.
+            plan: 4c-8g
+            dockerfilePath: ./apps/api/Dockerfile
+            dockerContext: .
+            dockerCommand: dramatiq cartlyf_api.jobs.worker --processes 1 --threads 2
+            autoDeployTrigger: "off"
+            envVars:
+              - fromGroup: cartlyf-production
+              - key: CARTLYF_SOLVE_NUM_WORKERS
+                value: "2"
+              - key: CARTLYF_REDIS_URL
+                fromService:
+                  type: keyvalue
+                  name: cartlyf-queue
+                  property: connectionString
+          - name: cartlyf-migrate
+            type: cron
+            runtime: docker
+            region: frankfurt
+            plan: 0.5c-512mb
+            schedule: "0 0 1 1 *"
+            dockerfilePath: ./apps/api/Dockerfile
+            dockerContext: .
+            dockerCommand: alembic -c apps/api/alembic.ini upgrade head
+            autoDeployTrigger: "off"
+            envVars:
+              - key: CARTLYF_MIGRATION_DATABASE_URL
+                sync: false
+          - name: cartlyf-queue
+            type: keyvalue
+            region: frankfurt
+            plan: 256mb
+            maxmemoryPolicy: noeviction
+            ipAllowList: []
+        databases:
+          - name: cartlyf-db
+            region: frankfurt
+            plan: 1c-4g
+            postgresMajorVersion: "16"
+            databaseName: cartlyf
+            user: cartlyf_admin
+            ipAllowList: []
+        envVarGroups:
+          - name: cartlyf-production
+            envVars:
+              - key: CARTLYF_ENVIRONMENT
+                value: production
+              - key: CARTLYF_LOG_LEVEL
+                value: INFO
+              - key: CARTLYF_DATABASE_URL
+                sync: false
+              - key: CARTLYF_JWT_SECRET
+                generateValue: true
+              - key: CARTLYF_WEB_BASE_URL
+                sync: false
+              - key: CARTLYF_PUBLIC_API_BASE_URL
+                sync: false
+              - key: CARTLYF_S3_ENDPOINT
+                sync: false
+              - key: CARTLYF_S3_ACCESS_KEY
+                sync: false
+              - key: CARTLYF_S3_SECRET_KEY
+                sync: false
+              - key: CARTLYF_S3_BUCKET
+                sync: false
+              - key: CARTLYF_S3_REGION
+                value: auto
+              - key: CARTLYF_SENTRY_DSN
+                sync: false
+              - key: CARTLYF_EMAIL_PROVIDER
+                value: resend
+              - key: CARTLYF_RESEND_API_KEY
+                sync: false
+              - key: CARTLYF_EMAIL_FROM
+                sync: false
