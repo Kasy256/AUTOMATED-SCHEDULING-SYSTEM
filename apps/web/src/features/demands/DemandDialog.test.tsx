@@ -1,6 +1,7 @@
 import { screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 
+import type { DemandResponse } from "@/api/generated/model";
 import { jsonResponse, renderWithProviders } from "@/test/render";
 
 import { DemandDialog } from "./DemandDialog";
@@ -160,6 +161,90 @@ describe("DemandDialog", () => {
       expect(within(dialog).getByLabelText("Requirement 2 weight")).toHaveValue(
         1000,
       );
+    });
+
+    it("keeps a requirement edited before the schedule's defaults arrive", async () => {
+      let resolveSchedule: (r: Response) => void = () => undefined;
+      const schedule = new Promise<Response>((resolve) => {
+        resolveSchedule = resolve;
+      });
+      vi.stubGlobal(
+        "fetch",
+        vi.fn((url: string) => {
+          if (url.includes("slot-templates"))
+            return Promise.resolve(jsonResponse(slotTemplates));
+          if (url.includes("resource-types"))
+            return Promise.resolve(jsonResponse(types));
+          if (url.endsWith("/schedules/s1")) return schedule;
+          return Promise.resolve(jsonResponse([]));
+        }),
+      );
+      open();
+      const dialog = await screen.findByRole("dialog");
+      await userEvent.click(
+        within(dialog).getByRole("switch", {
+          name: /^Requirement 1\s*must be met$/,
+        }),
+      );
+      const weight = within(dialog).getByLabelText("Requirement 1 weight");
+      await userEvent.clear(weight);
+      await userEvent.type(weight, "5");
+      resolveSchedule(
+        jsonResponse({
+          id: "s1",
+          name: "Ward",
+          requirement_defaults: { hard: false, weight: 1000 },
+        }),
+      );
+      await vi.waitFor(() =>
+        expect(
+          within(dialog).getByRole("switch", {
+            name: /^Requirement 1\s*must be met$/,
+          }),
+        ).not.toBeChecked(),
+      );
+      await new Promise((r) => setTimeout(r, 50));
+      expect(within(dialog).getByLabelText("Requirement 1 weight")).toHaveValue(
+        5,
+      );
+    });
+
+    it("leaves an existing hard requirement hard when the schedule defaults are soft", async () => {
+      stubSchedule({ hard: false, weight: 1000 });
+      renderWithProviders(
+        <DemandDialog
+          scheduleId="s1"
+          editing={
+            {
+              id: "d1",
+              name: "Ward cover",
+              slot_template_id: "st1",
+              spec: {
+                kind: "session",
+                sessions_per_week: 1,
+                requirements: [
+                  {
+                    role: "nurse",
+                    count_min: 1,
+                    count_max: 1,
+                    hard: true,
+                    weight: 7,
+                  },
+                ],
+              },
+            } as unknown as DemandResponse
+          }
+          open
+          onOpenChange={vi.fn()}
+        />,
+      );
+      const dialog = await screen.findByRole("dialog");
+      await new Promise((r) => setTimeout(r, 50));
+      expect(
+        within(dialog).getByRole("switch", {
+          name: /^Requirement 1\s*must be met$/,
+        }),
+      ).toBeChecked();
     });
 
     it("starts requirements hard when the schedule has no defaults", async () => {
