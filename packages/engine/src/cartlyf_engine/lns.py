@@ -123,6 +123,9 @@ def improve(
             solver = sub_solver(options.seed)
             solver.parameters.max_time_in_seconds = max(0.01, wall_budget_s - fixed.charged)
             attach(solver.stop_search)
+            if not keep_going():
+                attach(None)
+                break
             try:
                 code = solver.solve(compiled.model)
             finally:
@@ -283,17 +286,21 @@ class _Fixed:
         self._domains: dict[int, _Domain] = {}
         self._original: dict[int, tuple[int, int]] = {}
         self.charged = 0.0
-        for placed in assignments:
-            literals = self._literals(placed.activity_id)
-            for literal in literals:
-                value = literal.value(placed)
-                domain = self._variables[literal.lit.index].domain
-                self._domains[literal.lit.index] = domain
-                self._original[literal.lit.index] = (domain[0], domain[1])
-                domain[0] = value
-                domain[1] = value
-            # Charged for fixing now and for restoring in release().
-            self._charge(3 * len(literals))
+        try:
+            for placed in assignments:
+                literals = self._literals(placed.activity_id)
+                for literal in literals:
+                    value = literal.value(placed)
+                    domain = self._variables[literal.lit.index].domain
+                    self._domains[literal.lit.index] = domain
+                    self._original[literal.lit.index] = (domain[0], domain[1])
+                    domain[0] = value
+                    domain[1] = value
+                # Charged for fixing now and for restoring in release().
+                self._charge(3 * len(literals))
+        except BaseException:
+            self.release()
+            raise
 
     def _charge(self, literals: int) -> None:
         self.charged += _LITERAL_S * literals

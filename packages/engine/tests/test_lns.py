@@ -3,8 +3,10 @@ import time
 from functools import cache
 from pathlib import Path
 
+import pytest
 from ortools.sat.python import cp_model
 
+from cartlyf_engine import lns
 from cartlyf_engine.checker import check, check_with_findings
 from cartlyf_engine.compiler import compile_problem
 from cartlyf_engine.construct import construct
@@ -169,3 +171,61 @@ def test_lns_returns_the_start_untouched_when_cancelled_or_out_of_budget() -> No
     assert cancelled is first and spent == 0
     broke, spent = improve(p, compiled, first, OPTIONS, 0)
     assert broke is first and spent == 0
+
+
+def test_lns_restores_domains_when_fixing_fails_midway(monkeypatch: pytest.MonkeyPatch) -> None:
+    p, start, _ = greedy()
+    compiled = compile_problem(p)
+    domains = [list(v.domain) for v in compiled.model.proto.variables]  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType, reportUnknownArgumentType]
+    calls = 0
+    real = lns._Fixed._charge  # pyright: ignore[reportPrivateUsage]
+
+    def failing(self: lns._Fixed, literals: int) -> None:  # pyright: ignore[reportPrivateUsage]
+        nonlocal calls
+        calls += 1
+        if calls == 5:
+            raise RuntimeError("boom")
+        real(self, literals)
+
+    monkeypatch.setattr(lns._Fixed, "_charge", failing)  # pyright: ignore[reportPrivateUsage]
+    with pytest.raises(RuntimeError, match="boom"):
+        improve(p, compiled, Incumbent(start, check(p, start), None), OPTIONS, 60)
+    assert [list(v.domain) for v in compiled.model.proto.variables] == domains  # pyright: ignore[reportUnknownMemberType, reportUnknownVariableType, reportUnknownArgumentType]
+
+
+def test_lns_honours_a_cancel_that_lands_while_attaching(monkeypatch: pytest.MonkeyPatch) -> None:
+    p, start, _ = greedy()
+    compiled = compile_problem(p)
+    cancelled = False
+    sub_solves = 0
+    real_sub_solver = lns.sub_solver
+
+    def counting(seed: int) -> cp_model.CpSolver:
+        solver = real_sub_solver(seed)
+        real_solve = solver.solve
+
+        def solve(*args: object, **kwargs: object) -> cp_model.CpSolverStatus:
+            nonlocal sub_solves
+            sub_solves += 1
+            return real_solve(*args, **kwargs)  # pyright: ignore[reportArgumentType]
+
+        solver.solve = solve  # pyright: ignore[reportAttributeAccessIssue]
+        return solver
+
+    def attach(stop: object) -> None:
+        nonlocal cancelled
+        if stop is not None:
+            cancelled = True
+
+    monkeypatch.setattr(lns, "sub_solver", counting)
+    result, _ = improve(
+        p,
+        compiled,
+        Incumbent(start, check(p, start), None),
+        OPTIONS,
+        60,
+        keep_going=lambda: not cancelled,
+        attach=attach,
+    )
+    assert sub_solves == 0
+    assert result.assignments == start
