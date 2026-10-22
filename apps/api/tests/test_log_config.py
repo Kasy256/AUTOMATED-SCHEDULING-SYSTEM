@@ -75,4 +75,6 @@ def test_sentry_never_captures_local_variables(monkeypatch: pytest.MonkeyPatch) 
         )
     )
     assert options["dsn"] == "https://k@o0.ingest.sentry.io/0"
-    assert options["include_local_variables"] is False
+    data_collection = options["data_collection"]
+    assert isinstance(data_collection, dict)
+    assert data_collection["stack_frame_variables"] is False

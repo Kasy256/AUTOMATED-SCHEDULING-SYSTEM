@@ -48,7 +48,8 @@ class Settings(BaseSettings):
     explain_max_alternatives: int = 100
     sentry_dsn: SecretStr | None = None
     release: str | None = Field(
-        default=None, validation_alias=AliasChoices("CARTLYF_RELEASE", "RENDER_GIT_COMMIT")
+        default=None,
+        validation_alias=AliasChoices("release", "CARTLYF_RELEASE", "RENDER_GIT_COMMIT"),
     )
     email_provider: Literal["console", "resend"] = "console"
     resend_api_key: SecretStr | None = None
