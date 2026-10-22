@@ -340,6 +340,10 @@
   "description": "Shift rostering for nurses, clinical officers and lab technicians, with fair nights and weekends.",
   "key": "healthcare",
   "name": "Healthcare rostering",
+  "requirement_defaults": {
+    "hard": false,
+    "weight": 1000
+  },
   "resource_types": [
     {
       "attribute_schema": {

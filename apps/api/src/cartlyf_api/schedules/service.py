@@ -11,6 +11,7 @@ from cartlyf_api.schedules import repository as repo
 from cartlyf_api.schedules.models import Schedule, SlotTemplate
 from cartlyf_api.schedules.schemas import (
     DayParts,
+    RequirementDefaults,
     ScheduleCreate,
     ScheduleResponse,
     ScheduleUpdate,
@@ -29,6 +30,11 @@ def schedule_response(row: Schedule) -> ScheduleResponse:
         start_date=row.start_date,
         end_date=row.end_date,
         day_parts=DayParts.model_validate(row.day_parts),
+        requirement_defaults=(
+            None
+            if row.requirement_defaults is None
+            else RequirementDefaults.model_validate(row.requirement_defaults)
+        ),
     )
 
 
@@ -60,7 +66,10 @@ async def _slot_template(
 
 
 async def create_schedule(
-    session: AsyncSession, principal: Principal, body: ScheduleCreate
+    session: AsyncSession,
+    principal: Principal,
+    body: ScheduleCreate,
+    requirement_defaults: RequirementDefaults | None = None,
 ) -> ScheduleResponse:
     principal.require(Permission.CONFIG_MANAGE)
     schedule_id = uuid4()
@@ -74,10 +83,15 @@ async def create_schedule(
             "start_date": body.start_date,
             "end_date": body.end_date,
             "day_parts": body.day_parts.model_dump(mode="json"),
+            "requirement_defaults": (
+                None if requirement_defaults is None else requirement_defaults.model_dump()
+            ),
         },
     )
     await record_change(session, principal, "schedule.created", "schedule", schedule_id)
-    return ScheduleResponse(id=schedule_id, **body.model_dump())
+    return ScheduleResponse(
+        id=schedule_id, requirement_defaults=requirement_defaults, **body.model_dump()
+    )
 
 
 async def list_schedules(session: AsyncSession, principal: Principal) -> list[ScheduleResponse]:

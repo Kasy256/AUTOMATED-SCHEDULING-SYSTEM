@@ -113,6 +113,7 @@ async def apply_template(
             end_date=body.end_date,
             day_parts=template.day_parts,
         ),
+        template.requirement_defaults,
     )
     slot_ids: dict[str, UUID] = {}
     for slot_template in template.slot_templates:

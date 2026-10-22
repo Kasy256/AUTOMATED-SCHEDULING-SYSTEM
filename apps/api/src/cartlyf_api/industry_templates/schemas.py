@@ -13,7 +13,7 @@ from pydantic import (
 
 from cartlyf_api.imports.schemas import Column, TermSplitPreset
 from cartlyf_api.resources.attribute_schema import AttributeSchema
-from cartlyf_api.schedules.schemas import DayParts, SlotTemplateDefinition
+from cartlyf_api.schedules.schemas import DayParts, RequirementDefaults, SlotTemplateDefinition
 from cartlyf_api.types import Name
 from cartlyf_engine.domain import AttributePredicate, Key, ResourceKind, Tag
 from cartlyf_engine.templates.registry import InvalidInstance, validate_instance
@@ -102,6 +102,10 @@ class IndustryTemplateDefinition(_Model):
     day_parts: DayParts = DayParts()
     slot_templates: list[TemplateSlotTemplate] = Field(default_factory=list[TemplateSlotTemplate])
     demand_shape: TemplateDemandShape | None = None
+    # Omitted from dumps when unset so earlier frozen template copies keep matching.
+    requirement_defaults: RequirementDefaults | None = Field(
+        default=None, exclude_if=lambda v: v is None
+    )
     constraints: list[TemplateConstraint] = Field(default_factory=list[TemplateConstraint])
 
     @model_validator(mode="after")

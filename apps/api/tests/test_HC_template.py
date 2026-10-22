@@ -45,12 +45,45 @@ def test_HC_template_applies(client: TestClient, app: FastAPI) -> None:
     created = response.json()
     assert set(created["resource_type_ids"]) == {"nurse", "clinical_officer", "lab_tech"}
     schedule_id = created["schedule"]["id"]
+    assert created["schedule"]["requirement_defaults"] == {"hard": False, "weight": 1000}
+    fetched = client.get(f"/api/v1/schedules/{schedule_id}", headers=admin.auth).json()
+    assert fetched["requirement_defaults"] == {"hard": False, "weight": 1000}
     slots = client.get(f"/api/v1/schedules/{schedule_id}/slot-templates", headers=admin.auth)
     assert len(slots.json()) == 1
     rules = client.get(f"/api/v1/schedules/{schedule_id}/constraints", headers=admin.auth).json()
     assert len(rules) == 12
     feasibility = client.get(f"/api/v1/schedules/{schedule_id}/feasibility", headers=admin.auth)
     assert feasibility.status_code == 200, feasibility.text
+
+
+def test_education_template_sets_no_requirement_defaults(client: TestClient, app: FastAPI) -> None:
+    admin = signup_and_confirm(client, app)
+    response = client.post(
+        "/api/v1/schedules/from-template",
+        headers=admin.auth,
+        json={
+            "template_key": "education",
+            "name": "Term 1",
+            "timezone": "Africa/Kampala",
+            "start_date": "2027-01-11",
+            "end_date": "2027-01-15",
+        },
+    )
+    assert response.status_code == 201, response.text
+    assert response.json()["schedule"]["requirement_defaults"] is None
+
+
+def test_plain_schedule_has_no_requirement_defaults(client: TestClient, app: FastAPI) -> None:
+    admin = signup_and_confirm(client, app)
+    body = {
+        "name": "Plain",
+        "timezone": "Africa/Kampala",
+        "start_date": "2027-01-11",
+        "end_date": "2027-01-15",
+    }
+    created = client.post("/api/v1/schedules", headers=admin.auth, json=body)
+    assert created.status_code == 201, created.text
+    assert created.json()["requirement_defaults"] is None
 
 
 def _phase_sources() -> list[Path]:
