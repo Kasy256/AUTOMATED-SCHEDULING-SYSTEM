@@ -115,4 +115,68 @@ describe("DemandDialog", () => {
     });
     expect(onOpenChange).toHaveBeenCalledWith(false);
   });
+
+  describe("requirement defaults", () => {
+    const stubSchedule = (requirement_defaults: unknown) =>
+      vi.stubGlobal(
+        "fetch",
+        vi.fn((url: string) => {
+          if (url.includes("slot-templates"))
+            return Promise.resolve(jsonResponse(slotTemplates));
+          if (url.includes("resource-types"))
+            return Promise.resolve(jsonResponse(types));
+          if (/\/schedules\/s1$/.test(url))
+            return Promise.resolve(
+              jsonResponse({ id: "s1", name: "Ward", requirement_defaults }),
+            );
+          return Promise.resolve(jsonResponse([]));
+        }),
+      );
+    const open = () =>
+      renderWithProviders(
+        <DemandDialog
+          scheduleId="s1"
+          editing={null}
+          open
+          onOpenChange={vi.fn()}
+        />,
+      );
+
+    it("starts requirements soft when the schedule's defaults are soft", async () => {
+      stubSchedule({ hard: false, weight: 1000 });
+      open();
+      const dialog = await screen.findByRole("dialog");
+      expect(
+        await within(dialog).findByLabelText("Requirement 1 weight"),
+      ).toHaveValue(1000);
+      expect(
+        within(dialog).getByRole("switch", {
+          name: /^Requirement 1\s*must be met$/,
+        }),
+      ).not.toBeChecked();
+      await userEvent.click(
+        within(dialog).getByRole("button", { name: "Add requirement" }),
+      );
+      expect(within(dialog).getByLabelText("Requirement 2 weight")).toHaveValue(
+        1000,
+      );
+    });
+
+    it("starts requirements hard when the schedule has no defaults", async () => {
+      stubSchedule(null);
+      open();
+      const dialog = await screen.findByRole("dialog");
+      await userEvent.click(
+        within(dialog).getByRole("button", { name: "Add requirement" }),
+      );
+      expect(
+        within(dialog).getByRole("switch", {
+          name: /^Requirement 2\s*must be met$/,
+        }),
+      ).toBeChecked();
+      expect(
+        within(dialog).queryByLabelText("Requirement 2 weight"),
+      ).toBeNull();
+    });
+  });
 });

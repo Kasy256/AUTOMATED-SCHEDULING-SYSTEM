@@ -1,6 +1,7 @@
 import type {
   DemandResponse,
   DemandWrite,
+  RequirementDefaults,
   RequirementSpec,
 } from "@/api/generated/model";
 import type { PredicateValue } from "@/lib/predicates";
@@ -79,7 +80,9 @@ export function fromDemand(d: DemandResponse): DemandDraft {
   };
 }
 
-export const emptyRequirement = (): RequirementDraft => ({
+export const emptyRequirement = (
+  defaults?: RequirementDefaults | null,
+): RequirementDraft => ({
   role: "",
   resource_type_id: null,
   tags: [],
@@ -87,6 +90,6 @@ export const emptyRequirement = (): RequirementDraft => ({
   count_min: 1,
   count_max: 1,
   fixed_resource_ids: [],
-  hard: true,
-  weight: 0,
+  hard: defaults?.hard ?? true,
+  weight: defaults?.weight ?? 0,
 });

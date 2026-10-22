@@ -19,7 +19,10 @@ import {
   useListResources,
   useListResourceTypes,
 } from "@/api/generated/resources/resources";
-import { useListSlotTemplates } from "@/api/generated/schedules/schedules";
+import {
+  useGetSchedule,
+  useListSlotTemplates,
+} from "@/api/generated/schedules/schedules";
 import { FieldError } from "@/components/FieldError";
 import { MultiPicker } from "@/components/MultiPicker";
 import { Alert, AlertDescription } from "@/components/ui/alert";
@@ -87,6 +90,8 @@ export function DemandDialog({
 }) {
   const queryClient = useQueryClient();
   const { data: slotTemplates = [] } = useListSlotTemplates(scheduleId);
+  const { data: schedule } = useGetSchedule(scheduleId);
+  const defaults = schedule?.requirement_defaults ?? null;
   const { data: types = [] } = useListResourceTypes();
   const { data: resources = [] } = useListResources();
   const [message, setMessage] = useState<string | null>(null);
@@ -108,6 +113,18 @@ export function DemandDialog({
     if (!editing && !form.getValues("slot_template_id") && slotTemplates[0])
       form.setValue("slot_template_id", slotTemplates[0].id);
   }, [editing, form, slotTemplates]);
+
+  // The schedule may load after the first blank row exists; follow its defaults until edited.
+  useEffect(() => {
+    if (editing || !defaults) return;
+    const dirty = form.formState.dirtyFields.requirements;
+    form.getValues("requirements").forEach((_, i) => {
+      if (!dirty?.[i]?.hard)
+        form.setValue(`requirements.${i}.hard`, defaults.hard);
+      if (!dirty?.[i]?.weight)
+        form.setValue(`requirements.${i}.weight`, defaults.weight ?? 0);
+    });
+  }, [defaults, editing, form]);
 
   const onSubmit = form.handleSubmit(async (values) => {
     setMessage(null);
@@ -272,7 +289,11 @@ export function DemandDialog({
                 )}
               />
             </div>
-            <RequirementsEditor types={types} resources={resources} />
+            <RequirementsEditor
+              types={types}
+              resources={resources}
+              defaults={editing ? null : defaults}
+            />
             <DialogFooter>
               <Button
                 type="button"
