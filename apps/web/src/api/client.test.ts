@@ -123,3 +123,26 @@ describe("apiFetch", () => {
     ).toBeUndefined();
   });
 });
+
+describe("cross-origin API host", () => {
+  beforeEach(() => {
+    setAccessToken("t1");
+    vi.stubEnv("VITE_API_BASE_URL", "https://api.example.test");
+  });
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it("sends requests to the API host with the refresh cookie", async () => {
+    const fetchMock = vi.fn((_url: string, _init?: RequestInit) =>
+      Promise.resolve(ok({ id: "x" })),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    await apiFetch("/api/v1/thing");
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "https://api.example.test/api/v1/thing",
+    );
+    expect(fetchMock.mock.calls[0]?.[1]?.credentials).toBe("include");
+  });
+});

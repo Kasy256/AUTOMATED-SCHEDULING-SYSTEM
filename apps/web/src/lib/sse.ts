@@ -1,3 +1,4 @@
+import { apiUrl } from "@/api/base";
 import { getAccessToken } from "@/lib/auth/session";
 import { parseProblem } from "@/lib/problem";
 
@@ -32,7 +33,11 @@ export async function streamSse(
   const headers = new Headers({ Accept: "text/event-stream" });
   const token = getAccessToken();
   if (token) headers.set("Authorization", `Bearer ${token}`);
-  const res = await fetch(url, { headers, signal, credentials: "same-origin" });
+  const res = await fetch(apiUrl(url), {
+    headers,
+    signal,
+    credentials: "include",
+  });
   if (!res.ok || !res.body) throw await parseProblem(res);
   const reader = res.body.getReader();
   const decoder = new TextDecoder();

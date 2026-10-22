@@ -1,3 +1,4 @@
+import { apiUrl } from "@/api/base";
 import { getAccessToken, refreshAccessToken } from "@/lib/auth/session";
 import { parseProblem, type ApiError } from "@/lib/problem";
 
@@ -26,7 +27,7 @@ function send(url: string, init: RequestInit): Promise<Response> {
   const headers = new Headers(init.headers);
   const token = getAccessToken();
   if (token) headers.set("Authorization", `Bearer ${token}`);
-  return fetch(url, { ...init, headers, credentials: "same-origin" });
+  return fetch(apiUrl(url), { ...init, headers, credentials: "include" });
 }
 
 export async function apiResponse(

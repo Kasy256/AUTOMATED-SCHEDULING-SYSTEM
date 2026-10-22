@@ -43,6 +43,7 @@ describe("streamSse", () => {
       Promise.resolve(new Response(body, { status: 200 })),
     );
     vi.stubGlobal("fetch", fetchMock);
+    vi.stubEnv("VITE_API_BASE_URL", "https://api.example.test");
     const seen: SseEvent[] = [];
     await streamSse(
       "/api/v1/solves/r1/events",
@@ -52,6 +53,11 @@ describe("streamSse", () => {
     expect(
       new Headers(fetchMock.mock.calls[0]?.[1]?.headers).get("Authorization"),
     ).toBe("Bearer tok");
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "https://api.example.test/api/v1/solves/r1/events",
+    );
+    expect(fetchMock.mock.calls[0]?.[1]?.credentials).toBe("include");
+    vi.unstubAllEnvs();
     expect(seen.map((e) => e.event)).toEqual(["progress", "done"]);
   });
 
