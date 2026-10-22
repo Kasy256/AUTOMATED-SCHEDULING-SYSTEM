@@ -10,7 +10,6 @@ import os
 from collections import Counter
 from collections.abc import Iterator
 from dataclasses import dataclass
-from typing import Any, cast
 from uuid import UUID
 
 import pytest
@@ -26,7 +25,7 @@ from cartlyf_api.problems.snapshot import build_snapshot
 from cartlyf_api.tenancy import scoped_transaction
 from cartlyf_engine.checker import check
 from cartlyf_engine.domain import Assignment, Problem
-from support import APP, Account, db_url, make_settings
+from support import APP, Account, db_url, make_settings, renamed
 
 pytestmark = pytest.mark.integration
 
@@ -52,41 +51,13 @@ def _snapshot(pg: PostgresContainer, admin: Account, schedule_id: str) -> Proble
     return asyncio.run(run())
 
 
-_ID_LISTS = {"fixed_resource_ids", "resource_ids", "series_ids"}
-
-
-def _resorted(value: object) -> object:
-    # The snapshot sorts id lists by uuid; after renaming they are re-sorted by name.
-    if isinstance(value, dict):
-        items = cast(dict[str, object], value).items()
-        return {
-            k: sorted(cast(list[str], v))
-            if k in _ID_LISTS and isinstance(v, list)
-            else _resorted(v)
-            for k, v in items
-        }
-    if isinstance(value, list):
-        return [_resorted(v) for v in cast(list[object], value)]
-    return value
-
-
-def _renamed(problem: Problem, names: dict[str, str]) -> Problem:
-    text = problem.model_dump_json()
-    for uid, name in names.items():
-        text = text.replace(uid, name)
-    data = cast(dict[str, Any], _resorted(json.loads(text)))
-    for key in ("resources", "activities", "constraints"):
-        data[key] = sorted(data[key], key=lambda item: item["id"])
-    return Problem.model_validate(data)
-
-
 def _canonical(problem: Problem) -> str:
     return json.dumps(problem.model_dump(mode="json"), indent=1, sort_keys=True) + "\n"
 
 
 def _build(client: TestClient, pg: PostgresContainer) -> Problem:
     built = build_term1(client)
-    return _renamed(_snapshot(pg, built.admin, built.schedule_id), built.names)
+    return renamed(_snapshot(pg, built.admin, built.schedule_id), built.names)
 
 
 @pytest.fixture(scope="module")

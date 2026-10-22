@@ -104,6 +104,15 @@ def test_coverage_gap_when_a_role_gets_fewer_than_its_minimum() -> None:
     ]
 
 
+def test_coverage_gap_starts_at_is_origin_plus_start() -> None:
+    soft = Requirement(role="nurse", count_min=2, count_max=2, hard=False, weight=10)
+    a = act((540, 1980), requirements=(soft,))
+    out = report(problem([a]), [placed(a, 1980, nurse=[])])
+    assert [(g.assigned, g.starts_at) for g in out.coverage_gaps] == [
+        (0, datetime(2027, 1, 12, 9, 0, tzinfo=UTC))
+    ]
+
+
 def test_fairness_spread_per_type_counts_idle_resources_as_zero() -> None:
     a, b = act((540,)), act((1980,))
     out = report(problem([a, b]), [placed(a, 540, lecturer=[L1]), placed(b, 1980, lecturer=[L1])])

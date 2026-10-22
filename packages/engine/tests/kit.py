@@ -129,6 +129,7 @@ def problem(
     *,
     days: int = 2,
     baseline: Sequence[Assignment] | None = None,
+    history: dict[str, dict[str, int]] | None = None,
 ) -> Problem:
     """Days of 1440 minutes; one week window; morning = first 720 minutes of each day."""
     return Problem(
@@ -143,6 +144,7 @@ def problem(
         activities=tuple(activities),
         constraints=tuple(constraints),
         baseline=tuple(baseline) if baseline is not None else None,
+        history=history,
     )
 
 

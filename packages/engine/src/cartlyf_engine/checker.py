@@ -5,6 +5,7 @@ planner move."""
 
 from collections import defaultdict
 from collections.abc import Sequence
+from typing import NamedTuple
 
 from cartlyf_engine.checking import CheckContext, Finding
 from cartlyf_engine.domain import (
@@ -27,11 +28,24 @@ from cartlyf_engine.templates.registry import UnsupportedTemplate, get_template
 _DETAILS_SHOWN = 5
 
 
+class SoftFinding(NamedTuple):
+    constraint_id: str
+    cost: int  # weight x amount
+    finding: Finding
+
+
 def check(
     problem: Problem, assignments: Sequence[Assignment], index: ProblemIndex | None = None
 ) -> Score:
     """`index` may come from a problem this one was cut from (lookups are by id), so repeated
     checks of a neighbourhood skip rebuilding it."""
+    return check_with_findings(problem, assignments, index)[0]
+
+
+def check_with_findings(
+    problem: Problem, assignments: Sequence[Assignment], index: ProblemIndex | None = None
+) -> tuple[Score, list[SoftFinding]]:
+    """The score and every soft breach behind it, so a search can aim at what costs most."""
     index = index or ProblemIndex(problem)
     violations: list[Violation] = []
     placed = _placement(problem, index, assignments, violations)
@@ -41,6 +55,7 @@ def check(
 
     ctx = CheckContext(problem, index, placed)
     terms: list[PenaltyTerm] = []
+    soft: list[SoftFinding] = []
     for instance in problem.constraints:
         spec = get_template(instance.template_key, instance.version)
         if spec.check is None:
@@ -59,14 +74,17 @@ def check(
             ]
         else:
             terms.append(_term(instance.id, instance.weight, findings))
+            soft += [SoftFinding(instance.id, instance.weight * f.amount, f) for f in findings]
     if any(not r.hard and r.count_min > 0 for a in problem.activities for r in a.requirements):
         terms.append(_term(REQUIREMENTS_TERM, 1, shortfalls))
-    return Score(
+        soft += [SoftFinding(REQUIREMENTS_TERM, f.amount, f) for f in shortfalls]
+    score = Score(
         hard_violations=len(violations),
         soft_total=sum(t.penalty for t in terms),
         terms=tuple(terms),
         violations=tuple(violations),
     )
+    return score, [f for f in soft if f.cost > 0]
 
 
 def _term(constraint_id: str, weight: int, findings: list[Finding]) -> PenaltyTerm:

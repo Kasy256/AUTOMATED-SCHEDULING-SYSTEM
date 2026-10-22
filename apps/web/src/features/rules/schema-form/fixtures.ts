@@ -529,6 +529,11 @@ export const SCHEMAS = {
     },
     additionalProperties: false,
     properties: {
+      counter: {
+        pattern: "^[a-z][a-z0-9_]{0,62}$",
+        title: "Ledger counter",
+        type: "string",
+      },
       activity_filter: {
         $ref: "#/$defs/ActivityFilter",
         title: "Counts activities",
@@ -539,7 +544,7 @@ export const SCHEMAS = {
         type: "integer",
       },
     },
-    required: ["activity_filter", "lookback_days"],
+    required: ["counter", "activity_filter", "lookback_days"],
     title: "Params",
     type: "object",
   },

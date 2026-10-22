@@ -65,6 +65,26 @@ def test_DOM_04_coverage_demand_via_api(client: TestClient, app: FastAPI) -> Non
     assert {a["requirements"][0]["count_max"] for a in activities} == {3}
 
 
+@pytest.mark.parametrize("name", ["slot", "weekday"])
+def test_coverage_demand_rejects_generated_attr_names(
+    client: TestClient, app: FastAPI, name: str
+) -> None:
+    admin, ids, base = setup(client, app)
+    body = {
+        "name": "Ward",
+        "slot_template_id": ids["slot_template_id"],
+        "spec": {
+            "kind": "coverage",
+            "requirements": [{"role": "nurse"}],
+            "attrs": {name: "x"},
+        },
+    }
+    response = client.post(f"{base}/demands", headers=admin.auth, json=body)
+    assert response.status_code == 422
+    loc = response.json()["errors"][0]["loc"]
+    assert loc[:2] == ["body", "spec"] and loc[-1] == "attrs"  # union tag sits between
+
+
 def test_editing_a_demand_keeps_the_activities_it_still_generates(
     client: TestClient, app: FastAPI
 ) -> None:

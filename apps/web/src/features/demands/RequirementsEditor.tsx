@@ -2,6 +2,7 @@ import { Trash2 } from "lucide-react";
 import { Controller, useFieldArray, useFormContext } from "react-hook-form";
 
 import type {
+  RequirementDefaults,
   ResourceResponse,
   ResourceTypeResponse,
 } from "@/api/generated/model";
@@ -20,9 +21,11 @@ import { emptyRequirement, type DemandDraft } from "./demandBody";
 export function RequirementsEditor({
   types,
   resources,
+  defaults,
 }: {
   types: ResourceTypeResponse[];
   resources: ResourceResponse[];
+  defaults: RequirementDefaults | null;
 }) {
   const form = useFormContext<DemandDraft>();
   const rows = useFieldArray({ control: form.control, name: "requirements" });
@@ -226,7 +229,7 @@ export function RequirementsEditor({
         type="button"
         variant="outline"
         className="self-start"
-        onClick={() => rows.append(emptyRequirement())}
+        onClick={() => rows.append(emptyRequirement(defaults))}
       >
         Add requirement
       </Button>

@@ -1,7 +1,7 @@
 """First-fit construction of a schedule so CP-SAT starts from a solution instead of searching for
 one. Hard rules are judged by the independent checker; this module holds no rule logic."""
 
-from collections.abc import Callable, Iterator, Mapping
+from collections.abc import Callable, Iterable, Iterator, Mapping
 from itertools import islice
 from math import prod
 from typing import NamedTuple
@@ -22,35 +22,75 @@ def construct(
 ) -> tuple[Assignment, ...]:
     """Place pinned activities first, then the most constrained, each at the first option that
     keeps the core rules and adds no hard-rule finding. With `prefer` (a repair baseline), an
-    activity tries its preferred start and resources first. Unplaceable activities are left out."""
+    activity tries its preferred start and resources first. An activity with a soft requirement
+    that no full option fits is placed partly staffed; unplaceable activities are left out."""
     index = ProblemIndex(problem)
     ctx = CheckContext(problem, index, {})
     timeline = _Timeline(problem)
-    judge = _Judge(problem)
+    judge = _Judge(problem, max_evaluations)
     position = {a.id: i for i, a in enumerate(problem.activities)}
-    evaluations = 0
-    for activity in sorted(problem.activities, key=lambda a: (_rank(index, a), position[a.id])):
-        if not keep_going():
-            break
-        placed = False
-        for forced, fills in _starts(index, timeline, activity, (prefer or {}).get(activity.id)):
-            for option in (forced, *islice(fills, _OPTIONS_PER_START)):
-                if max_evaluations is not None and evaluations >= max_evaluations:
-                    return _in_order(ctx, position)
-                evaluations += 1
-                if not judge.accepts(ctx, option):
-                    if option is forced:
-                        # Adding resources never removes a hard finding, so the start is lost.
-                        break
-                    continue
-                if option is not forced or _complete(activity, option):
-                    ctx.place(option)
-                    timeline.book(index, activity, option)
-                    placed = True
-                    break
-            if placed:
+    try:
+        for activity in sorted(problem.activities, key=lambda a: (_rank(index, a), position[a.id])):
+            if not keep_going():
                 break
+            preferred = (prefer or {}).get(activity.id)
+            option = _full(ctx, judge, activity, _starts(index, timeline, activity, preferred))
+            if option is None and any(not r.hard for r in activity.requirements):
+                option = _partial(ctx, judge, _starts(index, timeline, activity, preferred))
+            if option is not None:
+                ctx.place(option)
+                timeline.book(index, activity, option)
+    except _OutOfEvaluations:
+        pass
     return _in_order(ctx, position)
+
+
+def _full(
+    ctx: CheckContext,
+    judge: "_Judge",
+    activity: Activity,
+    starts: Iterable[tuple[Assignment, list["_Pool"]]],
+) -> Assignment | None:
+    for forced, pools in starts:
+        fills = _fills(activity.id, forced.start, pools)
+        for option in (forced, *islice(fills, _OPTIONS_PER_START)):
+            if not judge.accepts(ctx, option):
+                if option is forced:
+                    # Adding resources never removes a hard finding, so the start is lost.
+                    break
+                continue
+            if option is not forced or _complete(activity, option):
+                return option
+    return None
+
+
+def _partial(
+    ctx: CheckContext, judge: "_Judge", starts: Iterable[tuple[Assignment, list["_Pool"]]]
+) -> Assignment | None:
+    """At the first start that takes its forced resources, add one resource at a time while the
+    judge accepts; soft roles may stay short, hard roles may not."""
+    for forced, pools in starts:
+        if not judge.accepts(ctx, forced):
+            continue
+        resources = dict(forced.resources)
+        taken = {r for ids in resources.values() for r in ids}
+        for pool in pools:
+            added: list[str] = []
+            for resource_id in pool.free:
+                if len(added) >= pool.extra:
+                    break
+                if resource_id in taken:
+                    continue
+                trial = {**resources, pool.role: (*pool.forced, *added, resource_id)}
+                if judge.accepts(ctx, forced.model_copy(update={"resources": trial})):
+                    added.append(resource_id)
+                    taken.add(resource_id)
+            if pool.hard and len(added) < pool.extra:
+                break
+            resources[pool.role] = (*pool.forced, *added)
+        else:
+            return forced.model_copy(update={"resources": resources})
+    return None
 
 
 def _in_order(ctx: CheckContext, position: dict[str, int]) -> tuple[Assignment, ...]:
@@ -97,13 +137,22 @@ class _Timeline:
                     self._busy[resource_id].append((option.start, option.start + activity.duration))
 
 
+class _OutOfEvaluations(Exception):
+    pass
+
+
 class _Judge:
     """Accepts a placement only if no hard instance gains a finding on its neighbourhood."""
 
-    def __init__(self, problem: Problem) -> None:
+    def __init__(self, problem: Problem, max_evaluations: int | None) -> None:
         self._hood = Neighbourhood(problem, [c for c in problem.constraints if c.hard])
+        self._left = max_evaluations
 
     def accepts(self, ctx: CheckContext, option: Assignment) -> bool:
+        if self._left is not None:
+            if self._left <= 0:
+                raise _OutOfEvaluations
+            self._left -= 1
         rules = self._hood.rules_for(option.activity_id)
         if not rules:
             return True
@@ -123,8 +172,8 @@ def _count(findings: list[Finding]) -> int:
 
 def _starts(
     index: ProblemIndex, timeline: _Timeline, activity: Activity, preferred: Assignment | None
-) -> Iterator[tuple[Assignment, Iterator[Assignment]]]:
-    """Per feasible start: the option with only fixed/pinned resources, then full options.
+) -> Iterator[tuple[Assignment, list[_Pool]]]:
+    """Per feasible start: the option with only fixed/pinned resources and each role's pool.
     A preferred placement's start comes first and its resources lead each role's pool."""
     pin = activity.pinned
     pinned = pin.resources if pin is not None else {}
@@ -157,7 +206,7 @@ def _starts(
                 start=start,
                 resources={pool.role: pool.forced for pool in pools},
             )
-            yield bare, _fills(activity.id, start, pools)
+            yield bare, pools
 
 
 def _complete(activity: Activity, option: Assignment) -> bool:

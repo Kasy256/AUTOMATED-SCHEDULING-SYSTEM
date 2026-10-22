@@ -7,6 +7,7 @@ from pydantic import (
     BaseModel,
     ConfigDict,
     Field,
+    NonNegativeInt,
     StringConstraints,
     model_validator,
 )
@@ -114,6 +115,21 @@ class ScheduleUpdate(BaseModel):
     day_parts: DayParts | None = None
 
 
+class RequirementDefaults(BaseModel):
+    """Starting `hard`/`weight` for requirements created on a schedule; set by its template."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    hard: bool
+    weight: NonNegativeInt = 0
+
+    @model_validator(mode="after")
+    def _soft_has_weight(self) -> Self:
+        if not self.hard and self.weight < 1:
+            raise ValueError("a soft requirement needs weight >= 1")
+        return self
+
+
 class ScheduleResponse(BaseModel):
     id: UUID
     name: str
@@ -121,6 +137,7 @@ class ScheduleResponse(BaseModel):
     start_date: date
     end_date: date
     day_parts: DayParts
+    requirement_defaults: RequirementDefaults | None = None
 
 
 class Slot(BaseModel):

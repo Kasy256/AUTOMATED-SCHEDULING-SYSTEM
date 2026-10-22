@@ -13,6 +13,7 @@ from cartlyf_api.activities.models import Requirement as RequirementRow
 from cartlyf_api.constraints import repository as constraints_repo
 from cartlyf_api.constraints.models import ConstraintInstanceRow
 from cartlyf_api.errors import NotFound
+from cartlyf_api.fairness.history import history_for
 from cartlyf_api.resources import repository as resources_repo
 from cartlyf_api.resources.calendar import (
     AvailabilityKind,
@@ -198,6 +199,10 @@ async def build_snapshot(
     pins = await activities_repo.pins_for(session, org, schedule_id)
     constraints = await constraints_repo.enabled_for(session, org, schedule_id)
     parts = DayParts.model_validate(schedule.day_parts).parts
+    rule_instances = tuple(
+        _constraint(c, types) for c in sorted(constraints, key=lambda c: str(c.id))
+    )
+    history = await history_for(session, org, schedule, rule_instances, {r.id for r in resources})
     problem = Problem(
         horizon_minutes=horizon_minutes,
         day_windows=windows(day_windows(base)),
@@ -210,8 +215,7 @@ async def build_snapshot(
             _activity(a, requirements.get(a.id, []), pins.get(a.id), types, minutes)
             for a in activities
         ),
-        constraints=tuple(
-            _constraint(c, types) for c in sorted(constraints, key=lambda c: str(c.id))
-        ),
+        constraints=rule_instances,
+        history=history,
     )
     return Snapshot(problem, problem_hash(problem), origin, schedule.timezone)

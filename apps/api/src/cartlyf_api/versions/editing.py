@@ -10,6 +10,7 @@ from cartlyf_api.auth.permissions import Permission, Principal
 from cartlyf_api.email import messages
 from cartlyf_api.email.outbox import QueuedEmail, enqueue
 from cartlyf_api.errors import Conflict, FieldError, NotFound, Unprocessable, field_error
+from cartlyf_api.fairness import service as fairness_ledger
 from cartlyf_api.orgs import repository as orgs_repo
 from cartlyf_api.schedules import repository as schedules_repo
 from cartlyf_api.schedules.time_grid import floor_minutes
@@ -126,6 +127,7 @@ async def publish(
         await repository.mark_archived(session, org, previous)
     await repository.mark_published(session, org, version.id, principal.user_id)
     await session.refresh(version)
+    await fairness_ledger.record_published(session, org, version)
 
     counts = await affected_users(session, org, version.id, previous)
     addresses = await orgs_repo.active_member_emails(session, org, counts.keys())
@@ -156,6 +158,8 @@ async def archive(session: AsyncSession, principal: Principal, version_id: UUID)
     version = await require_version(session, org, version_id, for_update=True)
     if version.status == "archived":
         raise Conflict("Version is already archived")
+    if version.status == "published":
+        await fairness_ledger.clear_schedule(session, org, version.schedule_id)
     await repository.mark_archived(session, org, version.id)
     await session.refresh(version)
     await record_change(session, principal, "version.archived", "solution_version", version.id)

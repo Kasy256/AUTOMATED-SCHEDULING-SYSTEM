@@ -19,6 +19,7 @@ class Schedule(Base):
     start_date: Mapped[date]
     end_date: Mapped[date]
     day_parts: Mapped[JsonDict] = mapped_column(JSONB)
+    requirement_defaults: Mapped[JsonDict | None] = mapped_column(JSONB)
     created_at: Mapped[datetime] = mapped_column(server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(server_default=func.now())
     deleted_at: Mapped[datetime | None]

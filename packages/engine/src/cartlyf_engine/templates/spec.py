@@ -33,8 +33,9 @@ class TemplateSpec:
     params_model: type[BaseModel]
     # Objective-only rules (preferences, balance, stability…) cannot be hard.
     soft_only: bool = False
-    # Findings compare resources across the whole scope (balance, fairness), so a local check
-    # must see everything in scope.
+    # Findings compare resources across the whole scope (balance, fairness) or depend on every
+    # activity a resource could take (day_distribution's usable days), so a local check must
+    # see everything in scope.
     whole_scope: bool = False
     references: Callable[[BaseModel], References] = field(default=_no_references)
     encode: Encoder | None = None

@@ -20,6 +20,18 @@ from cartlyf_engine.domain import AttributePredicate, AttrScalar, Key, Tag
 
 ActivityAttrs = dict[Key, AttrScalar]
 
+# Stamped on coverage activities at expansion; demand attrs may not shadow them.
+GENERATED_ATTRS = ("slot", "weekday")
+
+
+def _no_generated_attrs(attrs: ActivityAttrs) -> ActivityAttrs:
+    if reserved := [k for k in GENERATED_ATTRS if k in attrs]:
+        raise ValueError(f"attrs {', '.join(reserved)} are set by the system")
+    return attrs
+
+
+CoverageAttrs = Annotated[ActivityAttrs, AfterValidator(_no_generated_attrs)]
+
 
 class RequirementSpec(BaseModel):
     """What one activity needs for one role; a role's resources must match all filters."""
@@ -85,7 +97,7 @@ class CoverageDemandSpec(BaseModel):
     kind: Literal["coverage"]
     slot_labels: SlotLabels | None = None
     requirements: Requirements
-    attrs: ActivityAttrs = Field(default_factory=dict[str, AttrScalar])
+    attrs: CoverageAttrs = Field(default_factory=dict[str, AttrScalar])
 
 
 DemandSpec = Annotated[SessionDemandSpec | CoverageDemandSpec, Field(discriminator="kind")]

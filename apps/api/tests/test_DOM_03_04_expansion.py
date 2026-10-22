@@ -156,3 +156,24 @@ def test_coverage_keys_name_the_date_and_slot() -> None:
     drafts = expand_demand("Ward", coverage(), SHIFTS, ONE_WEEK)
     assert drafts[0].key == "2027-01-11|day"
     assert len({d.key for d in drafts}) == len(drafts)
+
+
+def test_coverage_activities_get_slot_and_weekday() -> None:
+    day = [SHIFTS[0]]
+    week = horizon_for(date(2027, 1, 11), date(2027, 1, 17), "Africa/Kampala")
+    drafts = expand_demand("Ward", coverage(attrs={"ward": "A"}), day, week)
+    assert len(drafts) == 7
+    assert [d.attrs["weekday"] for d in drafts] == [1, 2, 3, 4, 5, 6, 7]
+    assert all(d.attrs["slot"] == "day" and d.attrs["ward"] == "A" for d in drafts)
+
+
+def test_coverage_night_shift_takes_its_start_weekday() -> None:
+    week = horizon_for(date(2027, 1, 11), date(2027, 1, 17), "Africa/Kampala")
+    drafts = expand_demand("Ward", coverage(slot_labels=["night"]), SHIFTS, week)
+    friday = next(d for d in drafts if d.key == "2027-01-15|night")
+    assert friday.attrs["weekday"] == 5
+
+
+def test_session_activities_get_no_generated_attrs() -> None:
+    drafts = expand_demand("Calculus", session(sessions_per_week=2), PERIODS, ONE_WEEK)
+    assert all("slot" not in d.attrs and "weekday" not in d.attrs for d in drafts)

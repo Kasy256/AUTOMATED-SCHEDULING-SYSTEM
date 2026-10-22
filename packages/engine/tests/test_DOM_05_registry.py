@@ -97,7 +97,11 @@ def test_DOM_05_every_template_has_a_valid_example() -> None:
         "preference": {"source": "calendar"},
         "minimize_gaps": {"per_minutes": 30},
         "balance": {"measure": "minutes"},
-        "fairness": {"activity_filter": {"series_ids": ["s1"]}, "lookback_days": 90},
+        "fairness": {
+            "counter": "nights",
+            "activity_filter": {"series_ids": ["s1"]},
+            "lookback_days": 90,
+        },
         "day_distribution": {},
         "stability": {"per_change": 10, "per_resource_change": 5},
     }
@@ -130,7 +134,7 @@ def test_DOM_05_templates_declare_the_ids_their_params_reference() -> None:
         "pairs": [{"resource_id": "r1", "series_id": "s1", "mode": "avoid"}],
     }
     assert refs("preference", explicit) == ({"s1"}, {"r1"})
-    nights = {"activity_filter": {"series_ids": ["s9"]}, "lookback_days": 30}
+    nights = {"counter": "nights", "activity_filter": {"series_ids": ["s9"]}, "lookback_days": 30}
     assert refs("fairness", nights) == ({"s9"}, set())
     assert refs(
         "max_consecutive", {"unit": "days", "max": 5, "activity_filter": {"series_ids": ["s8"]}}
@@ -139,7 +143,7 @@ def test_DOM_05_templates_declare_the_ids_their_params_reference() -> None:
 
 
 def test_RUL_every_phase_03_template_is_wired() -> None:
-    later = {"fairness"}  # Phase 08
+    later: set[str] = set()
     for spec in REGISTRY.values():
         wired = spec.encode is not None and spec.check is not None and spec.explain is not None
         assert wired == (spec.key not in later), spec.key

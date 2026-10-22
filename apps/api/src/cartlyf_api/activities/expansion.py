@@ -1,8 +1,13 @@
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import date, datetime, timedelta
 
-from cartlyf_api.activities.schemas import CoverageDemandSpec, RequirementSpec, SessionDemandSpec
+from cartlyf_api.activities.schemas import (
+    GENERATED_ATTRS,
+    CoverageDemandSpec,
+    RequirementSpec,
+    SessionDemandSpec,
+)
 from cartlyf_api.schedules.schemas import Slot
 from cartlyf_api.schedules.time_grid import Horizon, local_instant, week_windows
 from cartlyf_engine.domain import AttrScalar
@@ -28,6 +33,9 @@ def _named(base: str, suffix: str) -> str:
     return base[: MAX_NAME - len(suffix)] + suffix
 
 
+__all__ = ["GENERATED_ATTRS", "ActivityDraft", "ExpansionError", "expand_demand"]
+
+
 class ExpansionError(ValueError):
     def __init__(self, loc: tuple[str, ...], message: str) -> None:
         super().__init__(message)
@@ -43,9 +51,9 @@ def _selected(labels: Sequence[str] | None, slots: Sequence[Slot]) -> list[Slot]
     return [by_label[label] for label in dict.fromkeys(labels)]
 
 
-def _occurrences(slots: Sequence[Slot], horizon: Horizon) -> list[tuple[datetime, Slot, str]]:
+def _occurrences(slots: Sequence[Slot], horizon: Horizon) -> list[tuple[datetime, Slot, date]]:
     found = [
-        (local_instant(day, slot.start_minute, horizon.timezone), slot, day.isoformat())
+        (local_instant(day, slot.start_minute, horizon.timezone), slot, day)
         for day in horizon.days()
         for slot in slots
         if day.weekday() in slot.weekdays
@@ -65,12 +73,12 @@ def expand_demand(
     if isinstance(spec, CoverageDemandSpec):
         return [
             ActivityDraft(
-                f"{day}|{slot.label}",
-                _named(name, f" {day} {slot.label}"),
+                f"{day.isoformat()}|{slot.label}",
+                _named(name, f" {day.isoformat()} {slot.label}"),
                 slot.duration_minutes,
                 (start,),
                 requirements,
-                spec.attrs,
+                {**spec.attrs, "slot": slot.label, "weekday": day.isoweekday()},
             )
             for start, slot, day in occurrences
         ]

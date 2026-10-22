@@ -172,6 +172,7 @@ class CoverageGap(BaseModel):
     role: str
     required_min: int
     assigned: int
+    starts_at: datetime
 
 
 class FairnessSpread(BaseModel):
