@@ -125,7 +125,7 @@ describe("DemandDialog", () => {
             return Promise.resolve(jsonResponse(slotTemplates));
           if (url.includes("resource-types"))
             return Promise.resolve(jsonResponse(types));
-          if (/\/schedules\/s1$/.test(url))
+          if (url.endsWith("/schedules/s1"))
             return Promise.resolve(
               jsonResponse({ id: "s1", name: "Ward", requirement_defaults }),
             );
