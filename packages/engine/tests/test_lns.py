@@ -149,3 +149,23 @@ def test_lns_sub_solves_never_call_a_feasible_model_infeasible() -> None:
     model.proto.parse_text_format(FALSE_INFEASIBLE.read_text(encoding="utf-8"))  # pyright: ignore[reportUnknownMemberType]
     for seed in range(40):
         assert sub_solver(seed).solve(model) != cp_model.INFEASIBLE, seed
+
+
+def test_lns_without_resources_returns_the_start() -> None:
+    p = problem([], [act("a", 60, [0], needs(hard=False, weight=5))], days=1)
+    start = construct(p)
+    compiled = compile_problem(p)
+    for seed in range(5):
+        options = SolveOptions(time_limit_s=10, seed=seed, num_workers=1)
+        result, _ = improve(p, compiled, Incumbent(start, check(p, start), None), options, 10)
+        assert result.assignments == start
+
+
+def test_lns_returns_the_start_untouched_when_cancelled_or_out_of_budget() -> None:
+    p, start, _ = greedy()
+    compiled = compile_problem(p)
+    first = Incumbent(start, check(p, start), None)
+    cancelled, spent = improve(p, compiled, first, OPTIONS, 60, keep_going=lambda: False)
+    assert cancelled is first and spent == 0
+    broke, spent = improve(p, compiled, first, OPTIONS, 0)
+    assert broke is first and spent == 0

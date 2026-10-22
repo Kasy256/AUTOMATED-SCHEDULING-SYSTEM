@@ -36,6 +36,7 @@ _GUIDED_SHARE = 0.9
 # supported machine (ADR 0015); a faster one only ends the loop a little early.
 _LITERAL_S = 1e-5
 _CHECK_ACTIVITY_S = 3e-4
+_MIN_ITERATION_S = 0.05
 
 
 @dataclass(frozen=True)
@@ -75,6 +76,8 @@ def improve(
     """The best incumbent found and the wall time charged for it: CP-SAT's own plus the loop's
     Python work (see `_LITERAL_S`); never worse than `start`. Pinned activities are never
     freed."""
+    if wall_budget_s <= _MIN_ITERATION_S or not keep_going():
+        return start, 0.0
     rng = random.Random(options.seed)
     index = ProblemIndex(problem)
     best = start
@@ -96,7 +99,7 @@ def improve(
             best.score.soft_total > 0
             and stalled < _STALL_LIMIT
             and spent_det < det_budget
-            and wall_budget_s - fixed.charged > 0.05
+            and wall_budget_s - fixed.charged > _MIN_ITERATION_S
             and keep_going()
         ):
             by_days = iteration % 2 == 0 and len(problem.day_windows) > 1
@@ -218,6 +221,8 @@ def _resource_subset(
     for r in problem.resources:
         by_type.setdefault(r.type_key, []).append(r.id)
     pools = [ids for ids in by_type.values() if len(ids) > 1] or list(by_type.values())
+    if not pools:
+        return set(), set()
     pool = pools[rng.randrange(len(pools))]
     chosen = set(rng.sample(pool, min(count, len(pool))))
     freed = {
