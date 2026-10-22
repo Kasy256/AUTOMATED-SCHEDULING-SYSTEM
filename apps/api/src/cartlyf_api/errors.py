@@ -7,6 +7,7 @@ from fastapi import FastAPI, Request
 from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
+from sqlalchemy.exc import DBAPIError
 from starlette.exceptions import HTTPException
 
 from cartlyf_api.log_config import redact_feed_tokens
@@ -144,6 +145,18 @@ async def _validation_error(_: Request, exc: Exception) -> JSONResponse:
     return problem(422, "Unprocessable Content", errors=errors)
 
 
+# Postgres refuses NUL in text (22021) and in jsonb (22P05); that is the client's input, not a bug.
+_UNSTORABLE_TEXT = {"22021", "22P05"}
+
+
+async def _database_error(request: Request, exc: Exception) -> JSONResponse:
+    assert isinstance(exc, DBAPIError)
+    if getattr(exc.orig, "sqlstate", None) in _UNSTORABLE_TEXT:
+        msg = "Text must not contain NUL characters"
+        return problem(422, "Unprocessable Content", errors=[field_error(("body",), msg)])
+    return await _unhandled_error(request, exc)
+
+
 async def _unhandled_error(request: Request, exc: Exception) -> JSONResponse:
     log.error("unhandled_error", path=redact_feed_tokens(request.url.path), exc_info=exc)
     return problem(500, "Internal Server Error")
@@ -153,4 +166,5 @@ def install_error_handlers(app: FastAPI) -> None:
     app.add_exception_handler(HTTPException, _http_error)
     app.add_exception_handler(RequestValidationError, _validation_error)
     app.add_exception_handler(DomainError, _domain_error)
+    app.add_exception_handler(DBAPIError, _database_error)
     app.add_exception_handler(Exception, _unhandled_error)
