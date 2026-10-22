@@ -20,4 +20,6 @@ COPY apps/api/migrations apps/api/migrations
 ENV PATH="/app/.venv/bin:$PATH" PYTHONUNBUFFERED=1
 USER 10001
 EXPOSE 8000
-CMD ["uvicorn", "cartlyf_api.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000"]
+# Access lines come from RequestLog as JSON. Client IPs (rate limits) come from X-Forwarded-For,
+# trusted only from FORWARDED_ALLOW_IPS (the platform proxy's range; uvicorn's default is 127.0.0.1).
+CMD ["uvicorn", "cartlyf_api.main:create_app", "--factory", "--host", "0.0.0.0", "--port", "8000",      "--no-access-log", "--proxy-headers"]

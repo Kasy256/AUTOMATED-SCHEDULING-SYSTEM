@@ -22,6 +22,7 @@ from cartlyf_api.orgs.router import router as orgs_router
 from cartlyf_api.platform.router import router as platform_router
 from cartlyf_api.problems.router import router as problems_router
 from cartlyf_api.redis_client import connect_redis
+from cartlyf_api.request_log import RequestLog
 from cartlyf_api.resources.router import router as resources_router
 from cartlyf_api.schedules.router import router as schedules_router
 from cartlyf_api.sentry import init_sentry
@@ -94,6 +95,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     )
     install_error_handlers(app)
     app.add_middleware(WebOriginCors)
+    app.add_middleware(RequestLog)
     app.include_router(health_router, prefix="/api/v1")
     app.include_router(auth_router, prefix="/api/v1")
     app.include_router(orgs_router, prefix="/api/v1")
