@@ -10,7 +10,7 @@ from cartlyf_api.activities.router import router as activities_router
 from cartlyf_api.auth.router import router as auth_router
 from cartlyf_api.constraints.router import router as constraints_router
 from cartlyf_api.db import create_db_engine
-from cartlyf_api.email.provider import ConsoleEmailProvider
+from cartlyf_api.email.provider import make_email_provider
 from cartlyf_api.errors import install_error_handlers
 from cartlyf_api.feeds.router import router as feeds_router
 from cartlyf_api.health.router import router as health_router
@@ -77,7 +77,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
         app.state.settings = resolved
         app.state.db_engine = create_db_engine(resolved)
         app.state.redis = connect_redis(str(resolved.redis_url), resolved.db_timeout_seconds)
-        app.state.email_provider = ConsoleEmailProvider()
+        app.state.email_provider = make_email_provider(resolved)
         app.state.object_store = S3ObjectStore(resolved)
         app.state.broker = make_broker(str(resolved.redis_url), resolved.db_timeout_seconds)
         app.state.solve_notifier = SolveNotifier(asyncpg_connector(resolved))
