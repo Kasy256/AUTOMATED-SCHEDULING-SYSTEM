@@ -118,11 +118,12 @@ def sick_call() -> tuple[Problem, str]:
         for r in ids
     }
     sick = next(r.id for r in staff_group(problem, "RN") if r.id in on_sick_day)
+    starts = {a.activity_id: a.start for a in baseline}
     pins = {a.activity_id: Pin(start=a.start, resources=a.resources) for a in baseline}
     data = problem.model_dump()
     data["baseline"] = baseline
     data["activities"] = [
-        {**a.model_dump(), "pinned": pins[a.id] if a.candidate_starts[0] < day.start else None}
+        {**a.model_dump(), "pinned": pins[a.id] if starts[a.id] < day.start else None}
         for a in by_id.values()
     ]
     data["resources"] = [
