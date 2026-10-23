@@ -8,8 +8,11 @@ import "./index.css";
 import { Toaster } from "@/components/ui/sonner";
 import { AuthProvider } from "@/lib/auth/AuthProvider";
 import { isApiError } from "@/lib/problem";
+import { initSentry } from "@/lib/sentry";
 
 import { App } from "./App";
+
+initSentry();
 
 const root = document.getElementById("root");
 if (!root) throw new Error("Missing #root element in index.html");
