@@ -69,6 +69,24 @@ projects:
             envVars:
               - key: CARTLYF_MIGRATION_DATABASE_URL
                 sync: false
+          # Re-sends emails whose delivery failed (outbox sweep), as cartlyf_app.
+          - name: cartlyf-email-retry-staging
+            type: cron
+            runtime: docker
+            region: frankfurt
+            plan: 0.5c-512mb
+            schedule: "*/10 * * * *"
+            dockerfilePath: ./apps/api/Dockerfile
+            dockerContext: .
+            dockerCommand: python -m cartlyf_api.email.redeliver
+            autoDeployTrigger: "off"
+            envVars:
+              - fromGroup: cartlyf-staging
+              - key: CARTLYF_REDIS_URL
+                fromService:
+                  type: keyvalue
+                  name: cartlyf-queue-staging
+                  property: connectionString
           - name: cartlyf-queue-staging
             type: keyvalue
             region: frankfurt
@@ -172,6 +190,24 @@ projects:
             envVars:
               - key: CARTLYF_MIGRATION_DATABASE_URL
                 sync: false
+          # Re-sends emails whose delivery failed (outbox sweep), as cartlyf_app.
+          - name: cartlyf-email-retry
+            type: cron
+            runtime: docker
+            region: frankfurt
+            plan: 0.5c-512mb
+            schedule: "*/10 * * * *"
+            dockerfilePath: ./apps/api/Dockerfile
+            dockerContext: .
+            dockerCommand: python -m cartlyf_api.email.redeliver
+            autoDeployTrigger: "off"
+            envVars:
+              - fromGroup: cartlyf-production
+              - key: CARTLYF_REDIS_URL
+                fromService:
+                  type: keyvalue
+                  name: cartlyf-queue
+                  property: connectionString
           - name: cartlyf-queue
             type: keyvalue
             region: frankfurt

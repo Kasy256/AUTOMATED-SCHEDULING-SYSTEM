@@ -139,6 +139,7 @@ jobs:
   # Each GitHub environment (staging, production) needs:
   #   secrets: RENDER_API_KEY, CLOUDFLARE_API_TOKEN (Pages: Edit)
   #   vars:    RENDER_MIGRATE_SERVICE_ID, RENDER_WORKER_SERVICE_ID, RENDER_API_SERVICE_ID,
+  #            RENDER_EMAIL_RETRY_SERVICE_ID,
   #            CLOUDFLARE_ACCOUNT_ID, PAGES_PROJECT, PAGES_BRANCH (main for production),
   #            API_URL (https://api[-staging].<domain>), WEB_URL (https://app[-staging].<domain>),
   #            VITE_SENTRY_DSN (the web project's public DSN)
@@ -167,6 +168,8 @@ jobs:
         run: python3 tools/render_deploy.py deploy "${{ vars.RENDER_WORKER_SERVICE_ID }}" "$SHA"
       - name: Deploy the API
         run: python3 tools/render_deploy.py deploy "${{ vars.RENDER_API_SERVICE_ID }}" "$SHA"
+      - name: Deploy the email re-delivery cron
+        run: python3 tools/render_deploy.py deploy "${{ vars.RENDER_EMAIL_RETRY_SERVICE_ID }}" "$SHA"
 
       - uses: astral-sh/setup-uv@v10.3.0
         with:
