@@ -48,7 +48,7 @@ venv = ".venv"
 
 [tool.pytest.ini_options]
 testpaths = ["packages/engine/tests", "apps/api/tests", "tools"]
-pythonpath = ["apps/api/tests", "packages/engine/tests"]
+pythonpath = [".", "apps/api/tests", "packages/engine/tests"]
 addopts = "--import-mode=importlib -m 'not benchmark'"
 markers = [
   "integration: needs Docker (Testcontainers)",

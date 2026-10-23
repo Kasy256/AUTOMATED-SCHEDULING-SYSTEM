@@ -104,10 +104,10 @@ def _demand(
     assert response.status_code == 201, response.text
 
 
-def build_roster(client: TestClient, seed: int = 8) -> BuiltRoster:
+def build_roster(client: TestClient, seed: int = 8, admin: Account | None = None) -> BuiltRoster:
     app = client.app
     assert isinstance(app, FastAPI)
-    admin = signup_and_confirm(client, app)
+    admin = admin or signup_and_confirm(client, app)
     applied = client.post(
         "/api/v1/schedules/from-template",
         headers=admin.auth,

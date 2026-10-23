@@ -90,10 +90,10 @@ def _hhmm(text: str) -> int:
     return int(hours) * 60 + int(minutes)
 
 
-def build_term1(client: TestClient) -> BuiltTerm1:
+def build_term1(client: TestClient, admin: Account | None = None) -> BuiltTerm1:
     app = client.app
     assert isinstance(app, FastAPI)
-    admin = signup_and_confirm(client, app)
+    admin = admin or signup_and_confirm(client, app)
     template = load_packaged("education")
     applied = client.post(
         "/api/v1/schedules/from-template",
