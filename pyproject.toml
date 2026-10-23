@@ -24,6 +24,7 @@ dev = [
   "pip-audit",
   "httpx2",
   "testcontainers[minio,postgres,redis]",
+  "locust==2.46.7",
 ]
 
 [tool.ruff]
