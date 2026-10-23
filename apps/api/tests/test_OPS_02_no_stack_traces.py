@@ -23,19 +23,22 @@ from support import (
 LEAKS = ("Traceback", 'File "', "sqlalchemy", "asyncpg", "pydantic_core", "psycopg")
 BAD_IDS = ("not-a-uuid", "00000000-0000-0000-0000-000000000000", "9" * 5000)
 HOSTILE = "\u0000'\";--"
+# Valid text that reaches the database and comes back out; long enough to overflow a btree index.
+QUOTED = "'\";--<script>"
+LONG = "x" * 10_000
 
 
-def _hostile(value: object, ints: bool = True) -> object:
+def _hostile(value: object, ints: bool = True, text: str = HOSTILE) -> object:
     if isinstance(value, bool):
         return value
     if isinstance(value, str):
-        return HOSTILE
+        return text
     if isinstance(value, int) and ints:
         return 2**63
     if isinstance(value, list):
-        return [_hostile(v, ints) for v in cast(list[object], value)]
+        return [_hostile(v, ints, text) for v in cast(list[object], value)]
     if isinstance(value, dict):
-        return {k: _hostile(v, ints) for k, v in cast(dict[str, object], value).items()}
+        return {k: _hostile(v, ints, text) for k, v in cast(dict[str, object], value).items()}
     return value
 
 
@@ -47,6 +50,7 @@ def _bodies(op: Operation, ids: dict[str, str]) -> list[object]:
         example = substitute_ids(op.body, ids)
         # Hostile strings with valid numbers, so strings get past validation to the database.
         bodies += [_hostile(example), _hostile(example, ints=False)]
+        bodies += [_hostile(example, ints=False, text=t) for t in (QUOTED, LONG)]
     return bodies
 
 
