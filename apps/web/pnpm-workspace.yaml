@@ -1,3 +1,6 @@
 # esbuild ships its binary via optional platform packages; its postinstall check is not needed.
 allowBuilds:
   esbuild: false
+# GHSA-rxp7-6hxx-x8q5, reached only through orval's dev-time MCP server.
+overrides:
+  ip-address: ">=10.7.4"
