@@ -1,8 +1,6 @@
-# Locust's response and event hooks are only partly typed; nothing else here is relaxed.
-# pyright: reportUnknownMemberType=false
 """OPS-04: 50 planners on the board + 5 concurrent solves.
 
-    CARTLYF_ACCOUNTS=accounts.json uv run locust -f tools/loadtest/locustfile.py \
+    CARTLYF_ACCOUNTS=accounts.json uv run --group load locust -f tools/loadtest/locustfile.py \
         --host https://api-staging.<domain> --headless -u 55 -r 5 -t 10m --csv out/ops04
 
 accounts.json comes from tools/seed_demo.py with at least 5 load orgs. Planners share one token

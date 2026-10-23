@@ -203,12 +203,14 @@ dev = [
     { name = "httpx2" },
     { name = "hypothesis" },
     { name = "import-linter" },
-    { name = "locust" },
     { name = "pip-audit" },
     { name = "pyright" },
     { name = "pytest" },
     { name = "ruff" },
     { name = "testcontainers", extra = ["minio", "redis"] },
+]
+load = [
+    { name = "locust" },
 ]
 
 [package.metadata]
@@ -222,13 +224,13 @@ dev = [
     { name = "httpx2" },
     { name = "hypothesis" },
     { name = "import-linter" },
-    { name = "locust", specifier = "==2.46.7" },
     { name = "pip-audit" },
     { name = "pyright" },
     { name = "pytest" },
     { name = "ruff" },
     { name = "testcontainers", extras = ["minio", "postgres", "redis"] },
 ]
+load = [{ name = "locust", specifier = "==2.46.7" }]
 
 [[package]]
 name = "cartlyf-api"
