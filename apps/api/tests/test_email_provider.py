@@ -23,6 +23,7 @@ MESSAGE = EmailMessage("a@x.test", "S", "B")
 class FakeResend:
     url: str
     status: int = 200
+    statuses: list[int] = field(default_factory=list[int])  # answered first, in order
     requests: list[tuple[str, dict[str, str], object]] = field(
         default_factory=list[tuple[str, dict[str, str], object]]
     )
@@ -36,7 +37,7 @@ def resend() -> Iterator[FakeResend]:
         def do_POST(self) -> None:
             body = json.loads(self.rfile.read(int(self.headers["Content-Length"])))
             fake.requests.append((self.path, dict(self.headers.items()), body))
-            self.send_response(fake.status)
+            self.send_response(fake.statuses.pop(0) if fake.statuses else fake.status)
             self.send_header("Content-Type", "application/json")
             self.end_headers()
             self.wfile.write(b'{"id": "1"}')
@@ -90,3 +91,27 @@ def test_make_email_provider_picks_by_setting() -> None:
         url, "redis://h/0", email_provider="resend", resend_api_key="k", email_from="n@x.test"
     )
     assert isinstance(make_email_provider(resend), ResendEmailProvider)
+
+
+@pytest.mark.parametrize("transient", [429, 500, 503])
+def test_resend_retries_transient_failures(resend: FakeResend, transient: int) -> None:
+    resend.statuses = [transient, transient]
+    provider = ResendEmailProvider(resend.url, "k", "n@x.test", retry_delays_s=(0, 0))
+    asyncio.run(provider.send(MESSAGE))
+    assert len(resend.requests) == 3
+
+
+def test_resend_gives_up_after_the_last_retry(resend: FakeResend) -> None:
+    resend.status = 429
+    provider = ResendEmailProvider(resend.url, "k", "n@x.test", retry_delays_s=(0, 0))
+    with pytest.raises(EmailDeliveryError, match="429"):
+        asyncio.run(provider.send(MESSAGE))
+    assert len(resend.requests) == 3
+
+
+def test_resend_does_not_retry_a_rejected_message(resend: FakeResend) -> None:
+    resend.status = 422
+    provider = ResendEmailProvider(resend.url, "k", "n@x.test", retry_delays_s=(0, 0))
+    with pytest.raises(EmailDeliveryError):
+        asyncio.run(provider.send(MESSAGE))
+    assert len(resend.requests) == 1

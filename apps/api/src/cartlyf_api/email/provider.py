@@ -1,5 +1,6 @@
 import asyncio
 import json
+import time
 import urllib.error
 import urllib.request
 from dataclasses import dataclass
@@ -38,16 +39,40 @@ class EmailDeliveryError(Exception):
     pass
 
 
+class _Transient(Exception):
+    pass
+
+
 class ResendEmailProvider:
     """Sends through Resend's HTTPS API (https://resend.com/docs/api-reference/emails)."""
 
-    def __init__(self, api_url: str, api_key: str, sender: str) -> None:
+    def __init__(
+        self,
+        api_url: str,
+        api_key: str,
+        sender: str,
+        retry_delays_s: tuple[float, ...] = (1, 4),
+    ) -> None:
         self._endpoint = api_url.rstrip("/") + "/emails"
         self._api_key = api_key
         self._sender = sender
+        self._retry_delays_s = retry_delays_s
 
     async def send(self, message: EmailMessage) -> None:
-        await asyncio.to_thread(self._post, message)
+        await asyncio.to_thread(self._send_with_retries, message)
+
+    def _send_with_retries(self, message: EmailMessage) -> None:
+        # Rate limits (429) and outages (5xx) pass; a publish notifies many people back to back.
+        for delay in self._retry_delays_s:
+            try:
+                self._post(message)
+                return
+            except _Transient:
+                time.sleep(delay)
+        try:
+            self._post(message)
+        except _Transient as exc:
+            raise EmailDeliveryError(str(exc)) from None
 
     def _post(self, message: EmailMessage) -> None:
         payload = {
@@ -70,6 +95,8 @@ class ResendEmailProvider:
             with urllib.request.urlopen(request, timeout=10):
                 pass
         except urllib.error.HTTPError as exc:
+            if exc.code == 429 or exc.code >= 500:
+                raise _Transient(f"Resend answered {exc.code}") from None
             raise EmailDeliveryError(f"Resend answered {exc.code}") from None
         except (urllib.error.URLError, TimeoutError) as exc:
             raise EmailDeliveryError(f"Resend unreachable: {type(exc).__name__}") from None
