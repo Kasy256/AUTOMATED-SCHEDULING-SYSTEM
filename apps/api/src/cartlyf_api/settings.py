@@ -55,6 +55,8 @@ class Settings(BaseSettings):
     resend_api_key: SecretStr | None = None
     resend_api_url: AnyHttpUrl = AnyHttpUrl("https://api.resend.com")
     email_from: str | None = None
+    # Total sends tried per email (first delivery + re-delivery sweeps) before giving up.
+    email_max_attempts: int = Field(default=5, ge=1)
     # Set by Render on every service; there the process is never local dev, whatever else is set.
     on_render: bool = Field(default=False, validation_alias="RENDER")
 
