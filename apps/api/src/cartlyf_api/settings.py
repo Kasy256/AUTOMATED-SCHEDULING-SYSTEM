@@ -55,6 +55,8 @@ class Settings(BaseSettings):
     resend_api_key: SecretStr | None = None
     resend_api_url: AnyHttpUrl = AnyHttpUrl("https://api.resend.com")
     email_from: str | None = None
+    # Set by Render on every service; there the process is never local dev, whatever else is set.
+    on_render: bool = Field(default=False, validation_alias="RENDER")
 
     @property
     def deployed(self) -> bool:
@@ -65,6 +67,8 @@ class Settings(BaseSettings):
         problems: list[str] = []
         if self.email_provider == "resend":
             problems += [f"{f} is required for resend" for f in self._missing_resend()]
+        if self.on_render and not self.deployed:
+            problems.append("environment must be staging or production on Render")
         if self.deployed:
             problems += [f"{f} is unsafe outside local dev" for f in self._unsafe_when_deployed()]
         if problems:

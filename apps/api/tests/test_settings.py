@@ -116,3 +116,13 @@ def test_release_falls_back_to_render_commit(monkeypatch: pytest.MonkeyPatch) ->
     assert load_settings(env_file=str(EXAMPLE_ENV)).release == "abc123"
     monkeypatch.setenv("CARTLYF_RELEASE", "v1")
     assert load_settings(env_file=str(EXAMPLE_ENV)).release == "v1"
+
+
+def test_render_host_without_deployed_environment_refuses_to_start(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    # Render sets RENDER=true; a missing CARTLYF_ENVIRONMENT must not mean "local dev" there.
+    monkeypatch.delenv("CARTLYF_ENVIRONMENT", raising=False)
+    monkeypatch.setenv("RENDER", "true")
+    with pytest.raises(ValidationError, match="environment"):
+        load_settings(env_file=str(EXAMPLE_ENV))
