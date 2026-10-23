@@ -1,5 +1,5 @@
 # Render Blueprint: one project, a staging and a production environment, all in Frankfurt.
-# Deploys are triggered by CI (.github/workflows/deploy.yml), never by Render on push.
+# Deploys are triggered by CI (the `deploy` job in .github/workflows/ci.yml), never by Render on push.
 # Plans are placeholders to confirm against cost before creating the Blueprint.
 #
 # After creating it, once per environment (see docs: apps/api/db/README.md):
@@ -55,13 +55,13 @@ projects:
                   name: cartlyf-queue-staging
                   property: connectionString
           # Holds the only copy of the owner URL. CI deploys it, then runs `alembic upgrade head`
-          # as a one-off job on it before the API and worker deploy. The schedule is never due.
+          # as a one-off job on it before the API and worker deploy. 31 February never comes.
           - name: cartlyf-migrate-staging
             type: cron
             runtime: docker
             region: frankfurt
             plan: 0.5c-512mb
-            schedule: "0 0 1 1 *"
+            schedule: "0 0 31 2 *"
             dockerfilePath: ./apps/api/Dockerfile
             dockerContext: .
             dockerCommand: alembic -c apps/api/alembic.ini upgrade head
@@ -164,7 +164,7 @@ projects:
             runtime: docker
             region: frankfurt
             plan: 0.5c-512mb
-            schedule: "0 0 1 1 *"
+            schedule: "0 0 31 2 *"
             dockerfilePath: ./apps/api/Dockerfile
             dockerContext: .
             dockerCommand: alembic -c apps/api/alembic.ini upgrade head
