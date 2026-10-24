@@ -18,7 +18,8 @@ from tools.metrics import (
 
 REPO = Path(__file__).resolve().parents[1]
 PROBLEM = REPO / "packages/engine/tests/fixtures/isbat/v1/term1_problem.json"
-LEGACY = REPO / "ISBAT-TIMETABLE-BACKEND/TIMETABLE_TERM1_COMPLETE.csv"
+# The legacy system's own Term 1 output, kept for the EDU-06 comparison.
+LEGACY = REPO / "packages/engine/tests/fixtures/isbat/legacy/TIMETABLE_TERM1_COMPLETE.csv"
 OUT = REPO / "docs/benchmarks/isbat_term1.md"
 
 

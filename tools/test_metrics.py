@@ -12,7 +12,8 @@ from tools.metrics import (
 )
 
 LEGACY_CSV = (
-    Path(__file__).resolve().parents[1] / "ISBAT-TIMETABLE-BACKEND/TIMETABLE_TERM1_COMPLETE.csv"
+    Path(__file__).resolve().parents[1]
+    / "packages/engine/tests/fixtures/isbat/legacy/TIMETABLE_TERM1_COMPLETE.csv"
 )
 
 
