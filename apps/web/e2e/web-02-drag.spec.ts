@@ -1,7 +1,7 @@
 import { expect, test, type Page } from "@playwright/test";
 
 import { signUpAndConfirm } from "./support/accounts";
-import { dropOn, firstItem, pickUp, solve } from "./support/board";
+import { dropOn, firstItem, pickUp, solve, visibleCell } from "./support/board";
 import { setUpIsbat } from "./support/isbat";
 
 test.describe.serial("planner board", () => {
@@ -29,8 +29,8 @@ test.describe.serial("planner board", () => {
   test("WEB-02: invalid drop explains, valid drop goes to the tray and saves a draft", async () => {
     const item = firstItem(page);
     await pickUp(page, item);
-    const invalid = page.locator('[data-check="invalid"]').first();
-    if (await invalid.count()) {
+    const invalid = await visibleCell(page, "invalid");
+    if (invalid) {
       await dropOn(page, invalid);
       await expect(page.getByText("Can't move here")).toBeVisible();
       await expect(
@@ -39,8 +39,9 @@ test.describe.serial("planner board", () => {
       await page.keyboard.press("Escape");
       await pickUp(page, item);
     }
-    const valid = page.locator('[data-check="valid"]').first();
-    await expect(valid).toBeAttached();
+    await expect(page.locator('[data-check="valid"]').first()).toBeAttached();
+    const valid = await visibleCell(page, "valid");
+    if (!valid) throw new Error("no valid target on screen");
     await dropOn(page, valid);
     const tray = page.getByRole("region", { name: "Unsaved changes" });
     await expect(tray).toContainText("1 unsaved change");
