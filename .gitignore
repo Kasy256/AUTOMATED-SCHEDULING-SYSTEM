@@ -56,3 +56,26 @@ full_gen.log
 full_gen2.log
 new_timetable_test.log
 
+
+# Local-only planning docs and AI tooling (never pushed)
+AGENTS.md
+CLAUDE.md
+CODING_STANDARDS.md
+docs/
+build_prompts/
+.claude/
+skills-lock.json
+
+# Cartlyf toolchain
+node_modules/
+coverage/
+.pytest_cache/
+.ruff_cache/
+playwright-report/
+test-results/
+*.tsbuildinfo
+.env*
+!.env.example
+apps/web/openapi.json
+apps/web/src/api/generated/
+.hypothesis/

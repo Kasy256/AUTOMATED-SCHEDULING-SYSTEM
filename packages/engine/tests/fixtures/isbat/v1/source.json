@@ -1,0 +1,18 @@
+{
+  "counts": {
+    "course_unit_rows": 73,
+    "groups": 12,
+    "lecturers": 23,
+    "rooms": 37,
+    "units": 73
+  },
+  "fixture_version": 1,
+  "sources": {
+    "app/services/canonical_courses.py": "ee91e1996745d569430b7a0a2241917b4d3d71f3a4b86f470a77162b61795ce3",
+    "seed_config_data.py": "73dc43fb7a1d141f9f71ac0858634b040307e508cb3515f72396b12b7842eb32",
+    "seed_courses_data.py": "9192808a8fa1db9f550a940e0b6d42531acc2f89ee409c1cbdd41cee4ce1265d",
+    "seed_lecturers_data.py": "f8098739d8e3de32e99510f7367dbf46a05f9079bde89e06b011cffe4e4b84ff",
+    "seed_programs_data.py": "ed9ec84224af7346ae9101aa19fd2e0a00256e5d38cb3bdd60892fe24bb8da3c",
+    "seed_rooms_data.py": "c4b0cb8dd3d3b3f5b8816429ff65c8d965a0d70dea69778a16ee40394adde60f"
+  }
+}

@@ -1,0 +1,74 @@
+group,unit,unit_name,subject,pair,term,room_type,weekly_minutes
+SG_BSCAIT_126_S1,BIT1101,Fundamentals of Computer and Office Applications - Theory,COMP_OFFICE_APP,BIT1101_GROUP,Term 2,Theory,240
+SG_BSCAIT_126_S1,BIT1102,Computer Organization and Architecture,COMP_ORG_ARCH,,Term 1,Lab,240
+SG_BSCAIT_126_S1,BIT1103,Programming in C - Theory,PROG_C,BIT1103_GROUP,Term 1,Theory,240
+SG_BSCAIT_126_S1,BIT1104,Soft Skills Development,SOFT_SKILLS,,Term 2,Theory,240
+SG_BSCAIT_126_S1,BIT1105,Foundation of Mathematics & Statistics,MATH_STATS_FOUNDATION,,Term 1,Theory,240
+SG_BSCAIT_126_S1,BIT1106,Fundamentals of Computer and Office Applications -- Practical,COMP_OFFICE_APP,BIT1101_GROUP,Term 2,Lab,240
+SG_BSCAIT_126_S1,BIT1107,Programming in C - Practical,PROG_C,BIT1103_GROUP,Term 1,Lab,240
+SG_BSCAIT_126_S2,BIT1208,Object Oriented Programming Using JAVA - Theory,OOP_JAVA,BIT1208_GROUP,Term 1,Theory,240
+SG_BSCAIT_126_S2,BIT1209,Fundamentals of Digital Systems,DIGITAL_SYSTEMS,,Term 2,Lab,240
+SG_BSCAIT_126_S2,BIT1210,Data Structures and Algorithms,DATA_STRUCTURES,,Term 1,Lab,240
+SG_BSCAIT_126_S2,BIT1211,Computer Hardware and Operating Systems,COMP_HARDWARE_OS,,Term 1,Lab,240
+SG_BSCAIT_126_S2,BIT1212,Database Management System - Theory,DATABASE_MGMT_SYSTEM,BIT1212_GROUP,Term 2,Theory,240
+SG_BSCAIT_126_S2,BIT1213,Object Oriented Programming Using JAVA – Practical,OOP_JAVA,BIT1208_GROUP,Term 1,Lab,240
+SG_BSCAIT_126_S2,BIT1214,Database Management System -Practical,DATABASE_MGMT_SYSTEM,BIT1212_GROUP,Term 2,Lab,240
+SG_BSCAIT_126_S3,BIT2115,Web Technology- Theory,WEB_TECH,BIT2115_GROUP,Term 1,Theory,240
+SG_BSCAIT_126_S3,BIT2116,Data Communication & Networking,DATA_COMM_NETWORKING,,Term 1,Lab,240
+SG_BSCAIT_126_S3,BIT2117,Software Engineering & Project Management,SOFTWARE_ENGINEERING,,Term 1,Theory,240
+SG_BSCAIT_126_S3,BIT2118,Linux Administration -Theory,LINUX_ADMIN,BIT2118_GROUP,Term 2,Theory,240
+SG_BSCAIT_126_S3,BIT2119,Graphics and Multimedia Systems,GRAPHICS_MULTIMEDIA,,Term 2,Lab,240
+SG_BSCAIT_126_S3,BIT2120,Web Technology- Practical,WEB_TECH,BIT2115_GROUP,Term 1,Lab,240
+SG_BSCAIT_126_S3,BIT2121,Linux Administration - Practical,LINUX_ADMIN,BIT2118_GROUP,Term 2,Lab,240
+SG_BSCAIT_126_S4,BIT2222,Python Programming-Theory,PYTHON_PROG,BIT2222_GROUP,Term 1,Theory,240
+SG_BSCAIT_126_S4,BIT2223,Artificial Intelligence,ARTIFICIAL_INTELLIGENCE,,Term 2,Lab,240
+SG_BSCAIT_126_S4,BIT2224,Internet of Things,IOT,,Term 1,Lab,240
+SG_BSCAIT_126_S4,BIT2225,Virtualization and Cloud Computing -Theory,VIRTUALIZATION_CLOUD,BIT2225_GROUP,Term 2,Theory,240
+SG_BSCAIT_126_S4,BIT2226,DEVOPS,DEVOPS,,Term 1,Lab,240
+SG_BSCAIT_126_S4,BIT2227,Python Programming-Practical,PYTHON_PROG,BIT2222_GROUP,Term 1,Lab,240
+SG_BSCAIT_126_S4,BIT2228,Virtualization and Cloud Computing - Practical,VIRTUALIZATION_CLOUD,BIT2225_GROUP,Term 2,Lab,240
+SG_BSCAIT_126_S5,BIT3129,Programming in ASP.NET Core Using C# - Theory,ASP_NET,BIT3129_GROUP,Term 1,Theory,240
+SG_BSCAIT_126_S5,BIT3130,Business Intelligence and Analytics,BUSINESS_INTELLIGENCE,,Term 2,Lab,240
+SG_BSCAIT_126_S5,BIT3131,Mobile Application Development Using Android Technology - Theory,MOBILE_APP_DEV,BIT3131_GROUP,Term 2,Theory,240
+SG_BSCAIT_126_S5,BIT3132,Web and Database Security,WEB_DATABASE_SECURITY,,Term 1,Lab,240
+SG_BSCAIT_126_S5,BIT3133,Programming in ASP.NET Core Using C# - Practical,ASP_NET,BIT3129_GROUP,Term 1,Lab,240
+SG_BSCAIT_126_S5,BIT3134,Mobile Application Development Using Android Technology - Practical,MOBILE_APP_DEV,BIT3131_GROUP,Term 2,Lab,240
+SG_BSCAIT_126_S5,BIT3135,Research Paper,RESEARCH_PAPER,,Term 1,Theory,240
+SG_BSCAIT_126_S6,BIT3236,Green Computing,GREEN_COMPUTING,,Term 2,Theory,240
+SG_BSCAIT_126_S6,BIT3237,Technological Entrepreneurship,TECH_ENTREPRENEURSHIP,,Term 2,Theory,240
+SG_BSCAIT_126_S6,BIT3238,Digital Marketing,DIGITAL_MARKETING,,Term 1,Theory,240
+SG_BSCAIT_126_S6,BIT3239,Project,PROJECT,,Term 1,Lab,240
+SG_BCS_126_S1,BCS1101,Fundamentals of Computer and Office Applications - Theory,COMP_OFFICE_APP,,Term 2,Theory,240
+SG_BCS_126_S1,BCS1102,Computer Organization and Architecture,COMP_ORG_ARCH,,Term 1,Lab,240
+SG_BCS_126_S1,BCS1103,Programming in C - Theory,PROG_C,BCS1103_GROUP,Term 1,Theory,240
+SG_BCS_126_S1,BCS1104,Programming in C - Practical,PROG_C,BCS1103_GROUP,Term 1,Lab,240
+SG_BCS_126_S1,BCS1105,Soft Skills Development,SOFT_SKILLS,,Term 2,Theory,240
+SG_BCS_126_S1,BCS1106,Foundation of Mathematics & Statistics,MATH_STATS_FOUNDATION,,Term 1,Theory,240
+SG_BCS_126_S2,BCS1207,Fundamentals of Digital Systems,DIGITAL_SYSTEMS,,Term 2,Lab,240
+SG_BCS_126_S2,BCS1208,Object Oriented Programming Using Java - Theory,OOP_JAVA,BCS1208_GROUP,Term 1,Theory,240
+SG_BCS_126_S2,BCS1209,Object Oriented Programming Using JAVA – Practical,OOP_JAVA,BCS1208_GROUP,Term 1,Lab,240
+SG_BCS_126_S2,BCS1210,Data Structures and Algorithms,DATA_STRUCTURES,,Term 1,Lab,240
+SG_BCS_126_S2,BCS1211,Computer Hardware and Operating Systems,COMP_HARDWARE_OS,,Term 1,Lab,240
+SG_BCS_126_S2,BCS1212,Database Management System - Theory,DATABASE_MGMT_SYSTEM,,Term 2,Theory,240
+SG_BCS_126_S3,BCS2113,Introduction to Cyber Security,CYBER_SECURITY_INTRO,,Term 2,Lab,240
+SG_BCS_126_S3,BCS2114,Web Technology- Theory,WEB_TECH,BCS2114_GROUP,Term 1,Theory,240
+SG_BCS_126_S3,BCS2115,Web Technology- Practical,WEB_TECH,BCS2114_GROUP,Term 1,Lab,240
+SG_BCS_126_S3,BCS2116,Artificial Intelligence,ARTIFICIAL_INTELLIGENCE,,Term 2,Lab,240
+SG_BCS_126_S3,BCS2117,Graphics and Multimedia Systems,GRAPHICS_MULTIMEDIA,,Term 2,Lab,240
+SG_BCS_126_S3,BCS2118,Software Engineering & Project Management,SOFTWARE_ENGINEERING,,Term 1,Theory,240
+SG_BCS_126_S4,BCS2219,Theories of Computation,THEORIES_COMPUTATION,,Term 2,Theory,240
+SG_BCS_126_S4,BCS2220,Python Programming-Theory,PYTHON_PROG,BCS2220_GROUP,Term 1,Theory,240
+SG_BCS_126_S4,BCS2221,Python Programming-Practical,PYTHON_PROG,BCS2220_GROUP,Term 1,Lab,240
+SG_BCS_126_S4,BCS2222,Data Science Algorithms and Tools,DATA_SCIENCE,,Term 2,Lab,240
+SG_BCS_126_S4,BCS2223,Game Programming,GAME_PROGRAMMING,,Term 2,Lab,240
+SG_BCS_126_S4,BCS2224,DEVOPS,DEVOPS,,Term 1,Lab,240
+SG_BCS_126_S5,BCS3125,Programming in ASP.NET Core Using C# - Theory,ASP_NET,BCS3125_GROUP,Term 1,Theory,240
+SG_BCS_126_S5,BCS3126,Programming in ASP.NET Core Using C# - Practical,ASP_NET,BCS3125_GROUP,Term 1,Lab,240
+SG_BCS_126_S5,BCS3127,Compiler Design,COMPILER_DESIGN,,Term 2,Lab,240
+SG_BCS_126_S5,BCS3128,Machine Learning,MACHINE_LEARNING,,Term 2,Lab,240
+SG_BCS_126_S5,BCS3129,Mobile Application Development Using Android Technology - Theory,MOBILE_APP_DEV,,Term 2,Theory,240
+SG_BCS_126_S5,BCS3130,Research Paper,RESEARCH_PAPER,,Term 1,Theory,240
+SG_BCS_126_S6,BCS3231,New Product Development and Innovation,NEW_PRODUCT_DEV,,Term 2,Theory,240
+SG_BCS_126_S6,BCS3232,Virtualization and Cloud Computing -Theory,VIRTUALIZATION_CLOUD,,Term 2,Theory,240
+SG_BCS_126_S6,BCS3233,Digital Marketing,DIGITAL_MARKETING,,Term 1,Theory,240
+SG_BCS_126_S6,BCS3234,Project,PROJECT,,Term 1,Lab,240

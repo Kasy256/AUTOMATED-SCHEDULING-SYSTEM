@@ -1,0 +1,429 @@
+{
+  "constraints": [
+    {
+      "enabled": true,
+      "hard": true,
+      "name": "Room seats every student",
+      "params": {
+        "headcount_attr": null,
+        "headcount_from": "group_sizes"
+      },
+      "scope": {
+        "attrs": [],
+        "resource_type_keys": [],
+        "tags": []
+      },
+      "template_key": "capacity_fit",
+      "version": 1,
+      "weight": 0
+    },
+    {
+      "enabled": true,
+      "hard": true,
+      "name": "Lecturer: at most 2 sessions a day",
+      "params": {
+        "max_count": 2,
+        "max_minutes": null,
+        "period": "day",
+        "window": null
+      },
+      "scope": {
+        "attrs": [],
+        "resource_type_keys": [
+          "lecturer"
+        ],
+        "tags": []
+      },
+      "template_key": "max_load",
+      "version": 1,
+      "weight": 0
+    },
+    {
+      "enabled": true,
+      "hard": true,
+      "name": "Lecturer: at most 1 morning session",
+      "params": {
+        "max_count": 1,
+        "max_minutes": null,
+        "period": "day",
+        "window": "morning"
+      },
+      "scope": {
+        "attrs": [],
+        "resource_type_keys": [
+          "lecturer"
+        ],
+        "tags": []
+      },
+      "template_key": "max_load",
+      "version": 1,
+      "weight": 0
+    },
+    {
+      "enabled": true,
+      "hard": true,
+      "name": "Lecturer: at most 1 afternoon session",
+      "params": {
+        "max_count": 1,
+        "max_minutes": null,
+        "period": "day",
+        "window": "afternoon"
+      },
+      "scope": {
+        "attrs": [],
+        "resource_type_keys": [
+          "lecturer"
+        ],
+        "tags": []
+      },
+      "template_key": "max_load",
+      "version": 1,
+      "weight": 0
+    },
+    {
+      "enabled": true,
+      "hard": true,
+      "name": "Full-time lecturer: at most 22 hours a week",
+      "params": {
+        "max_count": null,
+        "max_minutes": 1320,
+        "period": "week",
+        "window": null
+      },
+      "scope": {
+        "attrs": [
+          {
+            "attr": "role",
+            "op": "eq",
+            "value": "Full-Time"
+          }
+        ],
+        "resource_type_keys": [
+          "lecturer"
+        ],
+        "tags": []
+      },
+      "template_key": "max_load",
+      "version": 1,
+      "weight": 0
+    },
+    {
+      "enabled": true,
+      "hard": true,
+      "name": "Faculty dean: at most 15 hours a week",
+      "params": {
+        "max_count": null,
+        "max_minutes": 900,
+        "period": "week",
+        "window": null
+      },
+      "scope": {
+        "attrs": [
+          {
+            "attr": "role",
+            "op": "eq",
+            "value": "Faculty Dean"
+          }
+        ],
+        "resource_type_keys": [
+          "lecturer"
+        ],
+        "tags": []
+      },
+      "template_key": "max_load",
+      "version": 1,
+      "weight": 0
+    },
+    {
+      "enabled": true,
+      "hard": true,
+      "name": "A subject at most once a day",
+      "params": {
+        "max_per_day": 1,
+        "min_days_apart": null
+      },
+      "scope": {
+        "attrs": [],
+        "resource_type_keys": [],
+        "tags": []
+      },
+      "template_key": "spread",
+      "version": 1,
+      "weight": 0
+    },
+    {
+      "enabled": true,
+      "hard": false,
+      "name": "Few idle gaps for students",
+      "params": {
+        "per_minutes": 60
+      },
+      "scope": {
+        "attrs": [],
+        "resource_type_keys": [
+          "student_group"
+        ],
+        "tags": []
+      },
+      "template_key": "minimize_gaps",
+      "version": 1,
+      "weight": 35
+    },
+    {
+      "enabled": true,
+      "hard": false,
+      "name": "Even lecturer load",
+      "params": {
+        "measure": "count"
+      },
+      "scope": {
+        "attrs": [],
+        "resource_type_keys": [
+          "lecturer"
+        ],
+        "tags": []
+      },
+      "template_key": "balance",
+      "version": 1,
+      "weight": 30
+    },
+    {
+      "enabled": true,
+      "hard": false,
+      "name": "Few wasted seats",
+      "params": {
+        "headcount_attr": null,
+        "headcount_from": "group_sizes"
+      },
+      "scope": {
+        "attrs": [],
+        "resource_type_keys": [],
+        "tags": []
+      },
+      "template_key": "capacity_fit",
+      "version": 1,
+      "weight": 20
+    },
+    {
+      "enabled": true,
+      "hard": false,
+      "name": "Classes spread over the week",
+      "params": {},
+      "scope": {
+        "attrs": [],
+        "resource_type_keys": [
+          "student_group"
+        ],
+        "tags": []
+      },
+      "template_key": "day_distribution",
+      "version": 1,
+      "weight": 15
+    }
+  ],
+  "day_parts": {
+    "parts": [
+      {
+        "end_minute": 780,
+        "name": "morning",
+        "start_minute": 0
+      },
+      {
+        "end_minute": 1440,
+        "name": "afternoon",
+        "start_minute": 780
+      }
+    ],
+    "version": 1
+  },
+  "demand_shape": {
+    "kind": "session",
+    "name_column": "subject",
+    "requirements": [
+      {
+        "attribute_columns": {},
+        "count_from_fixed": true,
+        "count_max": 1,
+        "count_min": 1,
+        "fixed_codes_column": "group",
+        "resource_type_key": "student_group",
+        "role": "group",
+        "tags_column": null
+      },
+      {
+        "attribute_columns": {},
+        "count_from_fixed": false,
+        "count_max": 1,
+        "count_min": 1,
+        "fixed_codes_column": null,
+        "resource_type_key": "lecturer",
+        "role": "lecturer",
+        "tags_column": "subject"
+      },
+      {
+        "attribute_columns": {
+          "room_type": "room_type"
+        },
+        "count_from_fixed": false,
+        "count_max": 1,
+        "count_min": 1,
+        "fixed_codes_column": null,
+        "resource_type_key": "room",
+        "role": "room",
+        "tags_column": null
+      }
+    ],
+    "sessions_per_week_column": null,
+    "slot_template": "Teaching periods",
+    "term_split": {
+      "group_column": "group",
+      "merge_column": "subject",
+      "pair_column": "pair",
+      "prefer": {
+        "room_type": [
+          "Lab",
+          "Theory"
+        ]
+      },
+      "term_column": "term",
+      "unit_column": "unit"
+    },
+    "weekly_minutes_column": "weekly_minutes"
+  },
+  "description": "Weekly class timetabling for lecturers, rooms and student groups (ISBAT-equivalent).",
+  "key": "education",
+  "name": "Education",
+  "resource_types": [
+    {
+      "attribute_schema": {
+        "attributes": [
+          {
+            "enum_values": [
+              "Full-Time",
+              "Part-Time",
+              "Faculty Dean"
+            ],
+            "key": "role",
+            "label": "Role",
+            "required": true,
+            "type": "enum"
+          },
+          {
+            "enum_values": null,
+            "key": "faculty",
+            "label": "Faculty",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "version": 1
+      },
+      "key": "lecturer",
+      "kind": "person",
+      "name": "Lecturer"
+    },
+    {
+      "attribute_schema": {
+        "attributes": [
+          {
+            "enum_values": [
+              "Theory",
+              "Lab"
+            ],
+            "key": "room_type",
+            "label": "Room type",
+            "required": true,
+            "type": "enum"
+          }
+        ],
+        "version": 1
+      },
+      "key": "room",
+      "kind": "space",
+      "name": "Room"
+    },
+    {
+      "attribute_schema": {
+        "attributes": [
+          {
+            "enum_values": null,
+            "key": "program",
+            "label": "Programme",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "enum_values": null,
+            "key": "semester",
+            "label": "Semester",
+            "required": false,
+            "type": "string"
+          }
+        ],
+        "version": 1
+      },
+      "key": "student_group",
+      "kind": "group",
+      "name": "Student group"
+    }
+  ],
+  "slot_templates": [
+    {
+      "definition": {
+        "slots": [
+          {
+            "duration_minutes": 120,
+            "label": "P1",
+            "start_minute": 540,
+            "weekdays": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ]
+          },
+          {
+            "duration_minutes": 120,
+            "label": "P2",
+            "start_minute": 660,
+            "weekdays": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ]
+          },
+          {
+            "duration_minutes": 120,
+            "label": "P3",
+            "start_minute": 840,
+            "weekdays": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ]
+          },
+          {
+            "duration_minutes": 120,
+            "label": "P4",
+            "start_minute": 960,
+            "weekdays": [
+              0,
+              1,
+              2,
+              3,
+              4
+            ]
+          }
+        ],
+        "version": 1
+      },
+      "name": "Teaching periods"
+    }
+  ],
+  "version": 1
+}

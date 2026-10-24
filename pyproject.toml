@@ -1,0 +1,91 @@
+[project]
+name = "cartlyf"
+version = "0.0.0"
+requires-python = ">=3.12,<3.13"
+dependencies = ["cartlyf-engine", "cartlyf-api"]
+
+[tool.uv]
+package = false
+
+[tool.uv.workspace]
+members = ["packages/engine", "apps/api"]
+
+[tool.uv.sources]
+cartlyf-engine = { workspace = true }
+cartlyf-api = { workspace = true }
+
+[dependency-groups]
+dev = [
+  "ruff",
+  "pyright",
+  "pytest",
+  "hypothesis",
+  "import-linter",
+  "pip-audit",
+  "httpx2",
+  "testcontainers[minio,postgres,redis]",
+]
+# Opt-in (`uv run --group load locust ...`): locust pulls in Flask, which Sentry auto-instruments
+# in tests and which the EDU-01 legacy-import guard rightly flags.
+load = [
+  "locust==2.46.7",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 100
+extend-exclude = ["apps/web"]
+
+[tool.ruff.lint]
+select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "ASYNC"]
+
+[tool.ruff.lint.isort]
+known-first-party = ["cartlyf_engine", "cartlyf_api", "support", "kit", "bruteforce", "strategies"]
+
+[tool.pyright]
+include = ["packages/engine", "apps/api", "tools"]
+extraPaths = ["apps/api/tests", "packages/engine/tests"]
+# The locustfile needs the opt-in `load` group; its testable logic lives in tools/loadtest/moves.py.
+exclude = ["**/.venv", "**/__pycache__", "tools/loadtest/locustfile.py"]
+typeCheckingMode = "strict"
+pythonVersion = "3.12"
+venvPath = "."
+venv = ".venv"
+
+[tool.pytest.ini_options]
+testpaths = ["packages/engine/tests", "apps/api/tests", "tools"]
+pythonpath = [".", "apps/api/tests", "packages/engine/tests"]
+addopts = "--import-mode=importlib -m 'not benchmark'"
+markers = [
+  "integration: needs Docker (Testcontainers)",
+  "benchmark: long scale benchmark, run with `pytest -m benchmark`",
+]
+
+[tool.importlinter]
+root_packages = ["cartlyf_engine", "cartlyf_api"]
+include_external_packages = true
+exclude_type_checking_imports = true
+
+[[tool.importlinter.contracts]]
+name = "Engine is pure: no API, DB, web, queue, OS, network or clock imports"
+type = "forbidden"
+source_modules = ["cartlyf_engine"]
+forbidden_modules = [
+  "cartlyf_api", "sqlalchemy", "fastapi", "redis", "dramatiq",
+  "os", "socket", "subprocess", "pathlib", "time", "datetime", "httpx", "urllib",
+]
+
+[[tool.importlinter.contracts]]
+name = "Checker and templates never import the solver"
+type = "forbidden"
+source_modules = [
+  "cartlyf_engine.checker", "cartlyf_engine.checking", "cartlyf_engine.construct",
+  "cartlyf_engine.neighbourhood", "cartlyf_engine.moves", "cartlyf_engine.explain",
+  "cartlyf_engine.templates",
+  "cartlyf_engine.domain",
+  "cartlyf_engine.index",
+  "cartlyf_engine.precheck",
+]
+forbidden_modules = [
+  "ortools", "cartlyf_engine.encoding", "cartlyf_engine.compiler", "cartlyf_engine.solve",
+]

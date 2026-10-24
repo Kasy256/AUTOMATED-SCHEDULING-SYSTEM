@@ -1,0 +1,11 @@
+# esbuild ships its binary via optional platform packages; its postinstall check is not needed.
+allowBuilds:
+  esbuild: false
+# Patched releases of dev-only dependencies (orval's MCP server and spec loader, vitest's jsdom);
+# none of them ship in the built app. Drop each once the parent package pulls the fix itself.
+overrides:
+  ip-address: ">=10.7.4"
+  body-parser@<2.4.0: ^2.4.0
+  fast-uri@<3.1.9: ^3.1.9
+  undici@>=7 <7.30.1: ^7.30.1
+  undici@>=8 <8.12.2: ^8.12.2

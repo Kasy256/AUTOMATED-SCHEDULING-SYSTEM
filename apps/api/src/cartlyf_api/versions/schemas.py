@@ -1,0 +1,192 @@
+from datetime import date, datetime
+from typing import Literal
+from uuid import UUID
+
+from pydantic import AwareDatetime, BaseModel, ConfigDict, Field
+
+from cartlyf_api.db import JsonDict
+from cartlyf_api.examples import example_id
+
+VersionStatus = Literal["draft", "published", "archived"]
+
+
+class AssignmentOut(BaseModel):
+    activity_id: UUID
+    activity_name: str | None
+    start_at: datetime
+    end_at: datetime
+    resources: dict[str, list[UUID]]
+
+
+class VersionSummary(BaseModel):
+    id: UUID
+    schedule_id: UUID
+    number: int
+    status: VersionStatus
+    solver_status: str
+    hard_violations: int
+    soft_total: int
+    created_at: datetime
+    published_at: datetime | None
+    archived_at: datetime | None
+    parent_version_id: UUID | None
+    solve_run_id: UUID
+
+
+class VersionDetail(VersionSummary):
+    score: JsonDict
+    assignments: list[AssignmentOut]
+
+
+class AssignmentChange(BaseModel):
+    activity_id: UUID
+    before: AssignmentOut | None
+    after: AssignmentOut | None
+
+
+class VersionDiff(BaseModel):
+    added: list[AssignmentChange]
+    removed: list[AssignmentChange]
+    moved: list[AssignmentChange]
+    reassigned: list[AssignmentChange]
+
+
+class MyAssignment(AssignmentOut):
+    version_id: UUID
+    schedule_id: UUID
+    schedule_name: str
+    schedule_timezone: str
+    roles: list[str]
+    # Members can't list resources, so the other resources' codes travel with the row.
+    other_resource_codes: list[str]
+
+
+class AssignmentEdit(BaseModel):
+    """Place one activity; `resources` replaces its whole role -> resources map."""
+
+    model_config = ConfigDict(extra="forbid")
+
+    activity_id: UUID
+    start_at: AwareDatetime
+    resources: dict[str, list[UUID]]
+
+
+class MoveRequest(AssignmentEdit):
+    """A proposed placement of one activity; nothing is saved."""
+
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "examples": [
+                {
+                    "activity_id": example_id("activity_id"),
+                    "start_at": "2027-01-12T09:00:00+03:00",
+                    "resources": {"lecturer": [example_id("resource_id")]},
+                }
+            ]
+        },
+    )
+
+
+class RuleBreak(BaseModel):
+    constraint_id: str
+    rule: str
+    message: str
+    activity_ids: list[UUID]
+    resource_ids: list[UUID]
+
+
+class PenaltyChangeOut(BaseModel):
+    constraint_id: str
+    rule: str
+    before: int
+    after: int
+
+
+class MoveCheckOut(BaseModel):
+    valid: bool
+    broken: list[RuleBreak]
+    penalties: list[PenaltyChangeOut]
+
+
+class AlternativeOut(BaseModel):
+    start_at: datetime
+    resources: dict[str, list[UUID]]
+    check: MoveCheckOut
+
+
+class BindingRule(BaseModel):
+    constraint_id: str
+    rule: str
+    hard: bool
+    blocks: int
+    penalises: int
+
+
+class ExplanationOut(BaseModel):
+    activity_id: UUID
+    binding: list[BindingRule]
+    alternatives: list[AlternativeOut]
+    truncated: bool
+
+
+class DraftRequest(BaseModel):
+    model_config = ConfigDict(
+        extra="forbid",
+        json_schema_extra={
+            "examples": [
+                {
+                    "changes": [
+                        {
+                            "activity_id": example_id("activity_id"),
+                            "start_at": "2027-01-12T09:00:00+03:00",
+                            "resources": {"lecturer": [example_id("resource_id")]},
+                        }
+                    ]
+                }
+            ]
+        },
+    )
+
+    changes: list[AssignmentEdit] = Field(min_length=1)
+
+
+class ResourceUtilisation(BaseModel):
+    resource_id: UUID
+    type_key: str
+    assigned_minutes: int
+    available_minutes: int
+    ratio: float
+
+
+class PersonLoad(BaseModel):
+    resource_id: UUID
+    activities: int
+    minutes: int
+    busiest_day: date | None
+    busiest_day_minutes: int
+
+
+class CoverageGap(BaseModel):
+    activity_id: UUID
+    role: str
+    required_min: int
+    assigned: int
+    starts_at: datetime
+
+
+class FairnessSpread(BaseModel):
+    type_key: str
+    resources: int
+    min_minutes: int
+    max_minutes: int
+    mean_minutes: float
+    spread: int
+
+
+class VersionReport(BaseModel):
+    version_id: UUID
+    utilisation: list[ResourceUtilisation]
+    load: list[PersonLoad]
+    coverage_gaps: list[CoverageGap]
+    fairness: list[FairnessSpread]

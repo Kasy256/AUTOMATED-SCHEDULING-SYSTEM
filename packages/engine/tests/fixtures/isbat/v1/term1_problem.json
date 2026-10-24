@@ -1,0 +1,4359 @@
+{
+ "activities": [
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "ASP_NET W1 #1",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 2,
+     "count_min": 2,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BCS_126_S5",
+      "SG_BSCAIT_126_S5"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "ASP_NET"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Lab"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "ASP_NET"
+  },
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "ASP_NET W1 #2",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 2,
+     "count_min": 2,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BCS_126_S5",
+      "SG_BSCAIT_126_S5"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "ASP_NET"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Lab"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "ASP_NET"
+  },
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "COMP_HARDWARE_OS W1 #1",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 2,
+     "count_min": 2,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BCS_126_S2",
+      "SG_BSCAIT_126_S2"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "COMP_HARDWARE_OS"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Lab"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "COMP_HARDWARE_OS"
+  },
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "COMP_HARDWARE_OS W1 #2",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 2,
+     "count_min": 2,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BCS_126_S2",
+      "SG_BSCAIT_126_S2"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "COMP_HARDWARE_OS"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Lab"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "COMP_HARDWARE_OS"
+  },
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "COMP_ORG_ARCH W1 #1",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 2,
+     "count_min": 2,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BCS_126_S1",
+      "SG_BSCAIT_126_S1"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "COMP_ORG_ARCH"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Lab"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "COMP_ORG_ARCH"
+  },
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "COMP_ORG_ARCH W1 #2",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 2,
+     "count_min": 2,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BCS_126_S1",
+      "SG_BSCAIT_126_S1"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "COMP_ORG_ARCH"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Lab"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "COMP_ORG_ARCH"
+  },
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "DATA_COMM_NETWORKING W1 #1",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BSCAIT_126_S3"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "DATA_COMM_NETWORKING"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Lab"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "DATA_COMM_NETWORKING"
+  },
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "DATA_COMM_NETWORKING W1 #2",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BSCAIT_126_S3"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "DATA_COMM_NETWORKING"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Lab"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "DATA_COMM_NETWORKING"
+  },
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "DATA_STRUCTURES W1 #1",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 2,
+     "count_min": 2,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BCS_126_S2",
+      "SG_BSCAIT_126_S2"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "DATA_STRUCTURES"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Lab"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "DATA_STRUCTURES"
+  },
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "DATA_STRUCTURES W1 #2",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 2,
+     "count_min": 2,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BCS_126_S2",
+      "SG_BSCAIT_126_S2"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "DATA_STRUCTURES"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Lab"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "DATA_STRUCTURES"
+  },
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "DEVOPS W1 #1",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 2,
+     "count_min": 2,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BCS_126_S4",
+      "SG_BSCAIT_126_S4"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "DEVOPS"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Lab"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "DEVOPS"
+  },
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "DEVOPS W1 #2",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 2,
+     "count_min": 2,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BCS_126_S4",
+      "SG_BSCAIT_126_S4"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "DEVOPS"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Lab"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "DEVOPS"
+  },
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "DIGITAL_MARKETING W1 #1",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 2,
+     "count_min": 2,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BCS_126_S6",
+      "SG_BSCAIT_126_S6"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "DIGITAL_MARKETING"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Theory"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "DIGITAL_MARKETING"
+  },
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "DIGITAL_MARKETING W1 #2",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 2,
+     "count_min": 2,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BCS_126_S6",
+      "SG_BSCAIT_126_S6"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "DIGITAL_MARKETING"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Theory"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "DIGITAL_MARKETING"
+  },
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "IOT W1 #1",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BSCAIT_126_S4"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "IOT"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Lab"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "IOT"
+  },
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "IOT W1 #2",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BSCAIT_126_S4"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "IOT"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Lab"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "IOT"
+  },
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "MATH_STATS_FOUNDATION W1 #1",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 2,
+     "count_min": 2,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BCS_126_S1",
+      "SG_BSCAIT_126_S1"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "MATH_STATS_FOUNDATION"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Theory"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "MATH_STATS_FOUNDATION"
+  },
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "MATH_STATS_FOUNDATION W1 #2",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 2,
+     "count_min": 2,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BCS_126_S1",
+      "SG_BSCAIT_126_S1"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "MATH_STATS_FOUNDATION"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Theory"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "MATH_STATS_FOUNDATION"
+  },
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "OOP_JAVA W1 #1",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 2,
+     "count_min": 2,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BCS_126_S2",
+      "SG_BSCAIT_126_S2"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "OOP_JAVA"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Lab"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "OOP_JAVA"
+  },
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "OOP_JAVA W1 #2",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 2,
+     "count_min": 2,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BCS_126_S2",
+      "SG_BSCAIT_126_S2"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "OOP_JAVA"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Lab"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "OOP_JAVA"
+  },
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "PROG_C W1 #1",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 2,
+     "count_min": 2,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BCS_126_S1",
+      "SG_BSCAIT_126_S1"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "PROG_C"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Lab"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "PROG_C"
+  },
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "PROG_C W1 #2",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 2,
+     "count_min": 2,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BCS_126_S1",
+      "SG_BSCAIT_126_S1"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "PROG_C"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Lab"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "PROG_C"
+  },
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "PROJECT W1 #1",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 2,
+     "count_min": 2,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BCS_126_S6",
+      "SG_BSCAIT_126_S6"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "PROJECT"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Lab"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "PROJECT"
+  },
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "PROJECT W1 #2",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 2,
+     "count_min": 2,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BCS_126_S6",
+      "SG_BSCAIT_126_S6"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "PROJECT"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Lab"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "PROJECT"
+  },
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "PYTHON_PROG W1 #1",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 2,
+     "count_min": 2,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BCS_126_S4",
+      "SG_BSCAIT_126_S4"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "PYTHON_PROG"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Lab"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "PYTHON_PROG"
+  },
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "PYTHON_PROG W1 #2",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 2,
+     "count_min": 2,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BCS_126_S4",
+      "SG_BSCAIT_126_S4"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "PYTHON_PROG"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Lab"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "PYTHON_PROG"
+  },
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "RESEARCH_PAPER W1 #1",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 2,
+     "count_min": 2,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BCS_126_S5",
+      "SG_BSCAIT_126_S5"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "RESEARCH_PAPER"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Theory"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "RESEARCH_PAPER"
+  },
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "RESEARCH_PAPER W1 #2",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 2,
+     "count_min": 2,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BCS_126_S5",
+      "SG_BSCAIT_126_S5"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "RESEARCH_PAPER"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Theory"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "RESEARCH_PAPER"
+  },
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "SOFTWARE_ENGINEERING W1 #1",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 2,
+     "count_min": 2,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BCS_126_S3",
+      "SG_BSCAIT_126_S3"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "SOFTWARE_ENGINEERING"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Theory"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "SOFTWARE_ENGINEERING"
+  },
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "SOFTWARE_ENGINEERING W1 #2",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 2,
+     "count_min": 2,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BCS_126_S3",
+      "SG_BSCAIT_126_S3"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "SOFTWARE_ENGINEERING"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Theory"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "SOFTWARE_ENGINEERING"
+  },
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "WEB_DATABASE_SECURITY W1 #1",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BSCAIT_126_S5"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "WEB_DATABASE_SECURITY"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Lab"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "WEB_DATABASE_SECURITY"
+  },
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "WEB_DATABASE_SECURITY W1 #2",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BSCAIT_126_S5"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "WEB_DATABASE_SECURITY"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Lab"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "WEB_DATABASE_SECURITY"
+  },
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "WEB_TECH W1 #1",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 2,
+     "count_min": 2,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BCS_126_S3",
+      "SG_BSCAIT_126_S3"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "WEB_TECH"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Lab"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "WEB_TECH"
+  },
+  {
+   "attrs": {},
+   "candidate_starts": [
+    540,
+    660,
+    840,
+    960,
+    1980,
+    2100,
+    2280,
+    2400,
+    3420,
+    3540,
+    3720,
+    3840,
+    4860,
+    4980,
+    5160,
+    5280,
+    6300,
+    6420,
+    6600,
+    6720
+   ],
+   "duration": 120,
+   "id": "WEB_TECH W1 #2",
+   "pinned": null,
+   "requirements": [
+    {
+     "count_max": 2,
+     "count_min": 2,
+     "filter": {
+      "attrs": [],
+      "tags": [],
+      "type_key": "student_group"
+     },
+     "fixed_resource_ids": [
+      "SG_BCS_126_S3",
+      "SG_BSCAIT_126_S3"
+     ],
+     "hard": true,
+     "role": "group",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [],
+      "tags": [
+       "WEB_TECH"
+      ],
+      "type_key": "lecturer"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "lecturer",
+     "weight": 0
+    },
+    {
+     "count_max": 1,
+     "count_min": 1,
+     "filter": {
+      "attrs": [
+       {
+        "attr": "room_type",
+        "op": "eq",
+        "value": "Lab"
+       }
+      ],
+      "tags": [],
+      "type_key": "room"
+     },
+     "fixed_resource_ids": [],
+     "hard": true,
+     "role": "room",
+     "weight": 0
+    }
+   ],
+   "series_id": "WEB_TECH"
+  }
+ ],
+ "baseline": null,
+ "constraints": [
+  {
+   "hard": true,
+   "id": "A subject at most once a day",
+   "params": {
+    "max_per_day": 1,
+    "min_days_apart": null
+   },
+   "scope": {
+    "attrs": [],
+    "resource_ids": [],
+    "resource_type_keys": [],
+    "series_ids": [],
+    "tags": []
+   },
+   "template_key": "spread",
+   "version": 1,
+   "weight": 0
+  },
+  {
+   "hard": false,
+   "id": "Classes spread over the week",
+   "params": {},
+   "scope": {
+    "attrs": [],
+    "resource_ids": [],
+    "resource_type_keys": [
+     "student_group"
+    ],
+    "series_ids": [],
+    "tags": []
+   },
+   "template_key": "day_distribution",
+   "version": 1,
+   "weight": 15
+  },
+  {
+   "hard": false,
+   "id": "Even lecturer load",
+   "params": {
+    "measure": "count"
+   },
+   "scope": {
+    "attrs": [],
+    "resource_ids": [],
+    "resource_type_keys": [
+     "lecturer"
+    ],
+    "series_ids": [],
+    "tags": []
+   },
+   "template_key": "balance",
+   "version": 1,
+   "weight": 30
+  },
+  {
+   "hard": true,
+   "id": "Faculty dean: at most 15 hours a week",
+   "params": {
+    "max_count": null,
+    "max_minutes": 900,
+    "period": "week",
+    "window": null
+   },
+   "scope": {
+    "attrs": [
+     {
+      "attr": "role",
+      "op": "eq",
+      "value": "Faculty Dean"
+     }
+    ],
+    "resource_ids": [],
+    "resource_type_keys": [
+     "lecturer"
+    ],
+    "series_ids": [],
+    "tags": []
+   },
+   "template_key": "max_load",
+   "version": 1,
+   "weight": 0
+  },
+  {
+   "hard": false,
+   "id": "Few idle gaps for students",
+   "params": {
+    "per_minutes": 60
+   },
+   "scope": {
+    "attrs": [],
+    "resource_ids": [],
+    "resource_type_keys": [
+     "student_group"
+    ],
+    "series_ids": [],
+    "tags": []
+   },
+   "template_key": "minimize_gaps",
+   "version": 1,
+   "weight": 35
+  },
+  {
+   "hard": false,
+   "id": "Few wasted seats",
+   "params": {
+    "headcount_attr": null,
+    "headcount_from": "group_sizes"
+   },
+   "scope": {
+    "attrs": [],
+    "resource_ids": [],
+    "resource_type_keys": [],
+    "series_ids": [],
+    "tags": []
+   },
+   "template_key": "capacity_fit",
+   "version": 1,
+   "weight": 20
+  },
+  {
+   "hard": true,
+   "id": "Full-time lecturer: at most 22 hours a week",
+   "params": {
+    "max_count": null,
+    "max_minutes": 1320,
+    "period": "week",
+    "window": null
+   },
+   "scope": {
+    "attrs": [
+     {
+      "attr": "role",
+      "op": "eq",
+      "value": "Full-Time"
+     }
+    ],
+    "resource_ids": [],
+    "resource_type_keys": [
+     "lecturer"
+    ],
+    "series_ids": [],
+    "tags": []
+   },
+   "template_key": "max_load",
+   "version": 1,
+   "weight": 0
+  },
+  {
+   "hard": true,
+   "id": "Lecturer: at most 1 afternoon session",
+   "params": {
+    "max_count": 1,
+    "max_minutes": null,
+    "period": "day",
+    "window": "afternoon"
+   },
+   "scope": {
+    "attrs": [],
+    "resource_ids": [],
+    "resource_type_keys": [
+     "lecturer"
+    ],
+    "series_ids": [],
+    "tags": []
+   },
+   "template_key": "max_load",
+   "version": 1,
+   "weight": 0
+  },
+  {
+   "hard": true,
+   "id": "Lecturer: at most 1 morning session",
+   "params": {
+    "max_count": 1,
+    "max_minutes": null,
+    "period": "day",
+    "window": "morning"
+   },
+   "scope": {
+    "attrs": [],
+    "resource_ids": [],
+    "resource_type_keys": [
+     "lecturer"
+    ],
+    "series_ids": [],
+    "tags": []
+   },
+   "template_key": "max_load",
+   "version": 1,
+   "weight": 0
+  },
+  {
+   "hard": true,
+   "id": "Lecturer: at most 2 sessions a day",
+   "params": {
+    "max_count": 2,
+    "max_minutes": null,
+    "period": "day",
+    "window": null
+   },
+   "scope": {
+    "attrs": [],
+    "resource_ids": [],
+    "resource_type_keys": [
+     "lecturer"
+    ],
+    "series_ids": [],
+    "tags": []
+   },
+   "template_key": "max_load",
+   "version": 1,
+   "weight": 0
+  },
+  {
+   "hard": false,
+   "id": "Repairs keep the published timetable",
+   "params": {
+    "per_change": 1,
+    "per_resource_change": 1
+   },
+   "scope": {
+    "attrs": [],
+    "resource_ids": [],
+    "resource_type_keys": [],
+    "series_ids": [],
+    "tags": []
+   },
+   "template_key": "stability",
+   "version": 1,
+   "weight": 100
+  },
+  {
+   "hard": true,
+   "id": "Room seats every student",
+   "params": {
+    "headcount_attr": null,
+    "headcount_from": "group_sizes"
+   },
+   "scope": {
+    "attrs": [],
+    "resource_ids": [],
+    "resource_type_keys": [],
+    "series_ids": [],
+    "tags": []
+   },
+   "template_key": "capacity_fit",
+   "version": 1,
+   "weight": 0
+  }
+ ],
+ "day_windows": [
+  {
+   "end": 1440,
+   "start": 0
+  },
+  {
+   "end": 2880,
+   "start": 1440
+  },
+  {
+   "end": 4320,
+   "start": 2880
+  },
+  {
+   "end": 5760,
+   "start": 4320
+  },
+  {
+   "end": 7200,
+   "start": 5760
+  }
+ ],
+ "history": null,
+ "horizon_minutes": 7200,
+ "named_windows": {
+  "afternoon": [
+   {
+    "end": 1440,
+    "start": 780
+   },
+   {
+    "end": 2880,
+    "start": 2220
+   },
+   {
+    "end": 4320,
+    "start": 3660
+   },
+   {
+    "end": 5760,
+    "start": 5100
+   },
+   {
+    "end": 7200,
+    "start": 6540
+   }
+  ],
+  "morning": [
+   {
+    "end": 780,
+    "start": 0
+   },
+   {
+    "end": 2220,
+    "start": 1440
+   },
+   {
+    "end": 3660,
+    "start": 2880
+   },
+   {
+    "end": 5100,
+    "start": 4320
+   },
+   {
+    "end": 6540,
+    "start": 5760
+   }
+  ]
+ },
+ "options": {
+  "num_workers": 8,
+  "seed": 0,
+  "time_limit_s": 60
+ },
+ "resources": [
+  {
+   "attrs": {
+    "faculty": "Computing",
+    "role": "Full-Time"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "L001",
+   "kind": "person",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "COMP_OFFICE_APP",
+    "PROG_C"
+   ],
+   "type_key": "lecturer",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "faculty": "Computing",
+    "role": "Full-Time"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "L002",
+   "kind": "person",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "COMP_ORG_ARCH",
+    "MOBILE_APP_DEV"
+   ],
+   "type_key": "lecturer",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "faculty": "Computing",
+    "role": "Part-Time"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "L003",
+   "kind": "person",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "SOFT_SKILLS"
+   ],
+   "type_key": "lecturer",
+   "unavailable": [
+    {
+     "end": 540,
+     "start": 0
+    },
+    {
+     "end": 840,
+     "start": 660
+    },
+    {
+     "end": 3420,
+     "start": 960
+    },
+    {
+     "end": 3720,
+     "start": 3540
+    },
+    {
+     "end": 6300,
+     "start": 3840
+    },
+    {
+     "end": 7200,
+     "start": 6420
+    }
+   ]
+  },
+  {
+   "attrs": {
+    "faculty": "Computing",
+    "role": "Full-Time"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "L004",
+   "kind": "person",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "MATH_STATS_FOUNDATION"
+   ],
+   "type_key": "lecturer",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "faculty": "Computing",
+    "role": "Full-Time"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "L005",
+   "kind": "person",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "COMP_HARDWARE_OS",
+    "OOP_JAVA",
+    "PROJECT",
+    "SOFTWARE_ENGINEERING",
+    "WEB_TECH"
+   ],
+   "type_key": "lecturer",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "faculty": "Computing",
+    "role": "Full-Time"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "L006",
+   "kind": "person",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "DIGITAL_SYSTEMS"
+   ],
+   "type_key": "lecturer",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "faculty": "Computing",
+    "role": "Full-Time"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "L007",
+   "kind": "person",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "DATA_STRUCTURES"
+   ],
+   "type_key": "lecturer",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "faculty": "Computing",
+    "role": "Faculty Dean"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "L008",
+   "kind": "person",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "BUSINESS_INTELLIGENCE",
+    "DATABASE_MGMT_SYSTEM",
+    "PYTHON_PROG"
+   ],
+   "type_key": "lecturer",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "faculty": "Computing",
+    "role": "Full-Time"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "L009",
+   "kind": "person",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "DATA_COMM_NETWORKING"
+   ],
+   "type_key": "lecturer",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "faculty": "Computing",
+    "role": "Full-Time"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "L010",
+   "kind": "person",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "DEVOPS",
+    "LINUX_ADMIN",
+    "VIRTUALIZATION_CLOUD"
+   ],
+   "type_key": "lecturer",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "faculty": "Computing",
+    "role": "Full-Time"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "L011",
+   "kind": "person",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "GRAPHICS_MULTIMEDIA"
+   ],
+   "type_key": "lecturer",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "faculty": "Computing",
+    "role": "Full-Time"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "L012",
+   "kind": "person",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "ARTIFICIAL_INTELLIGENCE",
+    "DIGITAL_MARKETING",
+    "IOT"
+   ],
+   "type_key": "lecturer",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "faculty": "Computing",
+    "role": "Full-Time"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "L013",
+   "kind": "person",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "ASP_NET"
+   ],
+   "type_key": "lecturer",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "faculty": "Computing",
+    "role": "Part-Time"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "L014",
+   "kind": "person",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "CYBER_SECURITY_INTRO",
+    "WEB_DATABASE_SECURITY"
+   ],
+   "type_key": "lecturer",
+   "unavailable": [
+    {
+     "end": 1980,
+     "start": 0
+    },
+    {
+     "end": 2280,
+     "start": 2100
+    },
+    {
+     "end": 4860,
+     "start": 2400
+    },
+    {
+     "end": 5160,
+     "start": 4980
+    },
+    {
+     "end": 6300,
+     "start": 5280
+    },
+    {
+     "end": 6600,
+     "start": 6420
+    },
+    {
+     "end": 7200,
+     "start": 6720
+    }
+   ]
+  },
+  {
+   "attrs": {
+    "faculty": "Computing",
+    "role": "Faculty Dean"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "L015",
+   "kind": "person",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "RESEARCH_PAPER"
+   ],
+   "type_key": "lecturer",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "faculty": "Computing",
+    "role": "Full-Time"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "L016",
+   "kind": "person",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "GREEN_COMPUTING"
+   ],
+   "type_key": "lecturer",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "faculty": "Computing",
+    "role": "Full-Time"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "L017",
+   "kind": "person",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "TECH_ENTREPRENEURSHIP"
+   ],
+   "type_key": "lecturer",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "faculty": "Computing",
+    "role": "Full-Time"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "L020",
+   "kind": "person",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "THEORIES_COMPUTATION"
+   ],
+   "type_key": "lecturer",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "faculty": "Computing",
+    "role": "Full-Time"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "L021",
+   "kind": "person",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "NEW_PRODUCT_DEV"
+   ],
+   "type_key": "lecturer",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "faculty": "Computing",
+    "role": "Full-Time"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "L022",
+   "kind": "person",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "MACHINE_LEARNING"
+   ],
+   "type_key": "lecturer",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "faculty": "Computing",
+    "role": "Full-Time"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "L023",
+   "kind": "person",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "DATA_SCIENCE"
+   ],
+   "type_key": "lecturer",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "faculty": "Computing",
+    "role": "Full-Time"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "L024",
+   "kind": "person",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "GAME_PROGRAMMING"
+   ],
+   "type_key": "lecturer",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "faculty": "Computing",
+    "role": "Full-Time"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "L025",
+   "kind": "person",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "COMPILER_DESIGN"
+   ],
+   "type_key": "lecturer",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Lab"
+   },
+   "avoided": [],
+   "capacity": 16,
+   "concurrency": 1,
+   "id": "R104",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "ICT",
+    "Networking & Cyber Security",
+    "Programming"
+   ],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Lab"
+   },
+   "avoided": [],
+   "capacity": 32,
+   "concurrency": 1,
+   "id": "R203",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "ICT",
+    "Multimedia",
+    "Programming"
+   ],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Lab"
+   },
+   "avoided": [],
+   "capacity": 32,
+   "concurrency": 1,
+   "id": "R204",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "ICT",
+    "Programming"
+   ],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Lab"
+   },
+   "avoided": [],
+   "capacity": 32,
+   "concurrency": 1,
+   "id": "R205",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "ICT",
+    "Programming"
+   ],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Lab"
+   },
+   "avoided": [],
+   "capacity": 64,
+   "concurrency": 1,
+   "id": "R206",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "ICT",
+    "Programming"
+   ],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Lab"
+   },
+   "avoided": [],
+   "capacity": 24,
+   "concurrency": 1,
+   "id": "R207",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "ICT",
+    "Multimedia",
+    "Programming"
+   ],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Theory"
+   },
+   "avoided": [],
+   "capacity": 32,
+   "concurrency": 1,
+   "id": "R300",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Theory"
+   },
+   "avoided": [],
+   "capacity": 32,
+   "concurrency": 1,
+   "id": "R301",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Theory"
+   },
+   "avoided": [],
+   "capacity": 32,
+   "concurrency": 1,
+   "id": "R302",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Theory"
+   },
+   "avoided": [],
+   "capacity": 32,
+   "concurrency": 1,
+   "id": "R303",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Theory"
+   },
+   "avoided": [],
+   "capacity": 32,
+   "concurrency": 1,
+   "id": "R304",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Theory"
+   },
+   "avoided": [],
+   "capacity": 80,
+   "concurrency": 1,
+   "id": "R305",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Theory"
+   },
+   "avoided": [],
+   "capacity": 30,
+   "concurrency": 1,
+   "id": "R306",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Lab"
+   },
+   "avoided": [],
+   "capacity": 32,
+   "concurrency": 1,
+   "id": "R308",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "Management Lab",
+    "Networking & Cyber Security",
+    "Statistics"
+   ],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Lab"
+   },
+   "avoided": [],
+   "capacity": 12,
+   "concurrency": 1,
+   "id": "R401",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "BHM"
+   ],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Lab"
+   },
+   "avoided": [],
+   "capacity": 20,
+   "concurrency": 1,
+   "id": "R402",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "Electronics"
+   ],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Lab"
+   },
+   "avoided": [],
+   "capacity": 10,
+   "concurrency": 1,
+   "id": "R403",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "Physics"
+   ],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Theory"
+   },
+   "avoided": [],
+   "capacity": 36,
+   "concurrency": 1,
+   "id": "R404",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Lab"
+   },
+   "avoided": [],
+   "capacity": 32,
+   "concurrency": 1,
+   "id": "R406",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "ICT",
+    "Multimedia",
+    "Programming"
+   ],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Theory"
+   },
+   "avoided": [],
+   "capacity": 32,
+   "concurrency": 1,
+   "id": "R407",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Theory"
+   },
+   "avoided": [],
+   "capacity": 40,
+   "concurrency": 1,
+   "id": "R501",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Theory"
+   },
+   "avoided": [],
+   "capacity": 56,
+   "concurrency": 1,
+   "id": "R502",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Theory"
+   },
+   "avoided": [],
+   "capacity": 32,
+   "concurrency": 1,
+   "id": "R503",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Theory"
+   },
+   "avoided": [],
+   "capacity": 50,
+   "concurrency": 1,
+   "id": "R504",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Lab"
+   },
+   "avoided": [],
+   "capacity": 56,
+   "concurrency": 1,
+   "id": "R505",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "Networking & Cyber Security"
+   ],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Lab"
+   },
+   "avoided": [],
+   "capacity": 25,
+   "concurrency": 1,
+   "id": "R506",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "AI & ML",
+    "ICT & Programming"
+   ],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Theory"
+   },
+   "avoided": [],
+   "capacity": 36,
+   "concurrency": 1,
+   "id": "R507",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Lab"
+   },
+   "avoided": [],
+   "capacity": 88,
+   "concurrency": 1,
+   "id": "R601",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "ICT & Programming"
+   ],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Theory"
+   },
+   "avoided": [],
+   "capacity": 80,
+   "concurrency": 1,
+   "id": "R602",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Lab"
+   },
+   "avoided": [],
+   "capacity": 15,
+   "concurrency": 1,
+   "id": "R604",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [
+    "Multimedia Studio"
+   ],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Theory"
+   },
+   "avoided": [],
+   "capacity": 32,
+   "concurrency": 1,
+   "id": "R605",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Theory"
+   },
+   "avoided": [],
+   "capacity": 500,
+   "concurrency": 1,
+   "id": "R700",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Theory"
+   },
+   "avoided": [],
+   "capacity": 30,
+   "concurrency": 1,
+   "id": "RB101",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Theory"
+   },
+   "avoided": [],
+   "capacity": 70,
+   "concurrency": 1,
+   "id": "RB201",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Theory"
+   },
+   "avoided": [],
+   "capacity": 30,
+   "concurrency": 1,
+   "id": "RB202",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Theory"
+   },
+   "avoided": [],
+   "capacity": 70,
+   "concurrency": 1,
+   "id": "RB301",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "room_type": "Theory"
+   },
+   "avoided": [],
+   "capacity": 30,
+   "concurrency": 1,
+   "id": "RB302",
+   "kind": "space",
+   "preferred": [],
+   "size": null,
+   "tags": [],
+   "type_key": "room",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "program": "BCS",
+    "semester": "S1"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "SG_BCS_126_S1",
+   "kind": "group",
+   "preferred": [],
+   "size": 40,
+   "tags": [],
+   "type_key": "student_group",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "program": "BCS",
+    "semester": "S2"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "SG_BCS_126_S2",
+   "kind": "group",
+   "preferred": [],
+   "size": 39,
+   "tags": [],
+   "type_key": "student_group",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "program": "BCS",
+    "semester": "S3"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "SG_BCS_126_S3",
+   "kind": "group",
+   "preferred": [],
+   "size": 38,
+   "tags": [],
+   "type_key": "student_group",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "program": "BCS",
+    "semester": "S4"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "SG_BCS_126_S4",
+   "kind": "group",
+   "preferred": [],
+   "size": 37,
+   "tags": [],
+   "type_key": "student_group",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "program": "BCS",
+    "semester": "S5"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "SG_BCS_126_S5",
+   "kind": "group",
+   "preferred": [],
+   "size": 36,
+   "tags": [],
+   "type_key": "student_group",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "program": "BCS",
+    "semester": "S6"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "SG_BCS_126_S6",
+   "kind": "group",
+   "preferred": [],
+   "size": 35,
+   "tags": [],
+   "type_key": "student_group",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "program": "BSCAIT",
+    "semester": "S1"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "SG_BSCAIT_126_S1",
+   "kind": "group",
+   "preferred": [],
+   "size": 32,
+   "tags": [],
+   "type_key": "student_group",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "program": "BSCAIT",
+    "semester": "S2"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "SG_BSCAIT_126_S2",
+   "kind": "group",
+   "preferred": [],
+   "size": 31,
+   "tags": [],
+   "type_key": "student_group",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "program": "BSCAIT",
+    "semester": "S3"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "SG_BSCAIT_126_S3",
+   "kind": "group",
+   "preferred": [],
+   "size": 30,
+   "tags": [],
+   "type_key": "student_group",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "program": "BSCAIT",
+    "semester": "S4"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "SG_BSCAIT_126_S4",
+   "kind": "group",
+   "preferred": [],
+   "size": 29,
+   "tags": [],
+   "type_key": "student_group",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "program": "BSCAIT",
+    "semester": "S5"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "SG_BSCAIT_126_S5",
+   "kind": "group",
+   "preferred": [],
+   "size": 28,
+   "tags": [],
+   "type_key": "student_group",
+   "unavailable": []
+  },
+  {
+   "attrs": {
+    "program": "BSCAIT",
+    "semester": "S6"
+   },
+   "avoided": [],
+   "capacity": null,
+   "concurrency": 1,
+   "id": "SG_BSCAIT_126_S6",
+   "kind": "group",
+   "preferred": [],
+   "size": 27,
+   "tags": [],
+   "type_key": "student_group",
+   "unavailable": []
+  }
+ ],
+ "week_windows": [
+  {
+   "end": 7200,
+   "start": 0
+  }
+ ]
+}
