@@ -3,7 +3,7 @@ name = "cartlyf-engine"
 version = "0.0.0"
 description = "Pure scheduling engine: domain, constraint templates, CP-SAT compiler, checker."
 requires-python = ">=3.12,<3.13"
-dependencies = ["ortools>=9.12", "pydantic>=2.9"]
+dependencies = ["ortools>=9.12", "pydantic>=2.14.1"]
 
 [build-system]
 requires = ["hatchling"]
