@@ -1,14 +1,18 @@
 version: 2
+# Updates go to Development like any other change; only a human merges into main.
 updates:
   - package-ecosystem: uv
     directory: /
+    target-branch: Development
     schedule:
       interval: weekly
   - package-ecosystem: npm
     directory: /apps/web
+    target-branch: Development
     schedule:
       interval: weekly
   - package-ecosystem: github-actions
     directory: /
+    target-branch: Development
     schedule:
       interval: weekly

@@ -32,13 +32,65 @@ export async function pickUp(page: Page, item: Locator): Promise<void> {
   ).toBeAttached();
 }
 
+/**
+ * A highlighted cell to drop on, clear of the board's edges where dnd-kit auto-scrolls. When none is
+ * on screen, the nearest one is scrolled to the centre in one native jump (no animation to fight).
+ */
+export async function visibleCell(
+  page: Page,
+  state: "valid" | "invalid",
+): Promise<Locator | null> {
+  const id = await page.evaluate<string | null, string>((wanted) => {
+    const scroller = document.querySelector('[role="grid"]')?.parentElement;
+    if (!scroller) return null;
+    const view = scroller.getBoundingClientRect();
+    const margin = 48;
+    const cx = (view.left + view.right) / 2;
+    const cy = (view.top + view.bottom) / 2;
+    const cells = [
+      ...document.querySelectorAll<HTMLElement>(`[data-check="${wanted}"]`),
+    ];
+    const onScreen = cells.find((cell) => {
+      const r = cell.getBoundingClientRect();
+      return (
+        r.top >= view.top + margin &&
+        r.bottom <= view.bottom - margin &&
+        r.left >= view.left + margin &&
+        r.right <= view.right - margin
+      );
+    });
+    if (onScreen) return onScreen.dataset.cell ?? null;
+    const distance = (cell: HTMLElement) => {
+      const r = cell.getBoundingClientRect();
+      return Math.hypot(r.left + r.width / 2 - cx, r.top + r.height / 2 - cy);
+    };
+    const nearest = cells.sort((a, b) => distance(a) - distance(b)).at(0);
+    if (!nearest) return null;
+    nearest.scrollIntoView({ block: "center", inline: "center" });
+    return nearest.dataset.cell ?? null;
+  }, state);
+  return id ? page.locator(`[data-cell="${id}"]`) : null;
+}
+
+// Playwright's scrollIntoView during a drag fights dnd-kit's auto-scroll (see visibleCell); release
+// only once the target has stopped moving under the pointer.
 export async function dropOn(page: Page, cell: Locator): Promise<void> {
-  await cell.scrollIntoViewIfNeeded();
-  const box = await cell.boundingBox();
-  if (!box) throw new Error("cell not visible");
-  await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, {
-    steps: 5,
-  });
-  await page.waitForTimeout(400);
-  await page.mouse.up();
+  for (let attempt = 0; attempt < 10; attempt++) {
+    const box = await cell.boundingBox();
+    if (!box) throw new Error("drop target not on screen");
+    await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2, {
+      steps: 5,
+    });
+    await page.waitForTimeout(400);
+    const settled = await cell.boundingBox();
+    if (
+      settled &&
+      Math.abs(settled.x - box.x) < 1 &&
+      Math.abs(settled.y - box.y) < 1
+    ) {
+      await page.mouse.up();
+      return;
+    }
+  }
+  throw new Error("drop target kept moving");
 }
