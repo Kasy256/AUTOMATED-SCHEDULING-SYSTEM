@@ -5,3 +5,9 @@
 0b78c56f9f1020b35f3882331bbe96cc96aa9d79:timetable-scheduler/README.md:generic-api-key:127
 # Fake example JWT in an OpenAPI request example (replaced in a later commit); not a credential.
 6dee17481fb423dbc47a8782f696eeb6987aecf4:apps/api/src/cartlyf_api/auth/schemas.py:generic-api-key:12
+# render.yaml declares env var names only (values are `sync: false` / `auto`); the generic rule
+# matches the CARTLYF_S3_SECRET_KEY name. No credential is in the blueprint.
+ae4d554ad30c00fa59fe6308ce3edcdae2128511:render.yaml:generic-api-key:108
+ae4d554ad30c00fa59fe6308ce3edcdae2128511:render.yaml:generic-api-key:110
+ae4d554ad30c00fa59fe6308ce3edcdae2128511:render.yaml:generic-api-key:210
+ae4d554ad30c00fa59fe6308ce3edcdae2128511:render.yaml:generic-api-key:212

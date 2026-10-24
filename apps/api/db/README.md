@@ -26,8 +26,16 @@ Locally, `docker compose up` does this automatically: `Dockerfile` bakes `roles.
 using the passwords from `.env`. After editing `roles.sql`, rebuild with `docker compose build`. To re-run it, remove the volume:
 `docker compose down -v`.
 
-Managed hosts (e.g. Render) may not allow `CREATE ROLE` / `CREATE DATABASE` exactly as written;
-production provisioning is decided in Phase 09.
+Managed hosts (e.g. Render) create the database and a non-superuser admin that owns it, so
+`roles.sql` does not apply there. Instead, once per environment, run `managed_roles.sql` as that
+admin, connected to the `cartlyf` database:
+
+```sh
+psql "$ADMIN_URL" -v owner_password='...' -v app_password='...' -f apps/api/db/managed_roles.sql
+```
+
+It creates the same two roles, gives the owner `CREATE` on the database (for the trusted
+`citext`/`btree_gist` extensions) and ownership of `public`. The admin is not used by the app.
 
 ## Migrations
 

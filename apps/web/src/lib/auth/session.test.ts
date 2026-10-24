@@ -54,6 +54,20 @@ describe("refreshAccessToken", () => {
     expect(getAccessToken()).toBe("new-token");
   });
 
+  it("refreshes against the API host with the cookie", async () => {
+    vi.stubEnv("VITE_API_BASE_URL", "https://api.example.test");
+    const fetchMock = vi.fn((_url: string, _init?: RequestInit) =>
+      Promise.resolve(tokenResponse("t")),
+    );
+    vi.stubGlobal("fetch", fetchMock);
+    await refreshAccessToken();
+    expect(fetchMock.mock.calls[0]?.[0]).toBe(
+      "https://api.example.test/api/v1/auth/refresh",
+    );
+    expect(fetchMock.mock.calls[0]?.[1]?.credentials).toBe("include");
+    vi.unstubAllEnvs();
+  });
+
   it("clears the token when the refresh is refused", async () => {
     setAccessToken("old");
     vi.stubGlobal(

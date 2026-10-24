@@ -25,11 +25,16 @@ dev = [
   "httpx2",
   "testcontainers[minio,postgres,redis]",
 ]
+# Opt-in (`uv run --group load locust ...`): locust pulls in Flask, which Sentry auto-instruments
+# in tests and which the EDU-01 legacy-import guard rightly flags.
+load = [
+  "locust==2.46.7",
+]
 
 [tool.ruff]
 target-version = "py312"
 line-length = 100
-extend-exclude = ["ISBAT-TIMETABLE-BACKEND", "ISBAT-TIMETABLE-FRONTEND", "apps/web"]
+extend-exclude = ["apps/web"]
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "B", "UP", "SIM", "RUF", "ASYNC"]
@@ -40,7 +45,8 @@ known-first-party = ["cartlyf_engine", "cartlyf_api", "support", "kit", "brutefo
 [tool.pyright]
 include = ["packages/engine", "apps/api", "tools"]
 extraPaths = ["apps/api/tests", "packages/engine/tests"]
-exclude = ["**/.venv", "**/__pycache__"]
+# The locustfile needs the opt-in `load` group; its testable logic lives in tools/loadtest/moves.py.
+exclude = ["**/.venv", "**/__pycache__", "tools/loadtest/locustfile.py"]
 typeCheckingMode = "strict"
 pythonVersion = "3.12"
 venvPath = "."
@@ -48,7 +54,7 @@ venv = ".venv"
 
 [tool.pytest.ini_options]
 testpaths = ["packages/engine/tests", "apps/api/tests", "tools"]
-pythonpath = ["apps/api/tests", "packages/engine/tests"]
+pythonpath = [".", "apps/api/tests", "packages/engine/tests"]
 addopts = "--import-mode=importlib -m 'not benchmark'"
 markers = [
   "integration: needs Docker (Testcontainers)",

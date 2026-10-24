@@ -18,6 +18,8 @@ EXPECTED_DEFINER_FUNCTIONS = {
     "user_id_by_email",
     "refresh_token_user_id",
     "calendar_feed_org",
+    # Outbox ids and recipients only; each email is read and sent under its recipient's context.
+    "pending_emails",
 }
 # Capability-URL lookup by hash cannot lead with the organisation: the org is what it resolves.
 TOKEN_LOOKUP_INDEXES = {"calendar_feed_token_hash_key"}

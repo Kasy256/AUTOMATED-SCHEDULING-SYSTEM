@@ -7,7 +7,15 @@ from fastapi import FastAPI
 from fastapi.testclient import TestClient
 from testcontainers.community.postgres import PostgresContainer
 
-from support import fetch, request_run, run_now, signup_and_confirm, slow_schedule, superuser_url
+from support import (
+    add_rule,
+    fetch,
+    request_run,
+    run_now,
+    signup_and_confirm,
+    slow_schedule,
+    superuser_url,
+)
 
 pytestmark = pytest.mark.integration
 
@@ -48,6 +56,17 @@ def test_JOB_04_time_limited_run_returns_best_so_far(
 ) -> None:
     admin = signup_and_confirm(client, app)
     built = slow_schedule(client, admin)
+    # 200 sessions over 30 lecturers cannot balance evenly, so no plan costs 0 and a 1 s run
+    # cannot be proven optimal (a verified 0-cost plan would be OPTIMAL at once).
+    add_rule(
+        client,
+        admin,
+        built.schedule_id,
+        "balance",
+        {"measure": "count"},
+        weight=1,
+        scope={"resource_type_ids": [built.lecturer_type_id]},
+    )
     run_id = request_run(client, admin, built.schedule_id, time_limit_s=1)
     assert run_now(app, run_id, admin.organisation_id) == "succeeded"
     run = client.get(f"/api/v1/solves/{run_id}", headers=admin.auth).json()

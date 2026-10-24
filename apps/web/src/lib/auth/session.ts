@@ -1,3 +1,4 @@
+import { apiUrl } from "@/api/base";
 import type { TokenResponse } from "@/api/generated/model";
 
 let accessToken: string | null = null;
@@ -44,9 +45,9 @@ export function withSessionLock<T>(fn: () => Promise<T>): Promise<T> {
 }
 
 async function refreshOnce(): Promise<string | null> {
-  const res = await fetch("/api/v1/auth/refresh", {
+  const res = await fetch(apiUrl("/api/v1/auth/refresh"), {
     method: "POST",
-    credentials: "same-origin",
+    credentials: "include",
   });
   if (!res.ok) {
     setAccessToken(null);

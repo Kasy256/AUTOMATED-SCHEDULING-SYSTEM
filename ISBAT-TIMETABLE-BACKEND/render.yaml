@@ -1,9 +1,0 @@
-services:
-  - type: web
-    name: isbat-backend
-    runtime: python
-    buildCommand: "pip install -r requirements.txt"
-    startCommand: "gunicorn -w 2 -b 0.0.0.0:$PORT wsgi:app"
-    envVars:
-      - key: PYTHON_VERSION
-        value: "3.12.18"

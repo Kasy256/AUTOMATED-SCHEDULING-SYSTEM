@@ -1,12 +1,21 @@
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import AnyHttpUrl, Field, PostgresDsn, RedisDsn, SecretStr
+from pydantic import (
+    AliasChoices,
+    AnyHttpUrl,
+    Field,
+    PostgresDsn,
+    RedisDsn,
+    SecretStr,
+    model_validator,
+)
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(env_prefix="CARTLYF_", env_file=".env", extra="ignore")
 
+    environment: Literal["local", "test", "staging", "production"] = "local"
     database_url: PostgresDsn
     redis_url: RedisDsn
     log_level: Literal["DEBUG", "INFO", "WARNING", "ERROR"] = "INFO"
@@ -38,6 +47,50 @@ class Settings(BaseSettings):
     infeasibility_time_limit_s: int = 30
     explain_max_alternatives: int = 100
     sentry_dsn: SecretStr | None = None
+    release: str | None = Field(
+        default=None,
+        validation_alias=AliasChoices("release", "CARTLYF_RELEASE", "RENDER_GIT_COMMIT"),
+    )
+    email_provider: Literal["console", "resend"] = "console"
+    resend_api_key: SecretStr | None = None
+    resend_api_url: AnyHttpUrl = AnyHttpUrl("https://api.resend.com")
+    email_from: str | None = None
+    # Total sends tried per email (first delivery + re-delivery sweeps) before giving up.
+    email_max_attempts: int = Field(default=5, ge=1)
+    # Set by Render on every service; there the process is never local dev, whatever else is set.
+    on_render: bool = Field(default=False, validation_alias="RENDER")
+
+    @property
+    def deployed(self) -> bool:
+        return self.environment in ("staging", "production")
+
+    @model_validator(mode="after")
+    def _check_consistency(self) -> Self:
+        problems: list[str] = []
+        if self.email_provider == "resend":
+            problems += [f"{f} is required for resend" for f in self._missing_resend()]
+        if self.on_render and not self.deployed:
+            problems.append("environment must be staging or production on Render")
+        if self.deployed:
+            problems += [f"{f} is unsafe outside local dev" for f in self._unsafe_when_deployed()]
+        if problems:
+            raise ValueError("; ".join(problems))
+        return self
+
+    def _missing_resend(self) -> list[str]:
+        return [f for f in ("resend_api_key", "email_from") if getattr(self, f) is None]
+
+    def _unsafe_when_deployed(self) -> list[str]:
+        # The console provider logs whole emails, sign-in links included.
+        checks = {
+            "cookie_secure": self.cookie_secure,
+            "s3_secure": self.s3_secure,
+            "web_base_url": self.web_base_url.scheme == "https",
+            "public_api_base_url": self.public_api_base_url.scheme == "https",
+            "email_provider": self.email_provider == "resend",
+            "sentry_dsn": self.sentry_dsn is not None,
+        }
+        return [field for field, safe in checks.items() if not safe]
 
 
 def load_settings(env_file: str | None = ".env") -> Settings:

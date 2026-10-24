@@ -4,7 +4,7 @@ from datetime import UTC, datetime
 from uuid import UUID, uuid4
 
 import structlog
-from sqlalchemy import insert
+from sqlalchemy import insert, text
 from sqlalchemy.ext.asyncio import AsyncEngine, AsyncSession
 
 from cartlyf_api.email.models import EmailOutbox
@@ -60,3 +60,23 @@ async def deliver_all(
             await deliver(engine, provider, email)
         except Exception:
             log.exception("email_delivery_crashed", outbox_id=str(email.outbox_id))
+
+
+# One sweep's cap; the next run takes the rest.
+_SWEEP_LIMIT = 500
+_PENDING = text("SELECT outbox_id, user_id FROM auth.pending_emails(:max_attempts, :limit)")
+
+
+async def redeliver_pending(engine: AsyncEngine, provider: EmailProvider, max_attempts: int) -> int:
+    """Retry every unsent email below the attempt cap; returns how many were sent."""
+    async with scoped_transaction(engine) as session:
+        rows = (
+            await session.execute(_PENDING, {"max_attempts": max_attempts, "limit": _SWEEP_LIMIT})
+        ).all()
+    sent = 0
+    for outbox_id, user_id in rows:
+        try:
+            sent += await deliver(engine, provider, QueuedEmail(outbox_id, user_id))
+        except Exception:
+            log.exception("email_redelivery_crashed", outbox_id=str(outbox_id))
+    return sent
