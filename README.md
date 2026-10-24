@@ -108,48 +108,96 @@ render.yaml       Render blueprint (staging and production)
 The Education template is benchmarked against the university's former timetabling system: its data
 lives as versioned fixtures in `packages/engine/tests/fixtures/isbat/`.
 
-## Prerequisites
+## Getting started (run it on your computer)
 
-- [uv](https://docs.astral.sh/uv/) (manages Python 3.12 and the workspace)
-- Node.js 24 (see `.nvmrc`) and [pnpm](https://pnpm.io/)
-- Docker (for Postgres 16, Redis 7 and MinIO locally, and for the test suite)
+Cartlyf runs entirely on your machine: no accounts, keys or hosting needed. The database, queue and
+file storage run in Docker; the API, the solve worker and the web app run from three terminals.
+Allow about 20 minutes the first time.
 
-## Run locally
+### 1. Install the tools (once)
+
+| Tool | Why | Install | Check |
+|---|---|---|---|
+| **Git** | Clone the repo | [git-scm.com](https://git-scm.com/downloads) | `git --version` |
+| **Docker Desktop** | Runs Postgres 16, Redis and MinIO (file storage) | [docker.com](https://www.docker.com/products/docker-desktop/) | `docker info` (Docker Desktop must be running) |
+| **uv** | Installs Python 3.12 and the backend packages | [docs.astral.sh/uv](https://docs.astral.sh/uv/getting-started/installation/) | `uv --version` |
+| **Node.js 24** | Builds and serves the web app | [nodejs.org](https://nodejs.org/) (or `nvm use`, see `.nvmrc`) | `node --version` |
+| **pnpm** | Web app packages | `corepack enable` (ships with Node) | `pnpm --version` |
+
+### 2. Get the code and set it up (once)
 
 ```sh
-cp .env.example .env          # then change the passwords; change the ports if 5432/6379 are taken
-docker compose up -d --wait   # Postgres 16 (cartlyf_owner / cartlyf_app roles), Redis 7, MinIO (S3 API) + bucket
-uv sync
-uv run --env-file .env alembic -c apps/api/alembic.ini upgrade head
+git clone https://github.com/Kasy256/AUTOMATED-SCHEDULING-SYSTEM.git cartlyf
+cd cartlyf
+git checkout Development        # the latest code; main is the released version
+cp .env.example .env            # Windows PowerShell: Copy-Item .env.example .env
+docker compose up -d --wait postgres redis minio   # starts the database, queue and file storage
+docker compose up minio-init    # creates the storage bucket, then exits
+uv sync                         # installs Python 3.12 and the backend
+uv run --env-file .env alembic -c apps/api/alembic.ini upgrade head   # creates the database tables
+cd apps/web && pnpm install && pnpm api:generate && cd ../..
 ```
 
-API and worker (separate terminals):
+The values in `.env.example` are throwaway local passwords and are fine as they are. If ports 5432,
+6379 or 9000 are already used on your machine, change `CARTLYF_POSTGRES_PORT`, `CARTLYF_REDIS_PORT`
+or `CARTLYF_MINIO_PORT` in `.env` (and the same port in the URLs that use it) before
+`docker compose up`.
+
+### 3. Start the system
+
+Open three terminals in the repo folder and run one command in each; leave them running.
 
 ```sh
+# 1. API (http://localhost:8000)
 uv run --env-file .env uvicorn cartlyf_api.main:create_app --factory --reload
+
+# 2. Solve worker (runs the scheduling engine in the background)
 uv run --env-file .env dramatiq cartlyf_api.jobs.worker
+
+# 3. Web app (http://localhost:5173)
+cd apps/web && pnpm dev
 ```
 
-Web app at http://localhost:5173 (proxies `/api` to the API on port 8000):
+Open **http://localhost:5173**.
+
+### 4. Log in
+
+**Option A: load the demo organisations** (recommended for a first look). In a fourth terminal:
 
 ```sh
-cd apps/web
-pnpm install
-pnpm api:generate   # exports the OpenAPI schema from the API and generates the typed client
-pnpm dev
+uv run --env-file .env python tools/seed_demo.py ../cartlyf-demo-accounts.json
 ```
 
-Locally, emails are not sent: they are written to the API's log (sign-up confirmation links
-included). To load demo organisations (the ISBAT university term and a 40-nurse hospital roster):
+It builds, through the product itself, the ISBAT university term (lecturers, rooms, groups,
+courses) and a 4-week, 40-nurse hospital roster, which takes a few minutes. The emails and
+passwords it creates are saved in `cartlyf-demo-accounts.json`, next to (not inside) the repo
+folder. Log in with those, open a schedule and press **Solve**.
 
-```sh
-uv run --env-file .env python tools/seed_demo.py ~/cartlyf-demo-accounts.json
-```
+**Option B: sign up yourself.** Emails are not sent locally; they are printed in the **API
+terminal** instead. Sign up in the web app, then find the line containing `email_console` in the API
+terminal and open the `http://localhost:5173/confirm-email?token=...` link from it.
 
-The accounts file holds the generated logins; keep it out of the repo.
+### 5. Stop and start again
 
-`GET /api/v1/health` reports the database role the API connected as. It returns 503 if that role is
-a superuser or has `BYPASSRLS`, because row-level security is the tenant boundary. See
+- Stop: press `Ctrl+C` in the three terminals, then `docker compose stop`. Your data is kept.
+- Start again: `docker compose up -d --wait postgres redis minio`, then step 3. After pulling new code, also re-run
+  `uv sync`, the `alembic ... upgrade head` command and, in `apps/web`, `pnpm install && pnpm api:generate`.
+- Start from scratch (deletes all local data): `docker compose down -v`, then step 2 from the first
+  `docker compose up`.
+
+### Troubleshooting
+
+| Problem | Fix |
+|---|---|
+| `docker compose` fails or hangs | Start Docker Desktop and wait until it says it is running. |
+| "port is already allocated" | Another program uses that port: change it in `.env` (step 2). |
+| Database login fails after editing passwords in `.env` | The database keeps the passwords from its first start: `docker compose down -v` and set up again. |
+| The web app loads but every action fails | The API terminal is not running, or shows an error. `http://localhost:8000/api/v1/health` should answer `"status":"ok"`. |
+| A solve stays "queued" | The worker terminal is not running. |
+| Changed API and the web app shows type errors | Run `pnpm api:generate` in `apps/web`. |
+
+`GET /api/v1/health` also reports the database role the API connected as. It returns 503 if that role
+is a superuser or has `BYPASSRLS`, because row-level security is the tenant boundary. See
 `apps/api/db/README.md` for the two database roles.
 
 ## Checks
