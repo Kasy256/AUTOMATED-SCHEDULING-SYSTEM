@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.3.0
+      - uses: astral-sh/setup-uv@v10.3.1
         with:
           enable-cache: true
       - run: uv sync --frozen
@@ -35,7 +35,7 @@ jobs:
         working-directory: apps/web
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.3.0
+      - uses: astral-sh/setup-uv@v10.3.1
         with:
           enable-cache: true
       # The API exports the OpenAPI schema that orval generates the client from.
@@ -64,7 +64,7 @@ jobs:
         working-directory: apps/web
     steps:
       - uses: actions/checkout@v7
-      - uses: astral-sh/setup-uv@v10.3.0
+      - uses: astral-sh/setup-uv@v10.3.1
         with:
           enable-cache: true
       - run: uv sync --frozen --no-dev
@@ -117,7 +117,7 @@ jobs:
         run: >
           docker run --rm -v "$PWD:/repo" --entrypoint sh ghcr.io/gitleaks/gitleaks:v8.30.1
           -c 'git config --global --add safe.directory /repo && cd /repo && gitleaks git . --redact --verbose'
-      - uses: astral-sh/setup-uv@v10.3.0
+      - uses: astral-sh/setup-uv@v10.3.1
         with:
           enable-cache: true
       - run: uv sync --frozen
@@ -171,7 +171,7 @@ jobs:
       - name: Deploy the email re-delivery cron
         run: python3 tools/render_deploy.py deploy "${{ vars.RENDER_EMAIL_RETRY_SERVICE_ID }}" "$SHA"
 
-      - uses: astral-sh/setup-uv@v10.3.0
+      - uses: astral-sh/setup-uv@v10.3.1
         with:
           enable-cache: true
       # The API exports the OpenAPI schema that orval generates the client from.
