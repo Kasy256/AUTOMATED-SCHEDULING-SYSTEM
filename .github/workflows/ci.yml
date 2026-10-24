@@ -145,7 +145,8 @@ jobs:
   #            VITE_SENTRY_DSN (the web project's public DSN)
   deploy:
     needs: [python, web, e2e, security]
-    if: github.event_name == 'push' && (github.ref == 'refs/heads/Development' || github.ref == 'refs/heads/main')
+    # Off until hosting exists: set the repository variable DEPLOY_ENABLED=true to turn it on.
+    if: vars.DEPLOY_ENABLED == 'true' && github.event_name == 'push' && (github.ref == 'refs/heads/Development' || github.ref == 'refs/heads/main')
     runs-on: ubuntu-24.04
     timeout-minutes: 90
     environment: ${{ github.ref_name == 'main' && 'production' || 'staging' }}
